@@ -68,4 +68,12 @@ uint64_t umash_short(
  * Invertibly mixes the bits of `x`.
  */
 uint64_t finalize(uint64_t x);
+
+/**
+ * Hashes 9-16 bytes of data with one overlapped iteration of PH.
+ *
+ * @param multipliers is {f^2, f} reduced mod 2**61 - 1, where f is the seed.
+ */
+uint64_t umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
+    uint64_t seed, const void *data, size_t n_bytes);
 #endif /* !UMASH_TEST_ONLY_H */

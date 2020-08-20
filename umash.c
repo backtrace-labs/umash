@@ -258,3 +258,28 @@ finalize(uint64_t x)
 	x *= 0x94d049bb133111ebUL;
 	return x;
 }
+
+TEST_DEF uint64_t
+umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
+    uint64_t seed, const void *data, size_t n_bytes)
+{
+	union {
+		__m128i vec;
+		uint64_t u64[2];
+	} acc = { .vec = _mm_cvtsi64_si128(seed ^ n_bytes) };
+
+	{
+		uint64_t x, y;
+
+		memcpy(&x, data, sizeof(x));
+		memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
+		x ^= ph[0];
+		y ^= ph[1];
+
+		acc.vec ^= _mm_clmulepi64_si128(
+		    _mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+	}
+
+	return finalize(horner_double_update(
+	    /*acc=*/0, multipliers[0], multipliers[1], acc.u64[0], acc.u64[1]));
+}
