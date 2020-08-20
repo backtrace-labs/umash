@@ -315,3 +315,28 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
 
 	return finalize(acc);
 }
+
+uint64_t
+umash_full(const struct umash_params *params, uint64_t seed, int which,
+    const void *data, size_t n_bytes)
+{
+	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
+
+	which = (which == 0) ? 0 : 1;
+	/*
+	 * It's not that short inputs are necessarily more likely, but
+	 * we want to make sure they fall through correctly to
+	 * minimise latency.
+	 */
+	if (LIKELY(n_bytes <= sizeof(__m128i))) {
+		if (LIKELY(n_bytes <= sizeof(uint64_t)))
+			return umash_short(
+			    &params->ph[shift], seed, data, n_bytes);
+
+		return umash_medium(params->poly[which], &params->ph[shift],
+		    seed, data, n_bytes);
+	}
+
+	return umash_long(
+	    params->poly[which], &params->ph[shift], seed, data, n_bytes);
+}
