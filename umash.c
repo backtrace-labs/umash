@@ -46,6 +46,8 @@
 #define UNLIKELY(X) X
 #endif
 
+#define BLOCK_SIZE (sizeof(uint64_t) * UMASH_PH_PARAM_COUNT)
+
 /**
  * Modular arithmetic utilities.
  *
@@ -282,4 +284,34 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
 
 	return finalize(horner_double_update(
 	    /*acc=*/0, multipliers[0], multipliers[1], acc.u64[0], acc.u64[1]));
+}
+
+TEST_DEF uint64_t
+umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
+    uint64_t seed, const void *data, size_t n_bytes)
+{
+	uint64_t acc = 0;
+
+	while (n_bytes > BLOCK_SIZE) {
+		struct umash_ph compressed;
+
+		compressed = ph_one_block(ph, seed, data);
+		data = (const char *)data + BLOCK_SIZE;
+		n_bytes -= BLOCK_SIZE;
+
+		acc = horner_double_update(acc, multipliers[0], multipliers[1],
+		    compressed.bits[0], compressed.bits[1]);
+	}
+
+	/* Do the final block. */
+	{
+		struct umash_ph compressed;
+
+		seed ^= (uint8_t)n_bytes;
+		compressed = ph_last_block(ph, seed, data, n_bytes);
+		acc = horner_double_update(acc, multipliers[0], multipliers[1],
+		    compressed.bits[0], compressed.bits[1]);
+	}
+
+	return finalize(acc);
 }
