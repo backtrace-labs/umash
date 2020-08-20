@@ -63,4 +63,9 @@ uint64_t vec_to_u64(const void *data, size_t n_bytes);
  */
 uint64_t umash_short(
     const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes);
+
+/**
+ * Invertibly mixes the bits of `x`.
+ */
+uint64_t finalize(uint64_t x);
 #endif /* !UMASH_TEST_ONLY_H */

@@ -249,3 +249,12 @@ umash_short(
 	h ^= h >> 31;
 	return h;
 }
+
+TEST_DEF inline uint64_t
+finalize(uint64_t x)
+{
+
+	x ^= x >> 27;
+	x *= 0x94d049bb133111ebUL;
+	return x;
+}
