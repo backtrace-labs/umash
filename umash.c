@@ -340,3 +340,38 @@ umash_full(const struct umash_params *params, uint64_t seed, int which,
 	return umash_long(
 	    params->poly[which], &params->ph[shift], seed, data, n_bytes);
 }
+
+struct umash_fp
+umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
+    size_t n_bytes)
+{
+	struct umash_fp ret;
+	const size_t toeplitz_shift = UMASH_PH_TOEPLITZ_SHIFT;
+
+	if (n_bytes <= sizeof(__m128i)) {
+		if (n_bytes <= sizeof(uint64_t)) {
+			for (size_t i = 0, shift = 0; i < 2;
+			     i++, shift = toeplitz_shift) {
+				ret.hash[i] = umash_short(
+				    &params->ph[shift], seed, data, n_bytes);
+			}
+
+			return ret;
+		}
+
+		for (size_t i = 0, shift = 0; i < 2;
+		     i++, shift = toeplitz_shift) {
+			ret.hash[i] = umash_medium(params->poly[i],
+			    &params->ph[shift], seed, data, n_bytes);
+		}
+
+		return ret;
+	}
+
+	for (size_t i = 0, shift = 0; i < 2; i++, shift = toeplitz_shift) {
+		ret.hash[i] = umash_long(
+		    params->poly[i], &params->ph[shift], seed, data, n_bytes);
+	}
+
+	return ret;
+}
