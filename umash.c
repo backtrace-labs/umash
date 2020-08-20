@@ -1,5 +1,9 @@
 #include "umash.h"
 
+/* The PH block reduction code is x86-only for now. */
+#include <immintrin.h>
+#include <string.h>
+
 /*
  * UMASH is distributed under the MIT license.
  *
@@ -109,4 +113,71 @@ horner_double_update(
 
 	acc = add_mod_fast(acc, x);
 	return add_mod_slow(mul_mod_fast(m0, acc), mul_mod_fast(m1, y));
+}
+
+/**
+ * PH block compression.
+ */
+TEST_DEF struct umash_ph
+ph_one_block(const uint64_t *params, uint64_t seed, const void *block)
+{
+	struct umash_ph ret;
+	__m128i acc = _mm_cvtsi64_si128(seed);
+
+	for (size_t i = 0; i < UMASH_PH_PARAM_COUNT; i += 2) {
+		__m128i x, k;
+
+		memcpy(&x, block, sizeof(x));
+		block = (const char *)block + sizeof(x);
+
+		memcpy(&k, &params[i], sizeof(k));
+		x ^= k;
+		acc ^= _mm_clmulepi64_si128(x, x, 1);
+	}
+
+	memcpy(&ret, &acc, sizeof(ret));
+	return ret;
+}
+
+TEST_DEF struct umash_ph
+ph_last_block(
+    const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes)
+{
+	struct umash_ph ret;
+	__m128i acc = _mm_cvtsi64_si128(seed);
+
+	/* The final block processes `remaining > 0` bytes. */
+	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
+	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
+	const void *last_ptr = (const char *)block + n_bytes - sizeof(__m128i);
+	size_t i;
+
+	for (i = 0; i < end_full_pairs; i += 2) {
+		__m128i x, k;
+
+		memcpy(&x, block, sizeof(x));
+		block = (const char *)block + sizeof(x);
+
+		memcpy(&k, &params[i], sizeof(k));
+		x ^= k;
+		acc ^= _mm_clmulepi64_si128(x, x, 1);
+	}
+
+	/* Compress the final (potentially partial) pair. */
+	{
+		uint64_t x, y;
+
+		memcpy(&x, last_ptr, sizeof(x));
+		last_ptr = (const char *)last_ptr + sizeof(x);
+		memcpy(&y, last_ptr, sizeof(y));
+
+		x ^= params[i];
+		y ^= params[i + 1];
+
+		acc ^= _mm_clmulepi64_si128(
+		    _mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+	}
+
+	memcpy(&ret, &acc, sizeof(ret));
+	return ret;
 }

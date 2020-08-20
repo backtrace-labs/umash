@@ -38,4 +38,18 @@ uint64_t mul_mod_fast(uint64_t m, uint64_t x);
  */
 uint64_t horner_double_update(
     uint64_t acc, uint64_t m0, uint64_t m1, uint64_t x, uint64_t y);
+
+/**
+ * Compresses one PH block of 256 bytes, with the accumulator
+ * initialised to `seed`.
+ */
+struct umash_ph ph_one_block(
+    const uint64_t *params, uint64_t seed, const void *block);
+
+/**
+ * Compress the last PH block of up to 256 bytes.  `block + n_bytes -
+ * 16` must contain input data.
+ */
+struct umash_ph ph_last_block(
+    const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes);
 #endif /* !UMASH_TEST_ONLY_H */
