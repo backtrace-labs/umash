@@ -1,0 +1,11 @@
+*~
+*#
+*.swp
+*.swo
+*.so
+*.o
+*.a
+__pycache__
+t/__pycache__
+t/.hypothesis
+t/umash-venv
