@@ -181,3 +181,71 @@ ph_last_block(
 	memcpy(&ret, &acc, sizeof(ret));
 	return ret;
 }
+
+/**
+ * Short UMASH (<= 8 bytes).
+ */
+TEST_DEF inline uint64_t
+vec_to_u64(const void *data, size_t n_bytes)
+{
+	const char zeros[2] = { 0 };
+	uint32_t hi, lo;
+
+	/*
+	 * If there are at least 4 bytes to read, read the first 4 in
+	 * `lo`, and the last 4 in `hi`.  This covers the whole range,
+	 * since `n_bytes` is at most 8.
+	 */
+	if (LIKELY(n_bytes >= sizeof(lo))) {
+		memcpy(&lo, data, sizeof(lo));
+		memcpy(
+		    &hi, (const char *)data + n_bytes - sizeof(hi), sizeof(hi));
+	} else {
+		/* 0 <= n_bytes < 4.  Decode the size in binary. */
+		uint16_t word;
+		uint8_t byte;
+
+		/*
+		 * If the size is odd, load the first byte in `byte`;
+		 * otherwise, load in a zero.
+		 */
+		memcpy(&byte, ((n_bytes & 1) != 0) ? data : zeros, 1);
+		lo = byte;
+
+		/*
+		 * If the size is 2 or 3, load the last two bytes in `word`;
+		 * otherwise, load in a zero.
+		 */
+		memcpy(&word,
+		    ((n_bytes & 2) != 0) ? (const char *)data + n_bytes - 2 :
+					   zeros,
+		    2);
+		/*
+		 * We have now read `bytes[0 ... n_bytes - 1]`
+		 * exactly once without overwriting any data.
+		 */
+		hi = word;
+	}
+
+	/*
+	 * Mix `hi` with the `lo` bits: SplitMix64 seems to have
+	 * trouble with the top 4 bits.
+	 */
+	return ((uint64_t)hi << 32) | (lo + hi);
+}
+
+TEST_DEF uint64_t
+umash_short(
+    const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
+{
+	uint64_t h;
+
+	seed += params[n_bytes];
+	h = vec_to_u64(data, n_bytes);
+	h ^= h >> 30;
+	h *= 0xbf58476d1ce4e5b9ULL;
+	h = (h ^ seed) ^ (h >> 27);
+	h *= 0x94d049bb133111ebULL;
+	h ^= h >> 31;
+	return h;
+}

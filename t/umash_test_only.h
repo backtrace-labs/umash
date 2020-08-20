@@ -52,4 +52,15 @@ struct umash_ph ph_one_block(
  */
 struct umash_ph ph_last_block(
     const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes);
+
+/**
+ * Converts a buffer of <= 8 bytes to a 64-bit integers.
+ */
+uint64_t vec_to_u64(const void *data, size_t n_bytes);
+
+/**
+ * Hashes up to 8 bytes of data with a pseudo-random permutation.
+ */
+uint64_t umash_short(
+    const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes);
 #endif /* !UMASH_TEST_ONLY_H */
