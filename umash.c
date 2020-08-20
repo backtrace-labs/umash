@@ -46,6 +46,8 @@
 #define UNLIKELY(X) X
 #endif
 
+#define ARRAY_SIZE(ARR) (sizeof(ARR) / sizeof(ARR[0]))
+
 #define BLOCK_SIZE (sizeof(uint64_t) * UMASH_PH_PARAM_COUNT)
 
 /**
@@ -314,6 +316,68 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
 	}
 
 	return finalize(acc);
+}
+
+static bool
+value_is_repeated(const uint64_t *values, size_t n, uint64_t needle)
+{
+
+	for (size_t i = 0; i < n; i++) {
+		if (values[i] == needle)
+			return true;
+	}
+
+	return false;
+}
+
+bool
+umash_params_prepare(struct umash_params *params)
+{
+	static const uint64_t modulo = (1UL << 61) - 1;
+	/*
+	 * The polynomial parameters have two redundant fields (for
+	 * the pre-squared multipliers).  Use them as our source of
+	 * extra entropy if needed.
+	 */
+	uint64_t buf[] = { params->poly[0][0], params->poly[1][0] };
+	size_t buf_idx = 0;
+
+#define GET_RANDOM(DST)                         \
+	do {                                    \
+		if (buf_idx >= ARRAY_SIZE(buf)) \
+			return false;           \
+                                                \
+		(DST) = buf[buf_idx++];         \
+	} while (0)
+
+	/* Check the polynomial multipliers: we don't want 0s. */
+	for (size_t i = 0; i < ARRAY_SIZE(params->poly); i++) {
+		uint64_t f = params->poly[i][1];
+
+		while (true) {
+			/*
+			 * Zero out bits and use rejection sampling to
+			 * guarantee uniformity.
+			 */
+			f &= (1UL << 61) - 1;
+			if (f != 0 && f < modulo)
+				break;
+
+			GET_RANDOM(f);
+		}
+
+		/* We can work in 2**64 - 8 and reduce after the fact. */
+		params->poly[i][0] = mul_mod_fast(f, f) % modulo;
+		params->poly[i][1] = f;
+	}
+
+	/* Avoid repeated PH noise values. */
+	for (size_t i = 0; i < ARRAY_SIZE(params->ph); i++) {
+		while (value_is_repeated(params->ph, i, params->ph[i]))
+			GET_RANDOM(params->ph[i]);
+	}
+
+	return true;
 }
 
 uint64_t
