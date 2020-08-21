@@ -450,13 +450,13 @@ umash_fp_short(
 	h *= 0xbf58476d1ce4e5b9ULL;
 	h ^= h >> 27;
 
-	ret.hash[0] ^= h;
-	ret.hash[0] *= 0x94d049bb133111ebULL;
-	ret.hash[0] ^= ret.hash[0] >> 31;
+#pragma GCC unroll 2
+	for (size_t i = 0; i < 2; i++) {
+		ret.hash[i] ^= h;
+		ret.hash[i] *= 0x94d049bb133111ebULL;
+		ret.hash[i] ^= ret.hash[i] >> 31;
+	}
 
-	ret.hash[1] ^= h;
-	ret.hash[1] *= 0x94d049bb133111ebULL;
-	ret.hash[1] ^= ret.hash[1] >> 31;
 	return ret;
 }
 
@@ -511,6 +511,7 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 		expanded = _mm_set_epi64x(y, x);
 	}
 
+#pragma GCC unroll 2
 	for (size_t i = 0, shift = 0; i < 2;
 	     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
 		union {
@@ -663,7 +664,8 @@ sink_update_poly(struct umash_sink *sink)
 	 */
 	uint8_t block_size = sink->block_size;
 
-	for (size_t i = 0; i < (sink->fingerprinting ? 2 : 1); i++) {
+#pragma GCC unroll 2
+	for (size_t i = 0; i < 2; i++) {
 		uint64_t ph0 = sink->ph_acc[i].bits[0] ^ block_size;
 		uint64_t ph1 = sink->ph_acc[i].bits[1];
 
@@ -672,6 +674,8 @@ sink_update_poly(struct umash_sink *sink)
 		    sink->poly_state[i].mul[1], ph0, ph1);
 
 		memcpy(&sink->ph_acc[i], &ph_acc, sizeof(ph_acc));
+		if (!sink->fingerprinting)
+			break;
 	}
 
 	return;
@@ -683,23 +687,25 @@ sink_consume_buf(
     struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY])
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
+	uint64_t x, y;
 
-	for (size_t i = 0, param = sink->ph_iter;
-	     i < (sink->fingerprinting ? 2 : 1);
+	memcpy(&x, buf, sizeof(x));
+	memcpy(&y, buf + sizeof(x), sizeof(y));
+
+#pragma GCC unroll 2
+	for (size_t i = 0, param = sink->ph_iter; i < 2;
 	     i++, param += UMASH_PH_TOEPLITZ_SHIFT) {
 		__m128i acc;
-		uint64_t x, y;
-
-		memcpy(&x, buf, sizeof(x));
-		memcpy(&y, buf + sizeof(x), sizeof(y));
 
 		/* Use GPR loads to avoid forwarding stalls.  */
-		x ^= sink->ph[param];
-		y ^= sink->ph[param + 1];
 		memcpy(&acc, &sink->ph_acc[i], sizeof(acc));
-		acc ^= _mm_clmulepi64_si128(
-		    _mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+		acc ^=
+		    _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->ph[param]),
+			_mm_cvtsi64_si128(y ^ sink->ph[param + 1]), 0);
 		memcpy(&sink->ph_acc[i], &acc, sizeof(acc));
+
+		if (!sink->fingerprinting)
+			break;
 	}
 
 	memmove(&sink->buf, buf, buf_begin);
@@ -927,8 +933,8 @@ umash_fp_digest(const struct umash_fp_state *state)
 		 */
 		params = (const void *)((const char *)sink->ph -
 		    __builtin_offsetof(struct umash_params, ph));
-		return umash_fp_medium(params->poly, sink->ph,
-		    sink->seed, &sink->buf[buf_begin], sink->bufsz);
+		return umash_fp_medium(params->poly, sink->ph, sink->seed,
+		    &sink->buf[buf_begin], sink->bufsz);
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(ret.hash); i++)
