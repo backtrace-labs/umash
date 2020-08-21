@@ -494,6 +494,43 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
 	    /*acc=*/0, multipliers[0], multipliers[1], acc.u64[0], acc.u64[1]));
 }
 
+static struct umash_fp
+umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
+    uint64_t seed, const void *data, size_t n_bytes)
+{
+	const __m128i offset = _mm_cvtsi64_si128(seed ^ n_bytes);
+	__m128i expanded;
+	struct umash_fp ret;
+
+	/* Expand the 9-16 bytes to 16. */
+	{
+		uint64_t x, y;
+
+		memcpy(&x, data, sizeof(x));
+		memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
+		expanded = _mm_set_epi64x(y, x);
+	}
+
+	for (size_t i = 0, shift = 0; i < 2;
+	     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
+		union {
+			__m128i vec;
+			uint64_t u64[2];
+		} hash;
+
+		memcpy(&hash.vec, &ph[shift], sizeof(hash));
+		hash.vec ^= expanded;
+		hash.vec = _mm_clmulepi64_si128(hash.vec, hash.vec, 1);
+		hash.vec ^= offset;
+
+		ret.hash[i] = finalize(horner_double_update(
+		    /*acc=*/0, multipliers[i][0], multipliers[i][1],
+		    hash.u64[0], hash.u64[1]));
+	}
+
+	return ret;
+}
+
 TEST_DEF uint64_t
 umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
     uint64_t seed, const void *data, size_t n_bytes)
@@ -748,13 +785,8 @@ umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
 		if (n_bytes <= sizeof(uint64_t))
 			return umash_fp_short(params->ph, seed, data, n_bytes);
 
-		for (size_t i = 0, shift = 0; i < 2;
-		     i++, shift = toeplitz_shift) {
-			ret.hash[i] = umash_medium(params->poly[i],
-			    &params->ph[shift], seed, data, n_bytes);
-		}
-
-		return ret;
+		return umash_fp_medium(
+		    params->poly, params->ph, seed, data, n_bytes);
 	}
 
 	for (size_t i = 0, shift = 0; i < 2; i++, shift = toeplitz_shift) {
@@ -886,6 +918,17 @@ umash_fp_digest(const struct umash_fp_state *state)
 	} else if (sink->bufsz <= sizeof(uint64_t)) {
 		return umash_fp_short(
 		    sink->ph, sink->seed, &sink->buf[buf_begin], sink->bufsz);
+	} else {
+		const struct umash_params *params;
+
+		/*
+		 * Back out the params struct from our pointer to its
+		 * `ph` member.
+		 */
+		params = (const void *)((const char *)sink->ph -
+		    __builtin_offsetof(struct umash_params, ph));
+		return umash_fp_medium(params->poly, sink->ph,
+		    sink->seed, &sink->buf[buf_begin], sink->bufsz);
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(ret.hash); i++)
