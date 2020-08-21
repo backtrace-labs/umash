@@ -392,6 +392,55 @@ ph_last_block(
 	return ret;
 }
 
+static void
+ph_last_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
+    uint64_t seed, const void *block, size_t n_bytes)
+{
+	__m128i acc[2] = { _mm_cvtsi64_si128(seed), _mm_cvtsi64_si128(seed) };
+
+	/* The final block processes `remaining > 0` bytes. */
+	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
+	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
+	const void *last_ptr = (const char *)block + n_bytes - sizeof(__m128i);
+	size_t i;
+
+	for (i = 0; i < end_full_pairs; i += 2) {
+		__m128i x, k0, k1;
+
+		memcpy(&x, block, sizeof(x));
+		block = (const char *)block + sizeof(x);
+
+		memcpy(&k0, &params[i], sizeof(k1));
+		memcpy(&k1, &params[i + UMASH_PH_TOEPLITZ_SHIFT], sizeof(k1));
+
+		k0 ^= x;
+		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
+		k1 ^= x;
+		acc[1] ^= _mm_clmulepi64_si128(k1, k1, 1);
+	}
+
+	{
+		__m128i x, k0, k1;
+		uint64_t x0, x1;
+
+		memcpy(&x0, last_ptr, sizeof(x0));
+		last_ptr = (const char *)last_ptr + sizeof(x0);
+		memcpy(&x1, last_ptr, sizeof(x1));
+
+		x = _mm_set_epi64x(x1, x0);
+		memcpy(&k0, &params[i], sizeof(k0));
+		memcpy(&k1, &params[i + UMASH_PH_TOEPLITZ_SHIFT], sizeof(k1));
+
+		k0 ^= x;
+		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
+		k1 ^= x;
+		acc[1] ^= _mm_clmulepi64_si128(k1, k1, 1);
+	}
+
+	memcpy(dst, &acc, sizeof(acc));
+	return;
+}
+
 /**
  * Short UMASH (<= 8 bytes).
  */
@@ -591,12 +640,11 @@ static struct umash_fp
 umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph,
     uint64_t seed, const void *data, size_t n_bytes)
 {
+	struct umash_ph compressed[2];
 	struct umash_fp ret;
 	uint64_t acc[2] = { 0, 0 };
 
 	while (n_bytes > BLOCK_SIZE) {
-		struct umash_ph compressed[2];
-
 		ph_one_block_toeplitz(compressed, ph, seed, data);
 #pragma GCC unroll 2
 		for (size_t i = 0; i < 2; i++) {
@@ -610,14 +658,14 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 	}
 
 	seed ^= (uint8_t)n_bytes;
+	ph_last_block_toeplitz(compressed, ph, seed, data, n_bytes);
+
 #pragma GCC unroll 2
 	for (size_t i = 0, shift = 0; i < 2;
 	     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
-		struct umash_ph compressed;
-
-		compressed = ph_last_block(&ph[shift], seed, data, n_bytes);
 		acc[i] = horner_double_update(acc[i], multipliers[i][0],
-		    multipliers[i][1], compressed.bits[0], compressed.bits[1]);
+		    multipliers[i][1], compressed[i].bits[0],
+		    compressed[i].bits[1]);
 		ret.hash[i] = finalize(acc[i]);
 	}
 
