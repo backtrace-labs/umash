@@ -561,6 +561,33 @@ umash_params_prepare(struct umash_params *params)
 	return true;
 }
 
+void
+umash_params_derive(struct umash_params *params, uint64_t bits, const void *key)
+{
+	uint8_t umash_key[32] = "Do not use UMASH VS adversaries.";
+
+	if (key != NULL)
+		memcpy(umash_key, key, sizeof(umash_key));
+
+	while (true) {
+		uint8_t nonce[8];
+
+		for (size_t i = 0; i < 8; i++)
+			nonce[i] = bits >> (8 * i);
+
+		salsa20_stream(params, sizeof(*params), nonce, umash_key);
+		if (umash_params_prepare(params))
+			return;
+
+		/*
+		 * This should practically never fail, so really
+		 * shouldn't happen multiple times.  If it does, an
+		 * infinite loop is as good as anything else.
+		 */
+		bits++;
+	}
+}
+
 /*
  * Updates the polynomial state at the end of a block.
  */
