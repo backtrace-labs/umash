@@ -435,6 +435,31 @@ umash_short(
 	return h;
 }
 
+static struct umash_fp
+umash_fp_short(
+    const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
+{
+	struct umash_fp ret;
+	uint64_t h;
+
+	ret.hash[0] = seed + params[n_bytes];
+	ret.hash[1] = seed + params[n_bytes + UMASH_PH_TOEPLITZ_SHIFT];
+
+	h = vec_to_u64(data, n_bytes);
+	h ^= h >> 30;
+	h *= 0xbf58476d1ce4e5b9ULL;
+	h ^= h >> 27;
+
+	ret.hash[0] ^= h;
+	ret.hash[0] *= 0x94d049bb133111ebULL;
+	ret.hash[0] ^= ret.hash[0] >> 31;
+
+	ret.hash[1] ^= h;
+	ret.hash[1] *= 0x94d049bb133111ebULL;
+	ret.hash[1] ^= ret.hash[1] >> 31;
+	return ret;
+}
+
 TEST_DEF inline uint64_t
 finalize(uint64_t x)
 {
@@ -720,15 +745,8 @@ umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
 	const size_t toeplitz_shift = UMASH_PH_TOEPLITZ_SHIFT;
 
 	if (n_bytes <= sizeof(__m128i)) {
-		if (n_bytes <= sizeof(uint64_t)) {
-			for (size_t i = 0, shift = 0; i < 2;
-			     i++, shift = toeplitz_shift) {
-				ret.hash[i] = umash_short(
-				    &params->ph[shift], seed, data, n_bytes);
-			}
-
-			return ret;
-		}
+		if (n_bytes <= sizeof(uint64_t))
+			return umash_fp_short(params->ph, seed, data, n_bytes);
 
 		for (size_t i = 0, shift = 0; i < 2;
 		     i++, shift = toeplitz_shift) {
@@ -857,12 +875,17 @@ umash_fp_digest(const struct umash_fp_state *state)
 {
 	struct umash_sink copy;
 	struct umash_fp ret;
+	const size_t buf_begin =
+	    sizeof(state->sink.buf) - INCREMENTAL_GRANULARITY;
 	const struct umash_sink *sink = &state->sink;
 
 	if (sink->large_umash) {
 		copy = *sink;
 		digest_flush(&copy);
 		sink = &copy;
+	} else if (sink->bufsz <= sizeof(uint64_t)) {
+		return umash_fp_short(
+		    sink->ph, sink->seed, &sink->buf[buf_begin], sink->bufsz);
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(ret.hash); i++)
