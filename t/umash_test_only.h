@@ -84,4 +84,10 @@ uint64_t umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
  */
 uint64_t umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
     uint64_t seed, const void *data, size_t n_bytes);
+
+/**
+ * Fills `dst[0 ... len)` with the Salsa20 stream cipher.
+ */
+void salsa20_stream(void *dst, size_t len, const uint8_t nonce[static 8],
+    const uint8_t key[static 32]);
 #endif /* !UMASH_TEST_ONLY_H */
