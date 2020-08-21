@@ -50,6 +50,9 @@
 
 #define BLOCK_SIZE (sizeof(uint64_t) * UMASH_PH_PARAM_COUNT)
 
+/* Incremental UMASH consumes 16 bytes at a time. */
+#define INCREMENTAL_GRANULARITY 16
+
 /**
  * Modular arithmetic utilities.
  *
@@ -380,6 +383,105 @@ umash_params_prepare(struct umash_params *params)
 	return true;
 }
 
+/*
+ * Updates the polynomial state at the end of a block.
+ */
+static void
+sink_update_poly(struct umash_sink *sink)
+{
+	const __m128i ph_acc = _mm_cvtsi64_si128(sink->seed);
+	/*
+	 * Size of the current block in bytes, modulo 256.  May only
+	 * be non-zero for the last block.
+	 */
+	uint8_t block_size = sink->block_size;
+
+	for (size_t i = 0; i < (sink->fingerprinting ? 2 : 1); i++) {
+		uint64_t ph0 = sink->ph_acc[i].bits[0] ^ block_size;
+		uint64_t ph1 = sink->ph_acc[i].bits[1];
+
+		sink->poly_state[i].acc = horner_double_update(
+		    sink->poly_state[i].acc, sink->poly_state[i].mul[0],
+		    sink->poly_state[i].mul[1], ph0, ph1);
+
+		memcpy(&sink->ph_acc[i], &ph_acc, sizeof(ph_acc));
+	}
+
+	return;
+}
+
+/* Updates the PH state with 16 bytes of data. */
+static void
+sink_consume_buf(
+    struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY])
+{
+	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
+
+	for (size_t i = 0, param = sink->ph_iter;
+	     i < (sink->fingerprinting ? 2 : 1);
+	     i++, param += UMASH_PH_TOEPLITZ_SHIFT) {
+		__m128i acc;
+		uint64_t x, y;
+
+		memcpy(&x, buf, sizeof(x));
+		memcpy(&y, buf + sizeof(x), sizeof(y));
+
+		/* Use GPR loads to avoid forwarding stalls.  */
+		x ^= sink->ph[param];
+		y ^= sink->ph[param + 1];
+		memcpy(&acc, &sink->ph_acc[i], sizeof(acc));
+		acc ^= _mm_clmulepi64_si128(
+		    _mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+		memcpy(&sink->ph_acc[i], &acc, sizeof(acc));
+	}
+
+	memmove(&sink->buf, buf, buf_begin);
+	sink->block_size += sink->bufsz;
+	sink->bufsz = 0;
+	sink->ph_iter += 2;
+	sink->large_umash = true;
+
+	if (sink->ph_iter == UMASH_PH_PARAM_COUNT) {
+		sink_update_poly(sink);
+		sink->block_size = 0;
+		sink->ph_iter = 0;
+	}
+
+	return;
+}
+
+void
+umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
+{
+	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
+	size_t remaining = INCREMENTAL_GRANULARITY - sink->bufsz;
+
+	if (n_bytes < remaining) {
+		memcpy(&sink->buf[buf_begin + sink->bufsz], data, n_bytes);
+		sink->bufsz += n_bytes;
+		return;
+	}
+
+	memcpy(&sink->buf[buf_begin + sink->bufsz], data, remaining);
+	data = (const char *)data + remaining;
+	n_bytes -= remaining;
+	sink->bufsz = INCREMENTAL_GRANULARITY;
+	sink_consume_buf(sink, sink->buf + buf_begin);
+
+	while (n_bytes >= INCREMENTAL_GRANULARITY) {
+		n_bytes -= INCREMENTAL_GRANULARITY;
+
+		sink->bufsz = INCREMENTAL_GRANULARITY;
+		/* Copy if this is the last full chunk. */
+		sink_consume_buf(sink, data);
+		data = (const char *)data + INCREMENTAL_GRANULARITY;
+	}
+
+	memcpy(&sink->buf[buf_begin], data, n_bytes);
+	sink->bufsz = n_bytes;
+	return;
+}
+
 uint64_t
 umash_full(const struct umash_params *params, uint64_t seed, int which,
     const void *data, size_t n_bytes)
@@ -436,6 +538,130 @@ umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
 		ret.hash[i] = umash_long(
 		    params->poly[i], &params->ph[shift], seed, data, n_bytes);
 	}
+
+	return ret;
+}
+
+void
+umash_init(struct umash_state *state, const struct umash_params *params,
+    uint64_t seed, int which)
+{
+	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
+
+	which = (which == 0) ? 0 : 1;
+	state->sink = (struct umash_sink) {
+		.poly_state[0] = {
+			.mul = {
+				params->poly[which][0],
+				params->poly[which][1],
+			},
+		},
+		.ph = &params->ph[shift],
+		.ph_acc[0].bits[0] = seed,
+		.seed = seed,
+	};
+
+	return;
+}
+
+void
+umash_fp_init(struct umash_fp_state *state, const struct umash_params *params,
+    uint64_t seed)
+{
+
+	state->sink = (struct umash_sink) {
+		.poly_state[0] = {
+			.mul = {
+				params->poly[0][0],
+				params->poly[0][1],
+			},
+		},
+		.poly_state[1]= {
+			.mul = {
+				params->poly[1][0],
+				params->poly[1][1],
+			},
+		},
+		.ph = params->ph,
+		.fingerprinting = true,
+		.ph_acc[0].bits[0] = seed,
+		.ph_acc[1].bits[0] = seed,
+		.seed = seed,
+	};
+
+	return;
+}
+
+/**
+ * Pumps any last block out of the incremental state.
+ */
+static void
+digest_flush(struct umash_sink *sink)
+{
+
+	if (sink->bufsz > 0)
+		sink_consume_buf(sink, &sink->buf[sink->bufsz]);
+
+	if (sink->block_size != 0)
+		sink_update_poly(sink);
+	return;
+}
+
+/**
+ * Finalizes a digest out of `sink`'s current state.
+ *
+ * The `sink` must be `digest_flush`ed if it is a `large_umash`.
+ *
+ * @param index 0 to return the first (only, if hashing) value, 1 for the
+ *   second independent value for fingerprinting.
+ */
+static uint64_t
+digest(const struct umash_sink *sink, int index)
+{
+	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
+	const size_t shift = index * UMASH_PH_TOEPLITZ_SHIFT;
+
+	if (sink->large_umash)
+		return finalize(sink->poly_state[index].acc);
+
+	if (sink->bufsz <= sizeof(uint64_t))
+		return umash_short(&sink->ph[shift], sink->seed,
+		    &sink->buf[buf_begin], sink->bufsz);
+
+	return umash_medium(sink->poly_state[index].mul, &sink->ph[shift],
+	    sink->seed, &sink->buf[buf_begin], sink->bufsz);
+}
+
+uint64_t
+umash_digest(const struct umash_state *state)
+{
+	struct umash_sink copy;
+	const struct umash_sink *sink = &state->sink;
+
+	if (sink->large_umash) {
+		copy = *sink;
+		digest_flush(&copy);
+		sink = &copy;
+	}
+
+	return digest(sink, 0);
+}
+
+struct umash_fp
+umash_fp_digest(const struct umash_fp_state *state)
+{
+	struct umash_sink copy;
+	struct umash_fp ret;
+	const struct umash_sink *sink = &state->sink;
+
+	if (sink->large_umash) {
+		copy = *sink;
+		digest_flush(&copy);
+		sink = &copy;
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(ret.hash); i++)
+		ret.hash[i] = digest(sink, i);
 
 	return ret;
 }
