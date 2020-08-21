@@ -324,6 +324,31 @@ ph_one_block(const uint64_t *params, uint64_t seed, const void *block)
 	return ret;
 }
 
+static void
+ph_one_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
+    uint64_t seed, const void *block)
+{
+	__m128i acc[2] = { _mm_cvtsi64_si128(seed), _mm_cvtsi64_si128(seed) };
+
+	for (size_t i = 0; i < UMASH_PH_PARAM_COUNT; i += 2) {
+		__m128i x, k0, k1;
+
+		memcpy(&x, block, sizeof(x));
+		block = (const char *)block + sizeof(x);
+
+		memcpy(&k0, &params[i], sizeof(k1));
+		memcpy(&k1, &params[i + UMASH_PH_TOEPLITZ_SHIFT], sizeof(k1));
+
+		k0 ^= x;
+		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
+		k1 ^= x;
+		acc[1] ^= _mm_clmulepi64_si128(k1, k1, 1);
+	}
+
+	memcpy(dst, acc, sizeof(acc));
+	return;
+}
+
 TEST_DEF struct umash_ph
 ph_last_block(
     const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes)
@@ -570,15 +595,14 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 	uint64_t acc[2] = { 0, 0 };
 
 	while (n_bytes > BLOCK_SIZE) {
-#pragma GCC unroll 2
-		for (size_t i = 0, shift = 0; i < 2;
-		     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
-			struct umash_ph compressed;
+		struct umash_ph compressed[2];
 
-			compressed = ph_one_block(&ph[shift], seed, data);
+		ph_one_block_toeplitz(compressed, ph, seed, data);
+#pragma GCC unroll 2
+		for (size_t i = 0; i < 2; i++) {
 			acc[i] = horner_double_update(acc[i], multipliers[i][0],
-			    multipliers[i][1], compressed.bits[0],
-			    compressed.bits[1]);
+			    multipliers[i][1], compressed[i].bits[0],
+			    compressed[i].bits[1]);
 		}
 
 		data = (const char *)data + BLOCK_SIZE;
