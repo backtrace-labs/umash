@@ -562,6 +562,44 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
 	return finalize(acc);
 }
 
+static struct umash_fp
+umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph,
+    uint64_t seed, const void *data, size_t n_bytes)
+{
+	struct umash_fp ret;
+	uint64_t acc[2] = { 0, 0 };
+
+	while (n_bytes > BLOCK_SIZE) {
+#pragma GCC unroll 2
+		for (size_t i = 0, shift = 0; i < 2;
+		     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
+			struct umash_ph compressed;
+
+			compressed = ph_one_block(&ph[shift], seed, data);
+			acc[i] = horner_double_update(acc[i], multipliers[i][0],
+			    multipliers[i][1], compressed.bits[0],
+			    compressed.bits[1]);
+		}
+
+		data = (const char *)data + BLOCK_SIZE;
+		n_bytes -= BLOCK_SIZE;
+	}
+
+	seed ^= (uint8_t)n_bytes;
+#pragma GCC unroll 2
+	for (size_t i = 0, shift = 0; i < 2;
+	     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
+		struct umash_ph compressed;
+
+		compressed = ph_last_block(&ph[shift], seed, data, n_bytes);
+		acc[i] = horner_double_update(acc[i], multipliers[i][0],
+		    multipliers[i][1], compressed.bits[0], compressed.bits[1]);
+		ret.hash[i] = finalize(acc[i]);
+	}
+
+	return ret;
+}
+
 static bool
 value_is_repeated(const uint64_t *values, size_t n, uint64_t needle)
 {
@@ -784,8 +822,6 @@ struct umash_fp
 umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
     size_t n_bytes)
 {
-	struct umash_fp ret;
-	const size_t toeplitz_shift = UMASH_PH_TOEPLITZ_SHIFT;
 
 	if (n_bytes <= sizeof(__m128i)) {
 		if (n_bytes <= sizeof(uint64_t))
@@ -795,12 +831,7 @@ umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
 		    params->poly, params->ph, seed, data, n_bytes);
 	}
 
-	for (size_t i = 0, shift = 0; i < 2; i++, shift = toeplitz_shift) {
-		ret.hash[i] = umash_long(
-		    params->poly[i], &params->ph[shift], seed, data, n_bytes);
-	}
-
-	return ret;
+	return umash_fp_long(params->poly, params->ph, seed, data, n_bytes);
 }
 
 void
