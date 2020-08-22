@@ -1,9 +1,9 @@
 UMASH: a fast almost universal 64-bit string hash
 =================================================
 
-UMASH is a string hash function with throughput---22 GB/s on a 2.5 GHz
-Xeon 8175M---and latency---9-22 ns for input sizes up to 64 bytes on
-the same machine---comparable to that of performance-optimised hashes
+UMASH is a string hash function with throughput--22 GB/s on a 2.5 GHz
+Xeon 8175M--and latency--9-22 ns for input sizes up to 64 bytes on
+the same machine--comparable to that of performance-optimised hashes
 like [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
 [XXH3](https://github.com/Cyan4973/xxHash), or
 [farmhash](https://github.com/google/farmhash).  Its 64-bit output is
@@ -12,10 +12,22 @@ both [Reini Urban's fork of SMHasher](https://github.com/rurban/smhasher/)
 and [Yves Orton's extended version](https://github.com/demerphq/smhasher) 
 (after expanding each seed to a full 320-byte key for the latter).
 
+Unlike most other non-cryptographic hash functions
+([CLHash](https://github.com/lemire/clhash) is a rare exceptions) which
+[do not prevent seed-independent collisions](https://github.com/Cyan4973/xxHash/issues/180#issuecomment-474100780)
+and thus [usually suffer from such weaknesses](https://www.131002.net/siphash/#at),
+UMASH provably avoids parameter-independent collisions.  For any two
+inputs of `l` bytes or fewer, the probability that a randomly
+parameterised UMASH assigns them the same 64 bit hash value is less
+than `ceil(l / 2048) 2**-56`.  UMASH also offers a fingerprinting mode
+that simply computes a pair of independent hashes.  The resulting
+[128-bit fingerprints](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
+collide pairs of `l`-or-fewer-byte inputs with probability less than
+`ceil(l / 2048)**2 2**-112`; that's less than `2**-70` (`1e-21`) for
+inputs of up to 7.5 GB.
+
 See `umash_reference.py` (pre-rendered as `umash.pdf`) for details and
-rationale about the design, and proof that two inputs of `l` bytes of
-fewer are assigned the same 64-bit hash with probability less than
-`ceil(l / 2048) 2**-56`.
+rationale about the design, and a proof sketch.
 
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
@@ -23,10 +35,12 @@ If you're not into details, you can also just copy `umash.c` and
 The current implementation only build with gcc-compatible compilers
 that support the [integer overflow builtins](https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html)
 introduced by GCC 5 (April 2015) and targets x86-64 machines with the
-CLMUL extension (available since 2011 on Intel and AMD).  That's simply
-because we only use UMASH on such platforms at Backtrace.  There should
-be no reason we can't also target other compilers, or other architectures
-with finite field multiplication instructions (e.g., `VMULL` on ARMv8).
+[CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set) extension
+(available since 2011 on Intel and AMD).  That's simply because we
+only use UMASH on such platforms at Backtrace.  There should be no
+reason we can't also target other compilers, or other architectures
+with finite field multiplication instructions (e.g., `VMULL` on
+ARMv8).
 
 Hacking on UMASH
 ----------------
