@@ -20,14 +20,14 @@ UMASH provably avoids parameter-independent collisions.  For any two
 inputs of `l` bytes or fewer, the probability that a randomly
 parameterised UMASH assigns them the same 64 bit hash value is less
 than `ceil(l / 2048) 2**-56`.  UMASH also offers a fingerprinting mode
-that simply computes a pair of independent hashes.  The resulting
-[128-bit fingerprints](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
+that simply computes two independent hashes at the same time.  The
+resulting [128-bit fingerprints](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
 collide pairs of `l`-or-fewer-byte inputs with probability less than
 `ceil(l / 2048)**2 2**-112`; that's less than `2**-70` (`1e-21`) for
 inputs of up to 7.5 GB.
 
 See `umash_reference.py` (pre-rendered as `umash.pdf`) for details and
-rationale about the design, and a proof sketch.
+rationale about the design, and a proof skech for the collision bound.
 
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
@@ -50,9 +50,9 @@ symbols with Python 3, [CFFI](https://cffi.readthedocs.io/en/latest/),
 and [Hypothesis](https://hypothesis.works/).  As long as Python3 and
 [venv](https://docs.python.org/3/library/venv.html) are installed, you
 may run `t/run-tests.sh` to build the current version of umash and run
-all the pytests in the `t/` directory.  `t/run-tests-public.sh` focus
-on the public interface, which may be helpful to test a production
-build or when making extensive internal changes.
+all the pytests in the `t/` directory.  `t/run-tests-public.sh` only
+exercises the public interface, which may be helpful to test a
+production build or when making extensive internal changes.
 
 The Python test code is automatically formatted with
 [black](https://github.com/psf/black).  We try to make sure the C code
