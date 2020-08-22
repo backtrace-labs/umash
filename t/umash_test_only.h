@@ -43,8 +43,7 @@ uint64_t horner_double_update(
  * Compresses one PH block of 256 bytes, with the accumulator
  * initialised to `seed`.
  */
-struct umash_ph ph_one_block(
-    const uint64_t *params, uint64_t seed, const void *block);
+struct umash_ph ph_one_block(const uint64_t *params, uint64_t seed, const void *block);
 
 /**
  * Compress the last PH block of up to 256 bytes.  `block + n_bytes -
@@ -88,6 +87,6 @@ uint64_t umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
 /**
  * Fills `dst[0 ... len)` with the Salsa20 stream cipher.
  */
-void salsa20_stream(void *dst, size_t len, const uint8_t nonce[static 8],
-    const uint8_t key[static 32]);
+void salsa20_stream(
+    void *dst, size_t len, const uint8_t nonce[static 8], const uint8_t key[static 32]);
 #endif /* !UMASH_TEST_ONLY_H */

@@ -114,8 +114,7 @@ mul_mod_fast(uint64_t m, uint64_t x)
 }
 
 TEST_DEF inline uint64_t
-horner_double_update(
-    uint64_t acc, uint64_t m0, uint64_t m1, uint64_t x, uint64_t y)
+horner_double_update(uint64_t acc, uint64_t m0, uint64_t m1, uint64_t x, uint64_t y)
 {
 
 	acc = add_mod_fast(acc, x);
@@ -165,14 +164,12 @@ store_littleendian(void *dst, uint32_t u)
 }
 
 static void
-core_salsa20(char *out, const uint8_t in[static 16],
-    const uint8_t key[static 32], const uint8_t constant[16])
+core_salsa20(char *out, const uint8_t in[static 16], const uint8_t key[static 32],
+    const uint8_t constant[16])
 {
 	enum { ROUNDS = 20 };
-	uint32_t x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13,
-	    x14, x15;
-	uint32_t j0, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13,
-	    j14, j15;
+	uint32_t x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
+	uint32_t j0, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13, j14, j15;
 
 	j0 = x0 = load_littleendian(constant + 0);
 	j1 = x1 = load_littleendian(key + 0);
@@ -263,8 +260,8 @@ core_salsa20(char *out, const uint8_t in[static 16],
 }
 
 TEST_DEF void
-salsa20_stream(void *dst, size_t len, const uint8_t nonce[static 8],
-    const uint8_t key[static 32])
+salsa20_stream(
+    void *dst, size_t len, const uint8_t nonce[static 8], const uint8_t key[static 32])
 {
 	static const uint8_t sigma[16] = "expand 32-byte k";
 	uint8_t in[16];
@@ -350,8 +347,7 @@ ph_one_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
 }
 
 TEST_DEF struct umash_ph
-ph_last_block(
-    const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes)
+ph_last_block(const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes)
 {
 	struct umash_ph ret;
 	__m128i acc = _mm_cvtsi64_si128(seed);
@@ -384,8 +380,8 @@ ph_last_block(
 		x ^= params[i];
 		y ^= params[i + 1];
 
-		acc ^= _mm_clmulepi64_si128(
-		    _mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+		acc ^=
+		    _mm_clmulepi64_si128(_mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
 	}
 
 	memcpy(&ret, &acc, sizeof(ret));
@@ -457,8 +453,7 @@ vec_to_u64(const void *data, size_t n_bytes)
 	 */
 	if (LIKELY(n_bytes >= sizeof(lo))) {
 		memcpy(&lo, data, sizeof(lo));
-		memcpy(
-		    &hi, (const char *)data + n_bytes - sizeof(hi), sizeof(hi));
+		memcpy(&hi, (const char *)data + n_bytes - sizeof(hi), sizeof(hi));
 	} else {
 		/* 0 <= n_bytes < 4.  Decode the size in binary. */
 		uint16_t word;
@@ -476,9 +471,7 @@ vec_to_u64(const void *data, size_t n_bytes)
 		 * otherwise, load in a zero.
 		 */
 		memcpy(&word,
-		    ((n_bytes & 2) != 0) ? (const char *)data + n_bytes - 2 :
-					   zeros,
-		    2);
+		    ((n_bytes & 2) != 0) ? (const char *)data + n_bytes - 2 : zeros, 2);
 		/*
 		 * We have now read `bytes[0 ... n_bytes - 1]`
 		 * exactly once without overwriting any data.
@@ -494,8 +487,7 @@ vec_to_u64(const void *data, size_t n_bytes)
 }
 
 TEST_DEF uint64_t
-umash_short(
-    const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
+umash_short(const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
 {
 	uint64_t h;
 
@@ -510,8 +502,7 @@ umash_short(
 }
 
 static struct umash_fp
-umash_fp_short(
-    const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
+umash_fp_short(const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
 {
 	struct umash_fp ret;
 	uint64_t h;
@@ -544,8 +535,8 @@ finalize(uint64_t x)
 }
 
 TEST_DEF uint64_t
-umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
-    uint64_t seed, const void *data, size_t n_bytes)
+umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t seed,
+    const void *data, size_t n_bytes)
 {
 	union {
 		__m128i vec;
@@ -560,8 +551,8 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
 		x ^= ph[0];
 		y ^= ph[1];
 
-		acc.vec ^= _mm_clmulepi64_si128(
-		    _mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+		acc.vec ^=
+		    _mm_clmulepi64_si128(_mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
 	}
 
 	return finalize(horner_double_update(
@@ -586,8 +577,7 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 	}
 
 #pragma GCC unroll 2
-	for (size_t i = 0, shift = 0; i < 2;
-	     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
+	for (size_t i = 0, shift = 0; i < 2; i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
 		union {
 			__m128i vec;
 			uint64_t u64[2];
@@ -599,16 +589,16 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 		hash.vec ^= offset;
 
 		ret.hash[i] = finalize(horner_double_update(
-		    /*acc=*/0, multipliers[i][0], multipliers[i][1],
-		    hash.u64[0], hash.u64[1]));
+		    /*acc=*/0, multipliers[i][0], multipliers[i][1], hash.u64[0],
+		    hash.u64[1]));
 	}
 
 	return ret;
 }
 
 TEST_DEF uint64_t
-umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
-    uint64_t seed, const void *data, size_t n_bytes)
+umash_long(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t seed,
+    const void *data, size_t n_bytes)
 {
 	uint64_t acc = 0;
 
@@ -637,8 +627,8 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
 }
 
 static struct umash_fp
-umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph,
-    uint64_t seed, const void *data, size_t n_bytes)
+umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint64_t seed,
+    const void *data, size_t n_bytes)
 {
 	struct umash_ph compressed[2];
 	struct umash_fp ret;
@@ -661,11 +651,9 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 	ph_last_block_toeplitz(compressed, ph, seed, data, n_bytes);
 
 #pragma GCC unroll 2
-	for (size_t i = 0, shift = 0; i < 2;
-	     i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
+	for (size_t i = 0, shift = 0; i < 2; i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
 		acc[i] = horner_double_update(acc[i], multipliers[i][0],
-		    multipliers[i][1], compressed[i].bits[0],
-		    compressed[i].bits[1]);
+		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]);
 		ret.hash[i] = finalize(acc[i]);
 	}
 
@@ -779,9 +767,8 @@ sink_update_poly(struct umash_sink *sink)
 		uint64_t ph0 = sink->ph_acc[i].bits[0] ^ block_size;
 		uint64_t ph1 = sink->ph_acc[i].bits[1];
 
-		sink->poly_state[i].acc = horner_double_update(
-		    sink->poly_state[i].acc, sink->poly_state[i].mul[0],
-		    sink->poly_state[i].mul[1], ph0, ph1);
+		sink->poly_state[i].acc = horner_double_update(sink->poly_state[i].acc,
+		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], ph0, ph1);
 
 		memcpy(&sink->ph_acc[i], &ph_acc, sizeof(ph_acc));
 		if (!sink->fingerprinting)
@@ -793,8 +780,7 @@ sink_update_poly(struct umash_sink *sink)
 
 /* Updates the PH state with 16 bytes of data. */
 static void
-sink_consume_buf(
-    struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY])
+sink_consume_buf(struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY])
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
 	uint64_t x, y;
@@ -809,9 +795,8 @@ sink_consume_buf(
 
 		/* Use GPR loads to avoid forwarding stalls.  */
 		memcpy(&acc, &sink->ph_acc[i], sizeof(acc));
-		acc ^=
-		    _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->ph[param]),
-			_mm_cvtsi64_si128(y ^ sink->ph[param + 1]), 0);
+		acc ^= _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->ph[param]),
+		    _mm_cvtsi64_si128(y ^ sink->ph[param + 1]), 0);
 		memcpy(&sink->ph_acc[i], &acc, sizeof(acc));
 
 		if (!sink->fingerprinting)
@@ -866,8 +851,8 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 }
 
 uint64_t
-umash_full(const struct umash_params *params, uint64_t seed, int which,
-    const void *data, size_t n_bytes)
+umash_full(const struct umash_params *params, uint64_t seed, int which, const void *data,
+    size_t n_bytes)
 {
 	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
 
@@ -879,36 +864,33 @@ umash_full(const struct umash_params *params, uint64_t seed, int which,
 	 */
 	if (LIKELY(n_bytes <= sizeof(__m128i))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
-			return umash_short(
-			    &params->ph[shift], seed, data, n_bytes);
+			return umash_short(&params->ph[shift], seed, data, n_bytes);
 
-		return umash_medium(params->poly[which], &params->ph[shift],
-		    seed, data, n_bytes);
+		return umash_medium(
+		    params->poly[which], &params->ph[shift], seed, data, n_bytes);
 	}
 
-	return umash_long(
-	    params->poly[which], &params->ph[shift], seed, data, n_bytes);
+	return umash_long(params->poly[which], &params->ph[shift], seed, data, n_bytes);
 }
 
 struct umash_fp
-umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
-    size_t n_bytes)
+umash_fprint(
+    const struct umash_params *params, uint64_t seed, const void *data, size_t n_bytes)
 {
 
 	if (LIKELY(n_bytes <= sizeof(__m128i))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
 			return umash_fp_short(params->ph, seed, data, n_bytes);
 
-		return umash_fp_medium(
-		    params->poly, params->ph, seed, data, n_bytes);
+		return umash_fp_medium(params->poly, params->ph, seed, data, n_bytes);
 	}
 
 	return umash_fp_long(params->poly, params->ph, seed, data, n_bytes);
 }
 
 void
-umash_init(struct umash_state *state, const struct umash_params *params,
-    uint64_t seed, int which)
+umash_init(struct umash_state *state, const struct umash_params *params, uint64_t seed,
+    int which)
 {
 	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
 
@@ -929,8 +911,8 @@ umash_init(struct umash_state *state, const struct umash_params *params,
 }
 
 void
-umash_fp_init(struct umash_fp_state *state, const struct umash_params *params,
-    uint64_t seed)
+umash_fp_init(
+    struct umash_fp_state *state, const struct umash_params *params, uint64_t seed)
 {
 
 	state->sink = (struct umash_sink) {
@@ -989,11 +971,11 @@ digest(const struct umash_sink *sink, int index)
 		return finalize(sink->poly_state[index].acc);
 
 	if (sink->bufsz <= sizeof(uint64_t))
-		return umash_short(&sink->ph[shift], sink->seed,
-		    &sink->buf[buf_begin], sink->bufsz);
+		return umash_short(
+		    &sink->ph[shift], sink->seed, &sink->buf[buf_begin], sink->bufsz);
 
-	return umash_medium(sink->poly_state[index].mul, &sink->ph[shift],
-	    sink->seed, &sink->buf[buf_begin], sink->bufsz);
+	return umash_medium(sink->poly_state[index].mul, &sink->ph[shift], sink->seed,
+	    &sink->buf[buf_begin], sink->bufsz);
 }
 
 uint64_t
@@ -1016,8 +998,7 @@ umash_fp_digest(const struct umash_fp_state *state)
 {
 	struct umash_sink copy;
 	struct umash_fp ret;
-	const size_t buf_begin =
-	    sizeof(state->sink.buf) - INCREMENTAL_GRANULARITY;
+	const size_t buf_begin = sizeof(state->sink.buf) - INCREMENTAL_GRANULARITY;
 	const struct umash_sink *sink = &state->sink;
 
 	if (sink->large_umash) {

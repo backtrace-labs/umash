@@ -237,15 +237,15 @@ uint64_t umash_full(const struct umash_params *params, uint64_t seed, int which,
  * associated worst-case collision bounds; changing the `seed` comes
  * with no guarantee.
  */
-struct umash_fp umash_fprint(const struct umash_params *params, uint64_t seed,
-    const void *data, size_t n_bytes);
+struct umash_fp umash_fprint(
+    const struct umash_params *params, uint64_t seed, const void *data, size_t n_bytes);
 
 /**
  * Prepares a `umash_state` for computing the `which`th UMASH function in
  * `params`.
  */
-void umash_init(struct umash_state *, const struct umash_params *params,
-    uint64_t seed, int which);
+void umash_init(
+    struct umash_state *, const struct umash_params *params, uint64_t seed, int which);
 
 /**
  * Returns the UMASH value for the bytes that have been
