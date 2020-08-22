@@ -12,9 +12,10 @@ both [Reini Urban's fork of SMHasher](https://github.com/rurban/smhasher/)
 and [Yves Orton's extended version](https://github.com/demerphq/smhasher) 
 (after expanding each seed to a full 320-byte key for the latter).
 
-See `umash_reference.py` for details and rationale about the design,
-and proof that two inputs of `l` bytes of fewer are assigned the same
-64-bit hash with probability less than `ceil(l / 2048) 2**-56`.
+See `umash_reference.py` (pre-rendered as `umash.pdf`) for details and
+rationale about the design, and proof that two inputs of `l` bytes of
+fewer are assigned the same 64-bit hash with probability less than
+`ceil(l / 2048) 2**-56`.
 
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.

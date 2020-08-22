@@ -710,3 +710,24 @@ def umash(key, seed, buf):
 ## is easily comparable to the uncorrectable DRAM
 ## [error rates reported by Facebook](https://users.ece.cmu.edu/~omutlu/pub/memory-errors-at-facebook_dsn15.pdf#page=3):
 ## $0.03\%$ per month $\approx 2^{-66}$ per CPU cycle.
+##
+## # Acknowledgements
+##
+## Any error in the analysis or the code is mine, but a few people
+## have offered suggestion to improve UMASH and its presentation.
+##
+## Colin Percival scanned an earlier version of this document for
+## obvious issues, encouraged me to simplify the parameter generation
+## process, and prodded us to think about side channels, even in data
+## structures.
+##
+## Joonas Pihlaja helped streamline my initial attempt while making
+## the reference implementation easier to understand.
+##
+## Jacob Shufro independently confirmed that he too found the
+## reference implementation understandable, and tightened the natural
+## language.
+##
+## Phil Vachon helped me gain more confidence in the implementation
+## tricks borrowed from VHASH after replacing the `NH` compression
+## function with `PH`.
