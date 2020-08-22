@@ -895,8 +895,8 @@ umash_fprint(const struct umash_params *params, uint64_t seed, const void *data,
     size_t n_bytes)
 {
 
-	if (n_bytes <= sizeof(__m128i)) {
-		if (n_bytes <= sizeof(uint64_t))
+	if (LIKELY(n_bytes <= sizeof(__m128i))) {
+		if (LIKELY(n_bytes <= sizeof(uint64_t)))
 			return umash_fp_short(params->ph, seed, data, n_bytes);
 
 		return umash_fp_medium(
