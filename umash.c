@@ -8,6 +8,7 @@
  * UMASH is distributed under the MIT license.
  *
  * SPDX-License-Identifier: MIT
+ *
  * Copyright 2020 Backtrace I/O, Inc.
  *
  * Permission is hereby granted, free of charge, to any person
