@@ -1,19 +1,19 @@
 UMASH: a fast almost universal 64-bit string hash
 =================================================
 
-UMASH is a string hash function with throughput--22 GB/s on a 2.5 GHz
-Xeon 8175M--and latency--9-22 ns for input sizes up to 64 bytes on
-the same machine--comparable to that of performance-optimised hashes
+UMASH is a string hash function with throughput (22 GB/s on a 2.5 GHz
+Xeon 8175M) and latency (9-22 ns for input sizes up to 64 bytes on
+the same machine) comparable to that of performance-optimised hashes
 like [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
 [XXH3](https://github.com/Cyan4973/xxHash), or
 [farmhash](https://github.com/google/farmhash).  Its 64-bit output is
 almost universal, and it, as well as both its 32-bit halves, passes
 both [Reini Urban's fork of SMHasher](https://github.com/rurban/smhasher/)
 and [Yves Orton's extended version](https://github.com/demerphq/smhasher) 
-(after expanding each seed to a full 320-byte key for the latter).
+(after expanding each seed to a 320-byte key for the latter).
 
 Unlike most other non-cryptographic hash functions
-([CLHash](https://github.com/lemire/clhash) is a rare exceptions) which
+([CLHash](https://github.com/lemire/clhash) is a rare exception) which
 [do not prevent seed-independent collisions](https://github.com/Cyan4973/xxHash/issues/180#issuecomment-474100780)
 and thus [usually suffer from such weaknesses](https://www.131002.net/siphash/#at),
 UMASH provably avoids parameter-independent collisions.  For any two
@@ -23,11 +23,11 @@ than `ceil(l / 2048) 2**-56`.  UMASH also offers a fingerprinting mode
 that simply computes two independent hashes at the same time.  The
 resulting [128-bit fingerprints](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
 collide pairs of `l`-or-fewer-byte inputs with probability less than
-`ceil(l / 2048)**2 2**-112`; that's less than `2**-70` (`1e-21`) for
+`ceil(l / 2048)**2 * 2**-112`; that's less than `2**-70` (`1e-21`) for
 inputs of up to 7.5 GB.
 
-See `umash_reference.py` (pre-rendered as `umash.pdf`) for details and
-rationale about the design, and a proof skech for the collision bound.
+See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
+rationale about the design, and a proof sketch for the collision bound.
 
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
@@ -37,10 +37,10 @@ that support the [integer overflow builtins](https://gcc.gnu.org/onlinedocs/gcc/
 introduced by GCC 5 (April 2015) and targets x86-64 machines with the
 [CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set) extension
 (available since 2011 on Intel and AMD).  That's simply because we
-only use UMASH on such platforms at Backtrace.  There should be no
-reason we can't also target other compilers, or other architectures
-with finite field multiplication instructions (e.g., `VMULL` on
-ARMv8).
+only use UMASH on such platforms at [Backtrace](https://backtrace.io/).
+There should be no reason we can't also target other compilers, or
+other architectures with finite field multiplication instructions
+(e.g., `VMULL` on ARMv8).
 
 Hacking on UMASH
 ----------------
@@ -49,9 +49,9 @@ The test suite calls into a shared object with test-only external
 symbols with Python 3, [CFFI](https://cffi.readthedocs.io/en/latest/),
 and [Hypothesis](https://hypothesis.works/).  As long as Python3 and
 [venv](https://docs.python.org/3/library/venv.html) are installed, you
-may run `t/run-tests.sh` to build the current version of umash and run
-all the pytests in the `t/` directory.  `t/run-tests-public.sh` only
-exercises the public interface, which may be helpful to test a
+may execute `t/run-tests.sh` to build the current version of UMASH and
+run all the pytests in the `t/` directory.  `t/run-tests-public.sh`
+only exercises the public interface, which may be helpful to test a
 production build or when making extensive internal changes.
 
 The Python test code is automatically formatted with
@@ -75,8 +75,8 @@ string hash).  There are plenty of lower hanging fruits.
    `xor-shift` / multiply in the finaliser, but can we shave even more
    latency there?
 4. We only looked at x86-64 implementations; we will consider simple
-   changes that improve performance on other platforms without
-   penalising x86-64.
+   changes that improve performance on x86-64, or on other platforms
+   as long they don't penalise x86-64.
 5. We currently only use incremental and one-shot hashing
    interfaces. If someone needs parallel hashing, we can collaborate
    to find out what that interface could look like.
