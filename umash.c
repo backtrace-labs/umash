@@ -32,6 +32,10 @@
  * SOFTWARE.
  */
 
+/*
+ * Defining UMASH_TEST_ONLY switches to a debug build with internal
+ * symbols exposed.
+ */
 #ifdef UMASH_TEST_ONLY
 #define TEST_DEF
 #include "t/umash_test_only.h"
@@ -57,7 +61,7 @@
 /**
  * Modular arithmetic utilities.
  *
- * The code below uses GCC internals.  It should be possible to add
+ * The code below uses GCC extensions.  It should be possible to add
  * support for other compilers.
  */
 TEST_DEF inline uint64_t
