@@ -1,6 +1,6 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2020-08-17
+## % 2020-08-23
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
 ##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
 ##
@@ -53,7 +53,7 @@
 ## UMASH keys.
 ##
 ## UMASH should not be used for cryptographic purposes, especially
-## with an adversary that can exploit side-channels or adapt to the
+## against adversaries that can exploit side-channels or adapt to the
 ## hashed outputs, but does guarantee worst-case pair-wise
 ## collision bounds. For any two strings of $l$ bytes or fewer, the
 ## probability of them hashing to the same value satisfies
@@ -106,9 +106,10 @@
 ##
 ## For notational convenience, we will assume that the result of `PH`
 ## is recast from a bitvector to a $2w$-bit unsigned integer.  Note
-## how the arithmetic, while similar to $\mathrm{GF}(2^{2w})$, does
-## not ever reduce the result of the multiplication: we only multiply
-## $w$-bit values, so the final result always fits in $2w$ bits.
+## how the ring of polynomials over $\mathrm{GF}(2)$, while similar to
+## $\mathrm{GF}(2^{2w})$, does not ever reduce the result of a
+## multiplication: we only multiply $w$-bit values, so the final
+## result always fits in $2w$ bits.
 ##
 ## When the key words $k_i$ are uniformly chosen from $[0, 2^w)$ at
 ## random, the probability that two different blocks $m$ and
@@ -230,10 +231,11 @@ BLOCK_SIZE = 16
 
 ## ## Carry-less multiplication
 ##
-## Addition in the carry-less ring is simply bitwise `xor`.
-## Multiplication is slightly more complex to describe in sofware.
-## The code below shows a pure software implementation; in practice,
-## we expect to use hardware instructions like
+## Addition in the ring of polynomials over $\mathrm{GF}(2)$ is simply
+## bitwise `xor`.  Multiplication is slightly more complex to describe
+## in sofware.  The code below shows a pure software implementation;
+## in practice, we expect to use hardware carry-less multiplication
+## instructions like
 ## [CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set) on
 ## x86-64 or [VMULL](https://hal.inria.fr/hal-01506572) on ARM.
 ##
