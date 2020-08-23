@@ -39,7 +39,7 @@ introduced by GCC 5 (April 2015) and targets x86-64 machines with the
 (available since 2011 on Intel and AMD).  That's simply because we
 only use UMASH on such platforms at [Backtrace](https://backtrace.io/).
 There should be no reason we can't also target other compilers, or
-other architectures with finite field multiplication instructions
+other architectures with carry-less multiplication instructions
 (e.g., `VMULL` on ARMv8).
 
 Hacking on UMASH

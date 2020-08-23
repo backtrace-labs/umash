@@ -72,7 +72,7 @@
 ## with parameters weakened to improve speed at the expense of
 ## collision rate, and the [`NH` block compressor](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12)
 ## replaced with
-## [`PH`, its equivalent in $\mathrm{GF}(2^{128})$](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf).
+## [`PH`, its equivalent in 128-bit carry-less arithmetic](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf).
 ## This construction has been re-derived and baptised multiple times,
 ## recently as `CLNH` by
 ## [Lemire and Kaser](https://arxiv.org/abs/1503.03465);
@@ -97,7 +97,7 @@
 ## with word size $w = 64$ bits and a block size of 256 bytes.
 ## The `PH` family of function is parameterised on $k$, an array of
 ## randomly chosen $w$-bit words, and implements the following sum in
-## $\mathrm{GF}(2^{2w})$ arithmetic, for even input size $|m| \leq |k|$:
+## $2w$-bit carry-less arithmetic, for even input size $|m| \leq |k|$:
 ##
 ## $$
 ## \texttt{PH}_k(m) =
@@ -105,7 +105,10 @@
 ## $$
 ##
 ## For notational convenience, we will assume that the result of `PH`
-## is recast from a bitvector to a $2w$-bit unsigned integer.
+## is recast from a bitvector to a $2w$-bit unsigned integer.  Note
+## how the arithmetic, while similar to $\mathrm{GF}(2^{2w})$, does
+## not ever reduce the result of the multiplication: we only multiply
+## $w$-bit values, so the final result always fits in $2w$ bits.
 ##
 ## When the key words $k_i$ are uniformly chosen from $[0, 2^w)$ at
 ## random, the probability that two different blocks $m$ and
@@ -225,14 +228,14 @@ CHUNK_SIZE = 16
 BLOCK_SIZE = 16
 
 
-## ## Finite field multiplication
+## ## Carry-less multiplication
 ##
-## Addition in $\mathrm{GF}(2^{64})$ is simply the bitwise `xor` of
-## 64-bit integers.  Multiplication is slightly more complex to
-## describe in sofware.  The code below shows a pure software
-## implementation; in practice, we expect to use hardware instructions
-## like [CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set)
-## on x86-64 or [VMULL](https://hal.inria.fr/hal-01506572) on ARM.
+## Addition in the carry-less ring is simply bitwise `xor`.
+## Multiplication is slightly more complex to describe in sofware.
+## The code below shows a pure software implementation; in practice,
+## we expect to use hardware instructions like
+## [CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set) on
+## x86-64 or [VMULL](https://hal.inria.fr/hal-01506572) on ARM.
 ##
 ## While non-cryptographic hash functions have historically avoided
 ## this operation, it is now a key component in widely used encryption
@@ -243,7 +246,7 @@ BLOCK_SIZE = 16
 
 
 def gfmul(x, y):
-    """Returns the GF(2^128) product of 64-bit x and y."""
+    """Returns the 128-bit carry-less product of 64-bit x and y."""
     ret = 0
     for i in range(64):
         if (x & (1 << i)) != 0:
