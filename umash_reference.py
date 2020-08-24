@@ -1,6 +1,6 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2020-08-23
+## % 2020-08-24
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
 ##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
 ##
@@ -170,6 +170,11 @@
 ## size $l \in [0, 8].$ The result is universal, never collides values
 ## of the same size, and otherwise collides values with probability
 ## $\varepsilon_{\textrm{short}} \approx 2^{-64}.$
+##
+## There's nothing special about SplitMix64, except that it's well
+## known, satisfies SMHasher's bias and avalanche tests, and is
+## invertible.  We use a subsequence of SplitMix64 as a finaliser in
+## the general case for the same reasons.
 ##
 ## Longer strings of 9 or more bytes feed the result of `PH` to the
 ## polynomial hash in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$.
@@ -719,7 +724,7 @@ def umash(key, seed, buf):
 ## # Acknowledgements
 ##
 ## Any error in the analysis or the code is mine, but a few people
-## have offered suggestion to improve UMASH and its presentation.
+## helped improve UMASH and its presentation.
 ##
 ## Colin Percival scanned an earlier version of this document for
 ## obvious issues, encouraged me to simplify the parameter generation
