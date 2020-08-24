@@ -28,6 +28,8 @@ up to 7.5 GB of data.
 
 See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
 rationale about the design, and a proof sketch for the collision bound.
+The [blog post announcing UMASH](https://engineering.backtrace.io/2020-08-24-umash-fast-enough-almost-universal-fingerprinting/)
+includes a higher level overview and may also provide useful context.
 
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
