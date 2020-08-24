@@ -520,12 +520,16 @@ umash_fp_short(const uint64_t *params, uint64_t seed, const void *data, size_t n
 	h *= 0xbf58476d1ce4e5b9ULL;
 	h ^= h >> 27;
 
-#pragma GCC unroll 2
-	for (size_t i = 0; i < 2; i++) {
-		ret.hash[i] ^= h;
-		ret.hash[i] *= 0x94d049bb133111ebULL;
-		ret.hash[i] ^= ret.hash[i] >> 31;
-	}
+#define TAIL(i)                                       \
+	do {                                          \
+		ret.hash[i] ^= h;                     \
+		ret.hash[i] *= 0x94d049bb133111ebULL; \
+		ret.hash[i] ^= ret.hash[i] >> 31;     \
+	} while (0)
+
+	TAIL(0);
+	TAIL(1);
+#undef TAIL
 
 	return ret;
 }
@@ -581,22 +585,25 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 		expanded = _mm_set_epi64x(y, x);
 	}
 
-#pragma GCC unroll 2
-	for (size_t i = 0, shift = 0; i < 2; i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
-		union {
-			__m128i vec;
-			uint64_t u64[2];
-		} hash;
+#define HASH(i, shift)                                                                \
+	do {                                                                          \
+		union {                                                               \
+			__m128i vec;                                                  \
+			uint64_t u64[2];                                              \
+		} hash;                                                               \
+                                                                                      \
+		memcpy(&hash.vec, &ph[shift], sizeof(hash));                          \
+		hash.vec ^= expanded;                                                 \
+		hash.vec = _mm_clmulepi64_si128(hash.vec, hash.vec, 1);               \
+		hash.vec ^= offset;                                                   \
+                                                                                      \
+		ret.hash[i] = finalize(horner_double_update(/*acc=*/0,                \
+		    multipliers[i][0], multipliers[i][1], hash.u64[0], hash.u64[1])); \
+	} while (0)
 
-		memcpy(&hash.vec, &ph[shift], sizeof(hash));
-		hash.vec ^= expanded;
-		hash.vec = _mm_clmulepi64_si128(hash.vec, hash.vec, 1);
-		hash.vec ^= offset;
-
-		ret.hash[i] = finalize(horner_double_update(
-		    /*acc=*/0, multipliers[i][0], multipliers[i][1], hash.u64[0],
-		    hash.u64[1]));
-	}
+	HASH(0, 0);
+	HASH(1, UMASH_PH_TOEPLITZ_SHIFT);
+#undef HASH
 
 	return ret;
 }
@@ -641,12 +648,16 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint6
 
 	while (n_bytes > BLOCK_SIZE) {
 		ph_one_block_toeplitz(compressed, ph, seed, data);
-#pragma GCC unroll 2
-		for (size_t i = 0; i < 2; i++) {
-			acc[i] = horner_double_update(acc[i], multipliers[i][0],
-			    multipliers[i][1], compressed[i].bits[0],
-			    compressed[i].bits[1]);
-		}
+
+#define UPDATE(i)                                                                     \
+	do {                                                                          \
+		acc[i] = horner_double_update(acc[i], multipliers[i][0],              \
+		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]); \
+	} while (0)
+
+		UPDATE(0);
+		UPDATE(1);
+#undef UPDATE
 
 		data = (const char *)data + BLOCK_SIZE;
 		n_bytes -= BLOCK_SIZE;
@@ -655,12 +666,16 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint6
 	seed ^= (uint8_t)n_bytes;
 	ph_last_block_toeplitz(compressed, ph, seed, data, n_bytes);
 
-#pragma GCC unroll 2
-	for (size_t i = 0, shift = 0; i < 2; i++, shift += UMASH_PH_TOEPLITZ_SHIFT) {
-		acc[i] = horner_double_update(acc[i], multipliers[i][0],
-		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]);
-		ret.hash[i] = finalize(acc[i]);
-	}
+#define FINAL(i, shift)                                                               \
+	do {                                                                          \
+		acc[i] = horner_double_update(acc[i], multipliers[i][0],              \
+		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]); \
+		ret.hash[i] = finalize(acc[i]);                                       \
+	} while (0)
+
+	FINAL(0, 0);
+	FINAL(1, UMASH_PH_TOEPLITZ_SHIFT);
+#undef FINAL
 
 	return ret;
 }
@@ -767,18 +782,22 @@ sink_update_poly(struct umash_sink *sink)
 	 */
 	uint8_t block_size = sink->block_size;
 
-#pragma GCC unroll 2
-	for (size_t i = 0; i < 2; i++) {
-		uint64_t ph0 = sink->ph_acc[i].bits[0] ^ block_size;
-		uint64_t ph1 = sink->ph_acc[i].bits[1];
+#define UPDATE(i)                                                                       \
+	do {                                                                            \
+		uint64_t ph0 = sink->ph_acc[i].bits[0] ^ block_size;                    \
+		uint64_t ph1 = sink->ph_acc[i].bits[1];                                 \
+                                                                                        \
+		sink->poly_state[i].acc = horner_double_update(sink->poly_state[i].acc, \
+		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], ph0, ph1);  \
+                                                                                        \
+		memcpy(&sink->ph_acc[i], &ph_acc, sizeof(ph_acc));                      \
+		if (!sink->fingerprinting)                                              \
+			return;                                                         \
+	} while (0)
 
-		sink->poly_state[i].acc = horner_double_update(sink->poly_state[i].acc,
-		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], ph0, ph1);
-
-		memcpy(&sink->ph_acc[i], &ph_acc, sizeof(ph_acc));
-		if (!sink->fingerprinting)
-			break;
-	}
+	UPDATE(0);
+	UPDATE(1);
+#undef UPDATE
 
 	return;
 }
@@ -793,21 +812,25 @@ sink_consume_buf(struct umash_sink *sink, const char buf[static INCREMENTAL_GRAN
 	memcpy(&x, buf, sizeof(x));
 	memcpy(&y, buf + sizeof(x), sizeof(y));
 
-#pragma GCC unroll 2
-	for (size_t i = 0, param = sink->ph_iter; i < 2;
-	     i++, param += UMASH_PH_TOEPLITZ_SHIFT) {
-		__m128i acc;
+#define UPDATE(i, param)                                                            \
+	do {                                                                        \
+		__m128i acc;                                                        \
+                                                                                    \
+		/* Use GPR loads to avoid forwarding stalls.  */                    \
+		memcpy(&acc, &sink->ph_acc[i], sizeof(acc));                        \
+		acc ^= _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->ph[param]), \
+		    _mm_cvtsi64_si128(y ^ sink->ph[param + 1]), 0);                 \
+		memcpy(&sink->ph_acc[i], &acc, sizeof(acc));                        \
+                                                                                    \
+		if (!sink->fingerprinting)                                          \
+			goto next;                                                  \
+	} while (0)
 
-		/* Use GPR loads to avoid forwarding stalls.  */
-		memcpy(&acc, &sink->ph_acc[i], sizeof(acc));
-		acc ^= _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->ph[param]),
-		    _mm_cvtsi64_si128(y ^ sink->ph[param + 1]), 0);
-		memcpy(&sink->ph_acc[i], &acc, sizeof(acc));
+	UPDATE(0, sink->ph_iter);
+	UPDATE(1, (sink->ph_iter + UMASH_PH_TOEPLITZ_SHIFT));
+#undef UPDATE
 
-		if (!sink->fingerprinting)
-			break;
-	}
-
+next:
 	memmove(&sink->buf, buf, buf_begin);
 	sink->block_size += sink->bufsz;
 	sink->bufsz = 0;
