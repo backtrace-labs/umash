@@ -55,7 +55,7 @@
  *   bound.
  *
  * - `umash_fprint` computes both `UMASH` functions described by a
- *   `struct umash_params`.  `umash_fp::hash[0]` corresnponds to
+ *   `struct umash_params`.  `umash_fp::hash[0]` corresponds to
  *   calling `umash_full` with the same arguments and `which = 0`;
  *   `umash_fp::hash[1]` corresponds to `which = 1`.
  *
