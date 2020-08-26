@@ -1,0 +1,154 @@
+From 421553b35908d45560040822c0d39a98cc15758b Mon Sep 17 00:00:00 2001
+From: Paul Khuong <pkhuong@backtrace.io>
+Date: Wed, 26 Aug 2020 23:33:06 +0000
+Subject: [PATCH] Hook UMASH in demerphq's SMHasher
+
+---
+ CMakeLists.txt |  5 +++--
+ build.sh       |  2 +-
+ main.cpp       | 16 +++++++++++++--
+ umash.hpp      | 55 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 73 insertions(+), 5 deletions(-)
+ create mode 100644 umash.hpp
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 57b3116..4c8326d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -94,8 +94,8 @@ if (CMAKE_COMPILER_IS_GNUCC
+     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -maes")
+     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
+   ENDIF (AES_TRUE)
+-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -march=native")
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
++  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -march=native -mtune=native")
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
+ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+   # using Visual Studio C++
+   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /arch:SSE2")
+@@ -234,6 +234,7 @@ add_library(SMHasherSupport
+   mum.cc
+   jody_hash32.c
+   jody_hash64.c
++  umash.c
+ )
+ 
+ add_executable(
+diff --git a/build.sh b/build.sh
+index b4b9e75..08cdf33 100755
+--- a/build.sh
++++ b/build.sh
+@@ -9,7 +9,7 @@ case `uname -s` in
+ #Darwin)  CXX=g++-mp-6  CC=gcc-mp-6 cmake .. ;;
+ Darwin)  cmake .. ;;
+ FreeBSD) CXX=clang++ CC=clang cmake .. ;;
+-*)       CXX=clang++-4.0  CC=clang-4.0 cmake ..   ;;
++*)       cmake ..   ;;
+ esac
+ make -j4 $@
+ cd ..
+diff --git a/main.cpp b/main.cpp
+index 7d887a1..aa6ba35 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -15,6 +15,7 @@
+ #endif
+ #include "md5.h"
+ #include "siphash.h"
++#include "umash.hpp"
+ #include <stdio.h>
+ #include <time.h>
+ #include "VERSION.h"
+@@ -468,6 +469,19 @@ HashInfo g_hashes[] =
+   { "MUM", "github.com/vnmakarov/mum-hash",
+     64, 64, 64, 0x73F6BFD7,
+     NULL, mum_hash_with_state_test },
++
++  { "umash128", "umash 128",
++    64, 8 * sizeof(struct umash_params), 128,
++    0xA5BDDA51, umash_state_from_seed, umash128_with_state },
++  { "umash64", "umash 64",
++    64, 8 * sizeof(struct umash_params), 64,
++    0x3CA67E45, umash_state_from_seed, umash_with_state },
++  { "umash32", "umash 32",
++    64, 8 * sizeof(struct umash_params), 32, 0xA089DF32,
++    umash_state_from_seed, umash32_with_state },
++  { "umash32_hi", "umash 32 hi",
++    64, 8 * sizeof(struct umash_params), 32,
++    0x1988554A, umash_state_from_seed, umash32_hi_with_state },
+ };
+ int g_hashes_sizeof= sizeof(g_hashes);
+ 
+@@ -759,8 +773,6 @@ int main ( int argc, char ** argv )
+     }
+   }
+ 
+-  // Code runs on the 3rd CPU by default
+-  SetAffinity((1 << 2));
+ 
+ 
+   //----------
+diff --git a/umash.hpp b/umash.hpp
+new file mode 100644
+index 0000000..23d7f98
+--- /dev/null
++++ b/umash.hpp
+@@ -0,0 +1,55 @@
++#pragma once
++
++#include <assert.h>
++#include <string.h>
++
++#include "umash.h"
++
++void
++umash_state_from_seed(int seedbits, const void *seed, void *state)
++{
++	uint64_t bits;
++
++	memcpy(&bits, seed, sizeof(bits));
++	umash_params_derive(static_cast<umash_params *>(state), bits, nullptr);
++	return;
++}
++
++void
++umash128_with_state(const void *blob, int len, const void *state, void *out)
++{
++	struct umash_fp umash;
++
++	umash = umash_fprint(static_cast<const umash_params *>(state), 0, blob, len);
++	memcpy(out, &umash, sizeof(umash));
++	return;
++}
++void
++umash_with_state(const void *blob, int len, const void *state, void *out)
++{
++	uint64_t umash;
++
++	umash = umash_full(static_cast<const umash_params *>(state), 0, 0, blob, len);
++	memcpy(out, &umash, sizeof(umash));
++	return;
++}
++
++void
++umash32_with_state(const void *blob, int len, const void *state, void *out)
++{
++	uint32_t umash;
++
++	umash = umash_full(static_cast<const umash_params *>(state), 0, 0, blob, len);
++	memcpy(out, &umash, sizeof(umash));
++	return;
++}
++
++void
++umash32_hi_with_state(const void *blob, int len, const void *state, void *out)
++{
++	uint32_t umash;
++
++	umash = umash_full(static_cast<const umash_params *>(state), 0, 0, blob, len) >> 32;
++	memcpy(out, &umash, sizeof(umash));
++	return;
++}
+-- 
+2.17.1
+
