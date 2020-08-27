@@ -420,8 +420,8 @@ def umash_short(key, seed, buf):
 ##
 ## This approach simplifies the end-of-string code path when
 ## misaligned loads are efficient, but does mean we must encode the
-## original string length $l$ somewhere. We use the [same trick as
-## VHASH](http://krovetz.net/csus/papers/vmac.pdf#page=8) and `xor` $(l
+## original string length $s$ somewhere. We use the [same trick as
+## VHASH](http://krovetz.net/csus/papers/vmac.pdf#page=8) and `xor` $(s
 ## \bmod 256)$ with the last `PH` output before passing
 ## it to polynomial hashing. Since only the last block may span fewer
 ## than 256 bytes, this is equivalent to `xor`ing $|\mathbf{M}_i|\bmod 256,$
@@ -542,9 +542,9 @@ def ph_compress(key, seed, blocks):
 ## more than 3 bits of data. The resulting collision probability
 ## for truncated `PH` is less than
 ## $\lceil 2^{64}/|\mathbb{F}|\rceil^2 \cdot 2^{-64} < 2^{-57}.$
-## As $l$, the input size in bytes, grows, that's quickly dominated by
+## As $s$, the input size in bytes, grows, that's quickly dominated by
 ## the collision probability for the polynomial hash in $\mathbb{F},$
-## $\varepsilon_{\mathbb{F}} \leq d / |\mathbb{F}| = 2\lceil l / 256\rceil / (2^{61} - 2),$
+## $\varepsilon_{\mathbb{F}} \leq d / |\mathbb{F}| = 2\lceil s / 256\rceil / (2^{61} - 2),$
 ## where the last decrement accounts for our disqualifying $0$ from
 ## the set of multipliers.
 ##
