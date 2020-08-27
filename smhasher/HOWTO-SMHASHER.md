@@ -6,6 +6,11 @@ Copy `umash.[ch]` in the toplevel SMHasher source directory, and apply
 either `0001-Hook-UMASH-in-rurban-s-SMHasher.patch` or
 `0001-Hook-UMASH-in-demerphq-s-SMHasher.patch`.
 
+The `demerphq` fork does not build cleanly.  One has to execute
+`make_smhasher` to generate the `VERSION.h` file.  Although the script
+fails, it's after generating that file, which suffices for `build.sh`
+to succeed.
+
 You may notice that the verification values differ from the logs here.
 That's due to a last minute change to `umash_params_derive`, in order
 to help out any eventual big endian port.  That function is only used
