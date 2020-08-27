@@ -6,6 +6,10 @@ Copy `umash.[ch]` in the toplevel SMHasher source directory, and apply
 either `0001-Hook-UMASH-in-rurban-s-SMHasher.patch` or
 `0001-Hook-UMASH-in-demerphq-s-SMHasher.patch`.
 
+Reini Urban's fork has more up-to-date hashes to compare with, and
+includes additional "end-to-end" hash table speed tests.  Yves Orton's
+fork is still interesting for its more extensive statistical testing.
+
 The `demerphq` fork does not build cleanly.  One has to execute
 `make_smhasher` to generate the `VERSION.h` file.  Although the script
 fails, it's after generating that file, which suffices for `build.sh`
