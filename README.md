@@ -63,7 +63,7 @@ sticks to something similar to the
 [FreeBSD KNF](https://www.freebsd.org/cgi/man.cgi?query=style&sektion=9);
 when in doubt, whatever `t/format.sh` does is good enough.
 
-See `smhasher/HOWTO-SMASHER.md` for patches to easily integrate UMASH
+See `smhasher/HOWTO-SMHASHER.md` for patches to easily integrate UMASH
 in the SMHasher hash performance and quality test suite.
 
 Help wanted
