@@ -1,6 +1,6 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2020-08-24
+## % 2020-08-27
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
 ##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
 ##
@@ -55,9 +55,9 @@
 ## UMASH should not be used for cryptographic purposes, especially
 ## against adversaries that can exploit side-channels or adapt to the
 ## hashed outputs, but does guarantee worst-case pair-wise
-## collision bounds. For any two strings of $l$ bytes or fewer, the
+## collision bounds. For any two strings of $s$ bytes or fewer, the
 ## probability of them hashing to the same value satisfies
-## $\varepsilon < \lceil l / 2048\rceil \cdot 2^{-56},$ as long as the
+## $\varepsilon < \lceil s / 2048\rceil \cdot 2^{-56},$ as long as the
 ## key is generated uniformly at random.
 ## However, once a few collisions have been identified (e.g., through a
 ## timing side-channel in a hash table), the linearity of the hash
@@ -86,7 +86,7 @@
 ## logic may include redundant data to ensure that the final block's
 ## size is a multiple of 16 bytes (two 64-bit integers).
 ##
-## Note that, while the analysis below assumes a modulus of $M(61) =
+## Note that, while the analysis below assumes a modulus of $M_{61} =
 ## 2^{61} - 1$ for the polynomial hash, the implementation actually works
 ## in $2^{64} - 8 = 8 \cdot (2^{61} - 1).$ This does not worsen the
 ## collision probability, but obviously affects the exact hash values
@@ -167,7 +167,7 @@
 ## and passed to a mixing routine based on
 ## [SplitMix64](http://prng.di.unimi.it/splitmix64.c), with
 ## the addition of a secret parameter that differs for each input
-## size $l \in [0, 8].$ The result is universal, never collides values
+## size $s \in [0, 8].$ The result is universal, never collides values
 ## of the same size, and otherwise collides values with probability
 ## $\varepsilon_{\textrm{short}} \approx 2^{-64}.$
 ##
@@ -178,7 +178,7 @@
 ##
 ## Longer strings of 9 or more bytes feed the result of `PH` to the
 ## polynomial hash in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$.
-## When the input is of medium size $l \in [9, 16),$ it is expanded to
+## When the input is of medium size $s \in [9, 16),$ it is expanded to
 ## 16 bytes by redundantly reading the first and last 8 bytes. In any
 ## case, the small modulus means polynomial hashing disregards
 ## slightly more than 6 bits off each `PH` output. This conservatively
@@ -188,9 +188,9 @@
 ##
 ## That's quickly dominated by the collision probability for the
 ## polynomial hash, $\varepsilon_{\mathbb{F}} < d / (2^{-61} - 2),$
-## where $d = 2\lceil l / 256 \rceil.$ The worst-case collision
+## where $d = 2\lceil s / 256 \rceil.$ The worst-case collision
 ## probability is thus safely less than
-## $\lceil l / 2048\rceil \cdot 2^{-56}.$ That's still universal
+## $\lceil s / 2048\rceil \cdot 2^{-56}.$ That's still universal
 ## with collision probability $\varepsilon_{\textrm{long}} < 2^{-40}$
 ## for strings of 128 MB or less.
 ##
@@ -368,8 +368,8 @@ def vec_to_u64(buf):
 ## When we use a Toeplitz extension to generate a second `PH` key,
 ## collisions for the first and second keys are independent:
 ## $k_{\texttt{len}(x)} \oplus k_{\texttt{len}(y)}$ and
-## $k_{\texttt{len}(x) + 2} \oplus k_{\texttt{len}(y) + 2}$ are
-## independent.
+## $k_{\texttt{len}(x) + k} \oplus k_{\texttt{len}(y) + k}$ are
+## independent for shift constant $k > 0$ (we use $K = 4$).
 
 
 def umash_short(key, seed, buf):
@@ -551,8 +551,7 @@ def ph_compress(key, seed, blocks):
 ## Note that the Horner update increments before multiplying: this
 ## does not impact the degree of the hash polynomial, nor its
 ## collisions probability since its inputs are randomised by `PH`, but
-## ensures that the last step is a multiplication, which improves
-## distribution.
+## having the last step be a multiplication improves distribution.
 
 
 def poly_reduce(multiplier, input_size, compressed_values):
@@ -598,9 +597,9 @@ def poly_reduce(multiplier, input_size, compressed_values):
 ## already assume the hash outputs are modulo $2^{61} - 1$), but could
 ## create clumping in data structures.  We address that with a
 ## fragment of SplitMix64: we want to shift right to bring more
-## entropy in the low 3 bits, and then multiply to spread out the
-## impact of low bits to the rest of the hash output.  That's enough
-## to satisfy SMHasher's avalanching and bias tests.
+## entropy in the low 3 bits, and multiply to mix these low bits with
+## the rest of the result.  That's enough to satisfy SMHasher's
+## avalanching and bias tests.
 
 
 def finalize(x):
@@ -631,18 +630,17 @@ def finalize(x):
 ## $\varepsilon_{\texttt{PH}} < 9^2\cdot 2^{-64} \approx 0.64\cdot 2^{-57},$
 ## and that of the polynomial hash,
 ## $\varepsilon_{\mathbb{F}} \approx d \cdot 2^{-61},$ where
-## $d = 2\lceil l / 256 \rceil$ is twice the number of `PH` blocks for
-## an input length $l > 8.$ Together, this yields
-## $\varepsilon_{\textrm{long}} \approx 2\lceil l / 256\rceil \cdot 2^{-61} + 0.64\cdot 2^{-57} < \lceil l / 2048\rceil \cdot 2^{-56}.$
+## $d = 2\lceil s / 256 \rceil$ is twice the number of `PH` blocks for
+## an input length $s > 8.$ Together, this yields
+## $\varepsilon_{\textrm{long}} \approx 2\lceil s / 256\rceil \cdot 2^{-61} + 0.64\cdot 2^{-57} < \lceil s / 2048\rceil \cdot 2^{-56}.$
 ##
 ## The short input hash is independent of the polynomial hash
 ## multiplier, and can thus be seen as a degree-0 polynomial. Any
 ## collision between short and long inputs is subject to the same
-## $\varepsilon_{\textrm{long}}$ collision bound.
-##
-## The total collision probability for strings of $l$ bytes or fewer
-## (with expectation taken over the generated key) thus adds up to
-## $\varepsilon < \lceil l / 2048\rceil \cdot 2^{-56}.$
+## $\varepsilon_{\textrm{long}}$ collision bound. The total collision
+## probability for strings of $s$ bytes or fewer (with expectation
+## taken over the generated key) thus adds up to $\varepsilon < \lceil
+## s / 2048\rceil \cdot 2^{-56}.$
 
 
 def umash_long(key, seed, buf):
@@ -699,24 +697,24 @@ def umash(key, seed, buf):
 ##
 ## We can reuse most of the `PH` key with
 ## [a Toeplitz extension](https://ieeexplore.ieee.org/abstract/document/1524931).
-## This lets us compute a second independent 64-bit UMASH result
-## with only three additional random 64-bit parameters (one
-## multiplier, and two `PH` values) in the key, and it is easy to
-## merge the two `PH` compression loops, especially for incremental
-## hashing.
+## We skip four `PH` parameters (two suffice for correctness), and
+## obtain a second independent UMASH with five additional
+## parameters (one multiplier, and four `PH` values) in the key; it's
+## also easy to merge the two `PH` compression loops, especially for
+## incremental hashing.
 ##
 ## When the input is 8 bytes or shorter, we `xor` in a single
 ## length-dependent value from the `PH` key. Inputs of the same
 ## length never collide, so a Toeplitz extension offers independent
 ## collision probabilities. Two inputs of different length collide
-## when $k_l \oplus k_{l^\prime}$ equals one unlucky value; the same
+## when $k_s \oplus k_{s^\prime}$ equals one unlucky value; the same
 ## expression in the Toeplitz-extended key is
-## $k_{l + 2} \oplus k_{l^\prime + 2},$ with distribution independent of
-## $k_l \oplus k_{l^\prime}.$
+## $k_{s + 2} \oplus k_{s^\prime + 4},$ with distribution independent of
+## $k_s \oplus k_{s^\prime}.$
 ##
 ## Combining two UMASHes squares the collision probability. The
 ## resulting probability,
-## $\varepsilon^2 < \lceil n / 2048\rceil^2 \cdot 2^{-112}$
+## $\varepsilon^2 < \lceil s / 2048\rceil^2 \cdot 2^{-112}$
 ## is easily comparable to the uncorrectable DRAM
 ## [error rates reported by Facebook](https://users.ece.cmu.edu/~omutlu/pub/memory-errors-at-facebook_dsn15.pdf#page=3):
 ## $0.03\%$ per month $\approx 2^{-66}$ per CPU cycle.
@@ -741,3 +739,8 @@ def umash(key, seed, buf):
 ## Phil Vachon helped me gain more confidence in the implementation
 ## tricks borrowed from VHASH after replacing the `NH` compression
 ## function with `PH`.
+##
+## # Change log
+##
+## 2020-08-27: use $s$ for the input byte length parameter, which
+## renders less confusingly than $l$ (ell) in the face of font issues.
