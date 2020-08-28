@@ -851,6 +851,41 @@ next:
 	return;
 }
 
+/**
+ * Hashes full 256-byte blocks into a sink that just dumped its PH
+ * state in the toplevel polynomial hash and reset the block state.
+ */
+static size_t
+block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
+{
+	size_t consumed = 0;
+
+	(void)n_bytes;
+	assert(n_bytes >= BLOCK_SIZE);
+	assert(sink->bufsz == 0);
+	assert(sink->block_size == 0);
+	assert(sink->ph_iter == 0);
+
+	while (n_bytes >= BLOCK_SIZE) {
+		/*
+		 * Is this worth unswitching?  Not obviously, given
+		 * the amount of work in one PH block.
+		 */
+		if (sink->fingerprinting) {
+			ph_one_block_toeplitz(sink->ph_acc, sink->ph, sink->seed, data);
+		} else {
+			sink->ph_acc[0] = ph_one_block(sink->ph, sink->seed, data);
+		}
+
+		sink_update_poly(sink);
+		consumed += BLOCK_SIZE;
+		data = (const char *)data + BLOCK_SIZE;
+		n_bytes -= BLOCK_SIZE;
+	}
+
+	return consumed;
+}
+
 void
 umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 {
@@ -870,12 +905,29 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	sink_consume_buf(sink, sink->buf + buf_begin);
 
 	while (n_bytes >= INCREMENTAL_GRANULARITY) {
-		n_bytes -= INCREMENTAL_GRANULARITY;
+		size_t consumed;
 
-		sink->bufsz = INCREMENTAL_GRANULARITY;
-		/* Copy if this is the last full chunk. */
-		sink_consume_buf(sink, data);
-		data = (const char *)data + INCREMENTAL_GRANULARITY;
+		if (sink->ph_iter == 0 && n_bytes >= BLOCK_SIZE) {
+			consumed = block_sink_update(sink, data, n_bytes);
+			assert(consumed >= BLOCK_SIZE);
+
+			/*
+			 * Save the tail of the data we just consumed
+			 * in `sink->buf[0 ... buf_begin - 1]`: the
+			 * final digest may need those bytes for its
+			 * redundant read.
+			 */
+			memcpy(sink->buf,
+			    (const char *)data + (consumed - INCREMENTAL_GRANULARITY),
+			    buf_begin);
+		} else {
+			consumed = INCREMENTAL_GRANULARITY;
+			sink->bufsz = INCREMENTAL_GRANULARITY;
+			sink_consume_buf(sink, data);
+		}
+
+		n_bytes -= consumed;
+		data = (const char *)data + consumed;
 	}
 
 	memcpy(&sink->buf[buf_begin], data, n_bytes);
