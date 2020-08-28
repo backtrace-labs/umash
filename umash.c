@@ -1,5 +1,10 @@
 #include "umash.h"
 
+#if !defined(UMASH_TEST_ONLY) && !defined(NDEBUG)
+#define NDEBUG
+#endif
+
+#include <assert.h>
 /* The PH block reduction code is x86-only for now. */
 #include <immintrin.h>
 #include <string.h>
