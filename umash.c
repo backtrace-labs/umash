@@ -10,6 +10,21 @@
 #include <string.h>
 
 /*
+ * #define UMASH_STAP_PROBE=1 to insert probe points in public UMASH
+ * functions.
+ *
+ * This functionality depends on Systemtap's SDT header file.
+ */
+#if defined(UMASH_STAP_PROBE) && UMASH_STAP_PROBE
+#include <sys/sdt.h>
+#else
+#define DTRACE_PROBE1(lib, name, a0)
+#define DTRACE_PROBE2(lib, name, a0, a1)
+#define DTRACE_PROBE3(lib, name, a0, a1, a2)
+#define DTRACE_PROBE4(lib, name, a0, a1, a2, a3)
+#endif
+
+/*
  * UMASH is distributed under the MIT license.
  *
  * SPDX-License-Identifier: MIT
@@ -892,6 +907,8 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
 	size_t remaining = INCREMENTAL_GRANULARITY - sink->bufsz;
 
+	DTRACE_PROBE4(libumash, umash_sink_update, sink, remaining, data, n_bytes);
+
 	if (n_bytes < remaining) {
 		memcpy(&sink->buf[buf_begin + sink->bufsz], data, n_bytes);
 		sink->bufsz += n_bytes;
@@ -942,6 +959,8 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
 	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
 
 	which = (which == 0) ? 0 : 1;
+
+	DTRACE_PROBE4(libumash, umash_full, params, which, data, n_bytes);
 	/*
 	 * It's not that short inputs are necessarily more likely, but
 	 * we want to make sure they fall through correctly to
@@ -963,6 +982,7 @@ umash_fprint(
     const struct umash_params *params, uint64_t seed, const void *data, size_t n_bytes)
 {
 
+	DTRACE_PROBE3(libumash, umash_fprint, params, data, n_bytes);
 	if (LIKELY(n_bytes <= sizeof(__m128i))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
 			return umash_fp_short(params->ph, seed, data, n_bytes);
@@ -980,6 +1000,8 @@ umash_init(struct umash_state *state, const struct umash_params *params, uint64_
 	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
 
 	which = (which == 0) ? 0 : 1;
+	DTRACE_PROBE3(libumash, umash_init, state, params, which);
+
 	state->sink = (struct umash_sink) {
 		.poly_state[0] = {
 			.mul = {
@@ -999,6 +1021,8 @@ void
 umash_fp_init(
     struct umash_fp_state *state, const struct umash_params *params, uint64_t seed)
 {
+
+	DTRACE_PROBE2(libumash, umash_fp_init, state, params);
 
 	state->sink = (struct umash_sink) {
 		.poly_state[0] = {
@@ -1069,6 +1093,8 @@ umash_digest(const struct umash_state *state)
 	struct umash_sink copy;
 	const struct umash_sink *sink = &state->sink;
 
+	DTRACE_PROBE1(libumash, umash_digest, state);
+
 	if (sink->large_umash) {
 		copy = *sink;
 		digest_flush(&copy);
@@ -1085,6 +1111,8 @@ umash_fp_digest(const struct umash_fp_state *state)
 	struct umash_fp ret;
 	const size_t buf_begin = sizeof(state->sink.buf) - INCREMENTAL_GRANULARITY;
 	const struct umash_sink *sink = &state->sink;
+
+	DTRACE_PROBE1(libumash, umash_fp_digest, state);
 
 	if (sink->large_umash) {
 		copy = *sink;
