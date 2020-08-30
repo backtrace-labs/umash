@@ -49,11 +49,6 @@ def exact_test(a, b, statistic="lte", eps=1e-6, p_a_lt=0.5, a_offset=0, b_offset
     n = len(b)
     total = m + n
 
-    buf = _make_buf()
-    BENCH.exact_test_offset_sort(buf, m, n, 0, 0)
-    actual_stat = stat_fn(buf, m, n)
-    print("actual: %f" % actual_stat)
-
     # Apply a fudged Bonferroni correction for the two-sided quantile
     # test.
     eps /= 2 * 1.1
@@ -66,16 +61,21 @@ def exact_test(a, b, statistic="lte", eps=1e-6, p_a_lt=0.5, a_offset=0, b_offset
     gte_actual = 0
 
     test_every = 10
-    buf = _make_buf()
     copy = FFI.new("uint64_t[]", total)
     error_ptr = FFI.new("char**")
+    buf = _make_buf()
     xoshiro = BENCH.exact_test_prng_create()
     try:
+        FFI.memmove(copy, buf, total * FFI.sizeof("uint64_t"))
+        BENCH.exact_test_offset_sort(xoshiro, copy, m, n, 0, 0)
+        actual_stat = stat_fn(copy, m, n)
+        print("actual: %f" % actual_stat)
+
         while True:
             FFI.memmove(copy, buf, total * FFI.sizeof("uint64_t"))
             if not BENCH.exact_test_shuffle(xoshiro, copy, m, n, p_a_lt, error_ptr):
                 raise "Shuffle failed: %s" % str(error_ptr[0], "utf-8")
-            BENCH.exact_test_offset_sort(copy, m, n, a_offset, b_offset)
+            BENCH.exact_test_offset_sort(xoshiro, copy, m, n, a_offset, b_offset)
             stat = stat_fn(copy, m, n)
             if stat <= actual_stat:
                 lte_actual += 1

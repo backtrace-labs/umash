@@ -41,15 +41,17 @@ bool exact_test_shuffle(struct xoshiro *, uint64_t *observations, size_t m, size
  * @param a_offset value to add to class A.
  * @param b_offset value to add to class B.
  *
- * On exit, the observation array will contain 63-bit observations, with
- * the low bit stolen to denote the class (0 for class A, 1 for class B),
- * and ties broken by letting class A show up first.
+ * On exit, the observation array will contain 63-bit observations,
+ * with the low bit stolen to denote the class (0 for class A, 1 for
+ * class B), and ties broken by letting class A show up first.  This
+ * function is deterministic, and the input `xoshiro` only used for an
+ * internal sampling sort algorithm.
  *
  * The sum of an observation and its offset will wrap around if it
  * exceeds 2**63 - 1.
  */
-void exact_test_offset_sort(
-    uint64_t *observations, size_t m, size_t n, uint64_t a_offset, uint64_t b_offset);
+void exact_test_offset_sort(struct xoshiro *, uint64_t *observations, size_t m, size_t n,
+    uint64_t a_offset, uint64_t b_offset);
 
 /**
  * Computes the sample probability that a value from A > a value from B.
