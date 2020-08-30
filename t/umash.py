@@ -16,6 +16,8 @@ HEADERS = [
     "t/umash_test_only.h",
 ]
 
+BENCH_HEADERS = ["bench/exact_test.h"]
+
 FFI = cffi.FFI()
 
 
@@ -39,6 +41,17 @@ for header in HEADERS:
     FFI.cdef(read_stripped_header(TOPLEVEL + header))
 
 C = FFI.dlopen(os.getenv("UMASH_TEST_LIB", TOPLEVEL + "umash_test_only.so"))
+
+if os.getenv("UMASH_BENCH_LIB"):
+    BENCH_FFI = cffi.FFI()
+
+    for header in BENCH_HEADERS:
+        BENCH_FFI.cdef(read_stripped_header(TOPLEVEL + header))
+
+    BENCH = BENCH_FFI.dlopen(os.getenv("UMASH_BENCH_LIB"))
+else:
+    BENCH_FFI = None
+    BENCH = None
 
 # Pass in a copy of stderr in case anyone plays redirection tricks.
 faulthandler.enable(os.dup(2))
