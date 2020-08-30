@@ -2,4 +2,4 @@
 set -e
 BASE=$(dirname "$0")
 
-clang-format -i "${BASE}/../"*.[ch] "${BASE}/"*.h
+clang-format -i "${BASE}/../"*.[ch] "${BASE}/"*.h "${BASE}/../bench/"*.[ch]
