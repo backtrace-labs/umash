@@ -159,6 +159,12 @@ cmp_u64(const void *vx, const void *vy)
 	return (*x < *y) ? -1 : 1;
 }
 
+/**
+ * Updates [*min, *max], an inclusive dense range of values in
+ * `observations`.
+ *
+ * May return an empty interval (min > max).
+ */
 static void
 find_dense_range(struct xoshiro *prng_state, const uint64_t *observations, size_t num,
     uint64_t *min, uint64_t *max)
@@ -211,8 +217,18 @@ find_dense_range(struct xoshiro *prng_state, const uint64_t *observations, size_
 		}
 	}
 
-	*min = sample[dense_lo_idx];
-	*max = sample[dense_hi_idx];
+	/*
+	 * Only store a range if it looks like it covers at least
+	 * ~num / 10 points.
+	 */
+	if (dense_hi_idx - dense_lo_idx >= sample_size / 10) {
+		*min = sample[dense_lo_idx];
+		*max = sample[dense_hi_idx];
+	} else {
+		*min = UINT64_MAX;
+		*max = 0;
+	}
+
 	free(sample);
 	return;
 }
@@ -223,6 +239,9 @@ compress_count_sort(size_t *counts, uint64_t *observations, size_t num,
 {
 	uint64_t dense_range = max_dense - min_dense;
 	size_t num_outliers = 0;
+
+	if (min_dense > max_dense)
+		return num;
 
 	for (size_t i = 0; i < num; i++) {
 		uint64_t value = observations[i];
@@ -242,6 +261,10 @@ merge_counts_into_outliers(uint64_t *sorted, const size_t *counts, size_t num_ou
     size_t num_total, uint64_t min_dense, uint64_t max_dense)
 {
 	size_t i;
+
+	/* Easy case: nothing in the dense range. */
+	if (num_outliers == num_total)
+		return;
 
 	/* Skip outliers < min_dense. */
 	for (i = 0; i < num_outliers; i++) {
@@ -296,7 +319,12 @@ hybrid_sort(
 
 	/* The dense range covers at most O(num) values. */
 	find_dense_range(prng, observations, num, &min, &max);
-	counts = calloc(max - min + 1, sizeof(*counts));
+	if (min > max) {
+		counts = NULL;
+	} else {
+		counts = calloc(max - min + 1, sizeof(*counts));
+	}
+
 	/* Update the `counts` array, which sliding outliers to the left. */
 	num_outliers = compress_count_sort(counts, observations, num, min, max);
 

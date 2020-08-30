@@ -15,22 +15,30 @@ def u63_lists():
 
     long_lists = st.builds(
         make_list,
-        st.integers(min_value=10, max_value=100),
+        st.integers(min_value=10, max_value=1000),
         st.integers(min_value=0, max_value=10000),
         st.integers(min_value=0, max_value=10000),
         st.randoms(use_true_random=True),
     )
     dense_lists = st.builds(
         make_list,
-        st.integers(min_value=10, max_value=100),
+        st.integers(min_value=10, max_value=1000),
         st.just(10),
         st.just(12),
+        st.randoms(use_true_random=True),
+    )
+    sparse_lists = st.builds(
+        make_list,
+        st.integers(min_value=10, max_value=1000),
+        st.just(0),
+        st.just(2 ** 63 - 1),
         st.randoms(use_true_random=True),
     )
     return (
         st.lists(st.integers(min_value=0, max_value=2 ** 63 - 1))
         | long_lists
         | dense_lists
+        | sparse_lists
     )
 
 
