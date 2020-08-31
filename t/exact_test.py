@@ -1,36 +1,57 @@
-from concurrent.futures import ThreadPoolExecutor
+from multiprocessing.pool import Pool
+from multiprocessing import Manager
 import math
 import os
-from queue import Queue
 
 from csm import csm
 from umash import BENCH
 from umash import BENCH_FFI as FFI
 
 
-def _exact_test_result(buf, m, n, stat_fn):
+def _exact_test_result(a, b, stat_fn):
     """Computes the actual sample value for `stat_fn`, for the sample
     values in `buf`, with `m` values from class A followed by `n` from
     class B.
     """
+
+    def _make_buf():
+        buf = FFI.new("uint64_t[]", len(a) + len(b))
+        for i, x in enumerate(a + b):
+            buf[i] = x
+        return buf
+
+    m = len(a)
+    n = len(b)
+    buf = _make_buf()
     total = m + n
     copy = FFI.new("uint64_t[]", total)
     xoshiro = BENCH.exact_test_prng_create()
     try:
         FFI.memmove(copy, buf, total * FFI.sizeof("uint64_t"))
         BENCH.exact_test_offset_sort(xoshiro, copy, m, n, 0, 0)
-        return stat_fn(copy, m, n)
+        return getattr(BENCH, stat_fn)(copy, m, n)
     finally:
         BENCH.exact_test_prng_destroy(xoshiro)
 
 
-def _resample_exact_test_results_1(buf, m, n, stat_fn, p_a_lt, a_offset, b_offset):
+def _resample_exact_test_results_1(a, b, stat_fn, p_a_lt, a_offset, b_offset):
     """Yields values computed by `stat_fn` after shuffling (copies of)
     `buf`, with `m` values from class A and `n` from class B.
     """
+
+    def _make_buf():
+        buf = FFI.new("uint64_t[]", len(a) + len(b))
+        for i, x in enumerate(a + b):
+            buf[i] = x
+        return buf
+
+    m = len(a)
+    n = len(b)
+    buf = _make_buf()
     total = m + n
     copy = FFI.new("uint64_t[]", total)
     error_ptr = FFI.new("char**")
+    c_stat_fn = getattr(BENCH, stat_fn)
     xoshiro = BENCH.exact_test_prng_create()
     try:
         while True:
@@ -38,70 +59,67 @@ def _resample_exact_test_results_1(buf, m, n, stat_fn, p_a_lt, a_offset, b_offse
             if not BENCH.exact_test_shuffle(xoshiro, copy, m, n, p_a_lt, error_ptr):
                 raise "Shuffle failed: %s" % str(error_ptr[0], "utf-8")
             BENCH.exact_test_offset_sort(xoshiro, copy, m, n, a_offset, b_offset)
-            yield stat_fn(copy, m, n)
+            yield c_stat_fn(copy, m, n)
     finally:
         BENCH.exact_test_prng_destroy(xoshiro)
 
 
-def _generate_in_parallel(generator_thunk, batch_size=2):
+def _generate_in_parallel_worker(queue, generator_fn, generator_args, max_batch_size):
+    """Toplevel worker for a process pool.  Batches values yielded by
+    `generator_fn(*generator_args)` and pushes batches to `queue`."""
+    batch = []
+    # Let the batch size grow linearly to improve responsiveness when
+    # we only need a few results to stop the analysis.
+    batch_size = 0
+    for value in generator_fn(*generator_args):
+        batch.append(value)
+        if len(batch) >= batch_size:
+            queue.put(batch)
+            batch = []
+            if batch_size < max_batch_size:
+                batch_size += 1
+
+
+def _generate_in_parallel(generator_fn, generator_args, batch_size=None):
     """Merges values yielded by `generator_thunk()` in arbitrary order.
     Each invocation of the thunk should return a fresh generator.
     """
     ncpu = os.cpu_count()
-    queue = Queue(maxsize=4 * ncpu)
-    cancelled = False
-    active_workers = [0]
+    # Use a managed queue and multiprocessing to avoid the GIL.
+    # Overall, this already seems like a net win at 4 cores, compared
+    # to multithreading: we lose some CPU time to IPC and the queue
+    # manager process, but less than what we wasted waiting on the GIL
+    # (~10-20% on all 4 cores).
+    queue = Manager().Queue(maxsize=4 * ncpu)
 
-    def worker():
-        """Accumulates batches of values before pushing them to the blocking
-        queue."""
-        batch = []
-        for value in generator_thunk():
-            if cancelled:
-                break
-            batch.append(value)
-            if len(batch) >= batch_size:
-                queue.put(batch)
-                batch = []
-        queue.put(False)
+    if batch_size is None:
+        batch_size = 100 * ncpu
 
     def get_nowait():
         try:
-            result = queue.get_nowait()
+            return queue.get_nowait()
         except:
-            return None, False
-        if result is False:
-            active_workers[0] -= 1
-            return get_nowait()
-        return result, True
+            return None
 
-    with ThreadPoolExecutor(ncpu - 1) as pool:
+    with Pool(ncpu) as pool:
         try:
             for _ in range(ncpu - 1):
-                pool.submit(worker)
-                active_workers[0] += 1
-            for value in generator_thunk():
-                ok = True
+                pool.apply_async(
+                    _generate_in_parallel_worker,
+                    (queue, generator_fn, generator_args, batch_size),
+                )
+            for value in generator_fn(*generator_args):
                 values = [value]
-                while ok:
+                while values is not None:
                     yield from values
-                    values, ok = get_nowait()
-
+                    values = get_nowait()
         finally:
-            cancelled = True
-            # Now that we marked the job as cancelled, each worker
-            # will enqueue a `None` before returning.  Wait until they
-            # all have done so.
-            while active_workers[0] > 0:
-                if queue.get() is False:
-                    active_workers[0] -= 1
+            pool.terminate()
 
 
-def _resample_exact_test_results(buf, m, n, stat_fn, p_a_lt, a_offset, b_offset):
+def _resample_exact_test_results(a, b, stat_fn, p_a_lt, a_offset, b_offset):
     return _generate_in_parallel(
-        lambda: _resample_exact_test_results_1(
-            buf, m, n, stat_fn, p_a_lt, a_offset, b_offset
-        )
+        _resample_exact_test_results_1, (a, b, stat_fn, p_a_lt, a_offset, b_offset)
     )
 
 
@@ -132,21 +150,12 @@ def exact_test(a, b, statistic="lte", eps=1e-6, p_a_lt=0.5, a_offset=0, b_offset
     p_a_lt is applied first, followed by a_offset / b_offset.
     """
 
-    def _make_buf():
-        buf = FFI.new("uint64_t[]", len(a) + len(b))
-        for i, x in enumerate(a + b):
-            buf[i] = x
-        return buf
-
     if statistic in ("lte", "<="):
-        stat_fn = BENCH.exact_test_lte_prob
+        stat_fn = "exact_test_lte_prob"
     elif stat_fn in ("gt", ">"):
-        stat_fn = BENCH.exact_test_gt_prob
+        stat_fn = "exact_test_gt_prob"
     else:
         raise "Unknown statistic fn %s" % statistic
-
-    m = len(a)
-    n = len(b)
 
     # Apply a fudged Bonferroni correction for the two-sided quantile
     # test.
@@ -160,13 +169,10 @@ def exact_test(a, b, statistic="lte", eps=1e-6, p_a_lt=0.5, a_offset=0, b_offset
     gte_actual = 0
 
     test_every = 10
-    buf = _make_buf()
-    actual_stat = _exact_test_result(buf, m, n, stat_fn)
+    actual_stat = _exact_test_result(a, b, stat_fn)
     print("actual: %f" % actual_stat)
 
-    for stat in _resample_exact_test_results(
-        buf, m, n, stat_fn, p_a_lt, a_offset, b_offset
-    ):
+    for stat in _resample_exact_test_results(a, b, stat_fn, p_a_lt, a_offset, b_offset):
         if stat <= actual_stat:
             lte_actual += 1
         if stat >= actual_stat:
