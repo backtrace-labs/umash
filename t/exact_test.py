@@ -1,4 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 import math
+import os
+from queue import Queue
+
 from csm import csm
 from umash import BENCH
 from umash import BENCH_FFI as FFI
@@ -20,7 +24,7 @@ def _exact_test_result(buf, m, n, stat_fn):
         BENCH.exact_test_prng_destroy(xoshiro)
 
 
-def _resample_exact_test_results(buf, m, n, stat_fn, p_a_lt, a_offset, b_offset):
+def _resample_exact_test_results_1(buf, m, n, stat_fn, p_a_lt, a_offset, b_offset):
     """Yields values computed by `stat_fn` after shuffling (copies of)
     `buf`, with `m` values from class A and `n` from class B.
     """
@@ -37,6 +41,68 @@ def _resample_exact_test_results(buf, m, n, stat_fn, p_a_lt, a_offset, b_offset)
             yield stat_fn(copy, m, n)
     finally:
         BENCH.exact_test_prng_destroy(xoshiro)
+
+
+def _generate_in_parallel(generator_thunk, batch_size=2):
+    """Merges values yielded by `generator_thunk()` in arbitrary order.
+    Each invocation of the thunk should return a fresh generator.
+    """
+    ncpu = os.cpu_count()
+    queue = Queue(maxsize=4 * ncpu)
+    cancelled = False
+    active_workers = [0]
+
+    def worker():
+        """Accumulates batches of values before pushing them to the blocking
+        queue."""
+        batch = []
+        for value in generator_thunk():
+            if cancelled:
+                break
+            batch.append(value)
+            if len(batch) >= batch_size:
+                queue.put(batch)
+                batch = []
+        queue.put(False)
+
+    def get_nowait():
+        try:
+            result = queue.get_nowait()
+        except:
+            return None, False
+        if result is False:
+            active_workers[0] -= 1
+            return get_nowait()
+        return result, True
+
+    with ThreadPoolExecutor(ncpu - 1) as pool:
+        try:
+            for _ in range(ncpu - 1):
+                pool.submit(worker)
+                active_workers[0] += 1
+            for value in generator_thunk():
+                ok = True
+                values = [value]
+                while ok:
+                    yield from values
+                    values, ok = get_nowait()
+
+        finally:
+            cancelled = True
+            # Now that we marked the job as cancelled, each worker
+            # will enqueue a `None` before returning.  Wait until they
+            # all have done so.
+            while active_workers[0] > 0:
+                if queue.get() is False:
+                    active_workers[0] -= 1
+
+
+def _resample_exact_test_results(buf, m, n, stat_fn, p_a_lt, a_offset, b_offset):
+    return _generate_in_parallel(
+        lambda: _resample_exact_test_results_1(
+            buf, m, n, stat_fn, p_a_lt, a_offset, b_offset
+        )
+    )
 
 
 def exact_test(a, b, statistic="lte", eps=1e-6, p_a_lt=0.5, a_offset=0, b_offset=0):
