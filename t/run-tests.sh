@@ -4,7 +4,9 @@ BASE=$(dirname $(readlink -f "$0"))
 
 (cd "${BASE}/../";
  ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} -DUMASH_TEST_ONLY umash.c \
-	   -fPIC --shared -o umash_test_only.so)
+	   -fPIC --shared -o umash_test_only.so;
+ ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} -c example.c -o /dev/null;
+)
 
 python3 -m venv "${BASE}/umash-venv/"
 

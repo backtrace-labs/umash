@@ -44,6 +44,60 @@ There should be no reason we can't also target other compilers, or
 other architectures with carry-less multiplication instructions
 (e.g., `VMULL` on ARMv8).
 
+Quick start
+-----------
+
+Here's how to use UMASH for a simple batch hash or fingerprint
+computation.
+
+First, we need to generate `struct umash_params` that will define the
+parameters ("key") of the UMASH hash or fingerprint function.
+
+For a hashing use case, one could fill a `struct umash_params params`
+with random bits (e.g., with
+[a `getrandom(2)` syscall](https://man7.org/linux/man-pages/man2/getrandom.2.html)),
+and call `umash_params_prepare(&params)` to convert the random bits
+into a valid key.  This last call may fail by returning `false`;
+however, the probability of that happening are astronomically small
+(less than `2**-100`) if the input data is actually uniformly random.
+
+Fingerprinting often needs a deterministic set of parameters that will
+be preserved across program invocations.  For that use case, one
+should either fill a `struct umash_params` with hardcoded random contents
+before calling `umash_params_prepare`, or use `umash_params_derive` to
+deterministically generate an unpredictable set of parameters from
+a 64-bit value and a 32-byte secret.
+
+For a fingerprinting use case, each program should use its own 32-byte
+secret.
+
+Given a fully initialised `struct umash_params params`, we can now
+call `umash_full` or `umash_fprint` to hash or fingerprint a sequence
+of bytes.  The `seed` argument is orthogonal to the collision bounds,
+but may be used to get different values, e.g., when growing a hash
+table afer too many collisions.  The fingerprint returned by
+`umash_fprint` is simply an array of two hash values.  We can compute
+either of these 64-bit hash values by calling `umash_full`: letting
+`which = 0` computes the first hash value in the fingerprint, and
+`which = 1` computes the second.
+
+See `example.c` for a quick example.
+
+    $ cc -O2 -W -Wall example.c umash.c -mpclmul -o example
+    $ ./example "the quick brown fox"
+    Input: the quick brown fox
+    Fingerprint: 24783a0d59b0d2f0, d165a49500fdd4b6
+    Hash 0: 24783a0d59b0d2f0
+    Hash 1: d165a49500fdd4b6
+
+We can confirm that the parameters are constructed deterministically,
+and that calling `umash_full` with `which = 0` or `which = 1` gets us
+the two halves of the `umash_fprint` fingerprint.
+
+Please note that UMASH is still not fully finalised; while the source
+code should be deterministic for a given revision, different revisions
+may compute different values for the exact same inputs.
+
 Hacking on UMASH
 ----------------
 
