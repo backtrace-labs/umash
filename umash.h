@@ -202,9 +202,8 @@ bool umash_params_prepare(struct umash_params *params);
 
 /**
  * Deterministically derives a `umash_params` struct from `bits` and
- * `extension`.  These values do not have to be particularly well
- * distributed, and can be generated sequentially; in fact, it is safe
- * to always let `extension` be 0.
+ * `key`.  The `bits` values do not have to be particularly well
+ * distributed, and can be generated sequentially.
  *
  * @param key a pointer to exactly 32 secret bytes.  NULL will be
  *   replaced with "Do not use UMASH VS adversaries.", the default
