@@ -8,6 +8,10 @@ from umash import BENCH
 from umash import BENCH_FFI as FFI
 
 
+# Keep 99.99% of the data when computing the mean.
+TRUNCATED_MEAN_TRIM_FRAC = 0.5e-5
+
+
 def _exact_test_result(a, b, stat_fn):
     """Computes the actual sample value for `stat_fn`, for the sample
     values in `buf`, with `m` values from class A followed by `n` from
@@ -29,7 +33,7 @@ def _exact_test_result(a, b, stat_fn):
     try:
         FFI.memmove(copy, buf, total * FFI.sizeof("uint64_t"))
         BENCH.exact_test_offset_sort(xoshiro, copy, m, n, 0, 0)
-        return getattr(BENCH, stat_fn)(copy, m, n)
+        return getattr(BENCH, stat_fn[0])(copy, m, n, *stat_fn[1:])
     finally:
         BENCH.exact_test_prng_destroy(xoshiro)
 
@@ -51,7 +55,8 @@ def _resample_exact_test_results_1(a, b, stat_fn, p_a_lt, a_offset, b_offset):
     total = m + n
     copy = FFI.new("uint64_t[]", total)
     error_ptr = FFI.new("char**")
-    c_stat_fn = getattr(BENCH, stat_fn)
+    c_stat_fn = getattr(BENCH, stat_fn[0])
+    c_stat_args = stat_fn[1:]
     xoshiro = BENCH.exact_test_prng_create()
     try:
         while True:
@@ -59,7 +64,7 @@ def _resample_exact_test_results_1(a, b, stat_fn, p_a_lt, a_offset, b_offset):
             if not BENCH.exact_test_shuffle(xoshiro, copy, m, n, p_a_lt, error_ptr):
                 raise "Shuffle failed: %s" % str(error_ptr[0], "utf-8")
             BENCH.exact_test_offset_sort(xoshiro, copy, m, n, a_offset, b_offset)
-            yield c_stat_fn(copy, m, n)
+            yield c_stat_fn(copy, m, n, *c_stat_args)
     finally:
         BENCH.exact_test_prng_destroy(xoshiro)
 
@@ -151,9 +156,11 @@ def exact_test(a, b, statistic="lte", eps=1e-6, p_a_lt=0.5, a_offset=0, b_offset
     """
 
     if statistic in ("lte", "<="):
-        stat_fn = "exact_test_lte_prob"
-    elif stat_fn in ("gt", ">"):
-        stat_fn = "exact_test_gt_prob"
+        stat_fn = ("exact_test_lte_prob",)  # rest are arguments
+    elif statistic in ("gt", ">"):
+        stat_fn = ("exact_test_gt_prob",)
+    elif statistic in ("truncated_mean"):
+        stat_fn = ("exact_test_truncated_mean_diff", TRUNCATED_MEAN_TRIM_FRAC)
     else:
         raise "Unknown statistic fn %s" % statistic
 
