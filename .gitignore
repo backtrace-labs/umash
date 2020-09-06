@@ -12,3 +12,5 @@ __pycache__
 t/__pycache__
 t/.hypothesis
 t/umash-venv
+bench-worktrees/
+traces/
