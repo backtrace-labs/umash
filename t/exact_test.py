@@ -244,24 +244,35 @@ def _resampled_data_results_1(sample, grouped_statistics):
         EXACT.exact_test_prng_destroy(xoshiro)
 
 
-def _generate_in_parallel_worker(queue, generator_fn, generator_args, max_batch_size):
+def _generate_in_parallel_worker(
+    queue,
+    generator_fn,
+    generator_args,
+    initial_batch_size,
+    max_batch_size,
+    return_after,
+):
     """Toplevel worker for a process pool.  Batches values yielded by
     `generator_fn(*generator_args)` and pushes batches to `queue`."""
     batch = []
     # Let the batch size grow linearly to improve responsiveness when
     # we only need a few results to stop the analysis.
-    batch_size = 0
+    batch_size = initial_batch_size
+    total = 0
     for value in generator_fn(*generator_args):
         batch.append(value)
         if len(batch) >= batch_size:
+            total += len(batch)
             queue.put(batch)
+            if total >= return_after:
+                return
             batch = []
             if batch_size < max_batch_size:
                 batch_size += 1
 
 
-def _generate_in_parallel(generator_fn, generator_args, batch_size=None):
-    """Merges values yielded by `generator_fn(*generator_args)` in
+def _generate_in_parallel(generator_fn, generator_args_fn, batch_size=None):
+    """Merges values yielded by `generator_fn(*generator_args_fn())` in
     arbitrary order.
     """
     ncpu = os.cpu_count()
@@ -272,8 +283,20 @@ def _generate_in_parallel(generator_fn, generator_args, batch_size=None):
     # (~10-20% on all 4 cores).
     queue = Manager().Queue(maxsize=4 * ncpu)
 
+    # Queue up npu + 2 work units.
+    pending = []
+
     if batch_size is None:
-        batch_size = 100 * ncpu
+        batch_size = 10 * ncpu
+
+    def generate_values():
+        """Calls the generator fn to get new values, while recycling the
+        arguments from time to time."""
+        while True:
+            for i, value in enumerate(generator_fn(*generator_args_fn())):
+                if i >= batch_size:
+                    break
+                yield value
 
     def get_nowait():
         try:
@@ -281,14 +304,44 @@ def _generate_in_parallel(generator_fn, generator_args, batch_size=None):
         except:
             return None
 
-    with Pool(ncpu) as pool:
-        try:
-            for _ in range(ncpu - 1):
+    def consume_completed_futures():
+        active = []
+        completed = []
+        for future in pending:
+            if future.ready():
+                completed.append(future)
+            else:
+                active.append(future)
+        pending.clear()
+        pending.extend(active)
+        return [future.get(0) for future in completed]
+
+    with Pool(ncpu - 1) as pool:
+        # Adds a new work unit to the pending list.
+        def add_work_unit(initial_batch_size=batch_size, return_after=2 * batch_size):
+            pending.append(
                 pool.apply_async(
                     _generate_in_parallel_worker,
-                    (queue, generator_fn, generator_args, batch_size),
+                    (
+                        queue,
+                        generator_fn,
+                        generator_args_fn(),
+                        initial_batch_size,
+                        batch_size,
+                        return_after,
+                    ),
                 )
-            for value in generator_fn(*generator_args):
+            )
+
+        try:
+            # Initial work units ramp up.
+            for _ in range(ncpu):
+                add_work_unit(0)
+            for _ in range(2):
+                add_work_unit()
+            for value in generate_values():
+                for _ in consume_completed_futures():
+                    add_work_unit()
                 values = [value]
                 while values is not None:
                     yield from values
@@ -303,7 +356,7 @@ def _resampled_data_results(sample, grouped_statistics):
     `sample.b_class`.
     """
     return _generate_in_parallel(
-        _resampled_data_results_1, (sample, grouped_statistics)
+        _resampled_data_results_1, lambda: (sample, grouped_statistics)
     )
 
 
