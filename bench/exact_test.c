@@ -18,6 +18,14 @@
 			return FAIL(#CONDITION " is false (" MSG ")"); \
 	} while (0)
 
+void
+exact_test_prng_seed(uint64_t seed)
+{
+
+	xoshiro_seed_global_state(seed);
+	return;
+}
+
 struct xoshiro *
 exact_test_prng_create(void)
 {

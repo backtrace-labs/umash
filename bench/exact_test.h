@@ -6,6 +6,14 @@
 struct xoshiro;
 
 /**
+ * Reseeds the global state from which we derive independentPRNG
+ * states.
+ *
+ * Reseeding lets us explore different random streams afer fork(2)ing.
+ */
+void exact_test_prng_seed(uint64_t seed);
+
+/**
  * Returns an independent PRNG state.
  *
  * Wrapper to make embedding easier.

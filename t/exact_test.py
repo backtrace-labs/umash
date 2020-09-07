@@ -2,6 +2,7 @@ from collections import defaultdict, namedtuple
 import cffi
 import math
 import os
+import secrets
 import sys
 
 from csm import csm
@@ -126,7 +127,13 @@ def _group_statistics_in_plan(statistics):
         offsets = (stat.a_offset, stat.b_offset)
         plan[p_a_lower][offsets].append(stat)
 
-    return plan
+    # Convert defaultdicts to regular dicts, for pickling.
+    def undefaultdict(x):
+        if not isinstance(x, defaultdict):
+            return x
+        return {k: undefaultdict(v) for k, v in x.items()}
+
+    return undefaultdict(plan)
 
 
 SELF_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -185,6 +192,10 @@ def _resampled_data_results(sample, grouped_statistics):
     """Yields values for all the statistics in `grouped_statistics` after
     shuffling values from `sample.a_class` and `sample.b_class`.
     """
+
+    # Reseed to avoid exploring the same random sequence multiple
+    # times when multiprocessing.
+    EXACT.exact_test_prng_seed(secrets.randbits(64))
 
     a = sample.a_class
     b = sample.b_class
