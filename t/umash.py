@@ -1,7 +1,6 @@
 import cffi
 import faulthandler
 import os
-import re
 import sys
 
 from cffi_util import read_stripped_header
