@@ -1,4 +1,6 @@
 from collections import defaultdict, namedtuple
+from multiprocessing import Manager
+from multiprocessing.pool import Pool
 import cffi
 import math
 import os
@@ -188,7 +190,7 @@ def _actual_data_results(sample, statistics):
     return results
 
 
-def _resampled_data_results(sample, grouped_statistics):
+def _resampled_data_results_1(sample, grouped_statistics):
     """Yields values for all the statistics in `grouped_statistics` after
     shuffling values from `sample.a_class` and `sample.b_class`.
     """
@@ -240,6 +242,69 @@ def _resampled_data_results(sample, grouped_statistics):
             yield compute_results()
     finally:
         EXACT.exact_test_prng_destroy(xoshiro)
+
+
+def _generate_in_parallel_worker(queue, generator_fn, generator_args, max_batch_size):
+    """Toplevel worker for a process pool.  Batches values yielded by
+    `generator_fn(*generator_args)` and pushes batches to `queue`."""
+    batch = []
+    # Let the batch size grow linearly to improve responsiveness when
+    # we only need a few results to stop the analysis.
+    batch_size = 0
+    for value in generator_fn(*generator_args):
+        batch.append(value)
+        if len(batch) >= batch_size:
+            queue.put(batch)
+            batch = []
+            if batch_size < max_batch_size:
+                batch_size += 1
+
+
+def _generate_in_parallel(generator_fn, generator_args, batch_size=None):
+    """Merges values yielded by `generator_fn(*generator_args)` in
+    arbitrary order.
+    """
+    ncpu = os.cpu_count()
+    # Use a managed queue and multiprocessing to avoid the GIL.
+    # Overall, this already seems like a net win at 4 cores, compared
+    # to multithreading: we lose some CPU time to IPC and the queue
+    # manager process, but less than what we wasted waiting on the GIL
+    # (~10-20% on all 4 cores).
+    queue = Manager().Queue(maxsize=4 * ncpu)
+
+    if batch_size is None:
+        batch_size = 100 * ncpu
+
+    def get_nowait():
+        try:
+            return queue.get_nowait()
+        except:
+            return None
+
+    with Pool(ncpu) as pool:
+        try:
+            for _ in range(ncpu - 1):
+                pool.apply_async(
+                    _generate_in_parallel_worker,
+                    (queue, generator_fn, generator_args, batch_size),
+                )
+            for value in generator_fn(*generator_args):
+                values = [value]
+                while values is not None:
+                    yield from values
+                    values = get_nowait()
+        finally:
+            pool.terminate()
+
+
+def _resampled_data_results(sample, grouped_statistics):
+    """Yields values computed by the Statistics in `grouped_statistics`
+    after reshuffling values from `sample.a_class` and
+    `sample.b_class`.
+    """
+    return _generate_in_parallel(
+        _resampled_data_results_1, (sample, grouped_statistics)
+    )
 
 
 ResultAccumulator = namedtuple(
