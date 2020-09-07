@@ -3,9 +3,11 @@ Test the exact statistical testing code (its internals, mostly).
 """
 import math
 import pytest
+import random
+import hypothesis
 from hypothesis import given
 import hypothesis.strategies as st
-from exact_test import EXACT, FFI
+from exact_test import EXACT, FFI, exact_test, median
 
 
 def u63_lists(min_size=0):
@@ -97,3 +99,47 @@ def test_quantile_diff(a, b, quantile):
     EXACT.exact_test_offset_sort(buf, len(a), len(b), 0, 0)
     actual = EXACT.exact_test_quantile_diff(buf, len(a), len(b), quantile)
     assert expected == actual
+
+
+@hypothesis.settings(deadline=None)
+@pytest.mark.skipif(EXACT is None, reason="exact permutation testing code not loaded")
+@given(
+    mean_a=st.integers(min_value=1000, max_value=2000),
+    sd_a=st.integers(min_value=0, max_value=10),
+    mean_b_delta=st.integers(min_value=-100, max_value=-10)
+    | st.integers(min_value=10, max_value=100),
+    sd_b=st.integers(min_value=0, max_value=10),
+)
+def test_exact_test_normal_variates(mean_a, sd_a, mean_b_delta, sd_b):
+    """Compares two samples generated from different normal distribution.
+
+    The exact_test doesn't have to give us the correct value, but it
+    shouldn't (p < 1e-2) be wrong.
+    """
+
+    def signum(x):
+        if x == 0:
+            return 0
+        return -1 if x < 0 else 1
+
+    count = 100
+    a = [max(0, math.ceil(random.normalvariate(mean_a, sd_a))) for _ in range(count)]
+    b = [
+        max(0, math.ceil(random.normalvariate(mean_a + mean_b_delta, sd_b)))
+        for _ in range(count)
+    ]
+    statistics = [median("median")]
+
+    # Offset the values enough to flip the order of the centers.
+    if mean_b_delta > 0:
+        statistics.append(
+            median("shifted_median", b_offset=10 + sd_a + sd_b + 2 * abs(mean_b_delta))
+        )
+    else:
+        statistics.append(
+            median("shifted_median", a_offset=10 + sd_a + sd_b + 2 * abs(mean_b_delta))
+        )
+
+    result = exact_test(a, b, eps=1e-2, statistics=statistics)
+    assert result["median"].judgement in (0, signum(-mean_b_delta))
+    assert result["shifted_median"].judgement in (0, signum(mean_b_delta))
