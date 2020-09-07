@@ -5,9 +5,19 @@ import math
 import pytest
 import random
 import hypothesis
-from hypothesis import given
+from hypothesis import assume, given
 import hypothesis.strategies as st
-from exact_test import EXACT, FFI, exact_test, median
+from exact_test import (
+    EXACT,
+    FFI,
+    Sample,
+    exact_test,
+    gt_prob,
+    median,
+    mean,
+    q99,
+    _actual_data_results,
+)
 
 
 def u63_lists(min_size=0):
@@ -83,6 +93,82 @@ def test_offset_sort(values):
 
 @pytest.mark.skipif(EXACT is None, reason="exact permutation testing code not loaded")
 @given(
+    a=st.lists(st.integers(min_value=0, max_value=1000), min_size=1, max_size=10),
+    b=st.lists(st.integers(min_value=0, max_value=1000), min_size=1, max_size=10),
+)
+def test_gt_prob(a, b):
+    """Test gt_prob: the probability that a value from a is strictly
+    greater than a value from b.
+    """
+
+    expected = sum(x > y for x in a for y in b) / (len(a) * len(b))
+
+    total = len(a) + len(b)
+    buf = FFI.new("uint64_t[]", total)
+    for i, x in enumerate(a + b):
+        buf[i] = x
+
+    xoshiro = EXACT.exact_test_prng_create()
+    EXACT.exact_test_offset_sort(xoshiro, buf, len(a), len(b), 0, 0)
+    EXACT.exact_test_prng_destroy(xoshiro)
+    actual = EXACT.exact_test_gt_prob(buf, len(a), len(b))
+    assert abs(expected - actual) < 1e-8
+
+
+@pytest.mark.skipif(EXACT is None, reason="exact permutation testing code not loaded")
+@given(
+    a=st.lists(st.integers(min_value=0, max_value=1000), min_size=1, max_size=10),
+    b=st.lists(st.integers(min_value=0, max_value=1000), min_size=1, max_size=10),
+)
+def test_lte_prob(a, b):
+    """Test lte_prob: the probability that a value from a is less than or
+    equal to a value from b.
+    """
+
+    expected = sum(x <= y for x in a for y in b) / (len(a) * len(b))
+
+    total = len(a) + len(b)
+    buf = FFI.new("uint64_t[]", total)
+    for i, x in enumerate(a + b):
+        buf[i] = x
+
+    xoshiro = EXACT.exact_test_prng_create()
+    EXACT.exact_test_offset_sort(xoshiro, buf, len(a), len(b), 0, 0)
+    EXACT.exact_test_prng_destroy(xoshiro)
+    actual = EXACT.exact_test_lte_prob(buf, len(a), len(b))
+    assert abs(expected - actual) < 1e-8
+
+
+@pytest.mark.skipif(EXACT is None, reason="exact permutation testing code not loaded")
+@given(
+    a=st.lists(st.integers(min_value=0, max_value=1000), min_size=1),
+    b=st.lists(st.integers(min_value=0, max_value=1000), min_size=1),
+    tail=st.floats(min_value=0.0, max_value=0.1),
+)
+def test_truncated_mean_diff(a, b, tail):
+    def compute_truncated_mean(values):
+        drop = math.ceil(len(values) * tail)
+        values = sorted(values)
+        if drop > 0:
+            values = values[drop:-drop]
+        assume(values)
+        return sum(values) / len(values)
+
+    expected = compute_truncated_mean(a) - compute_truncated_mean(b)
+    total = len(a) + len(b)
+    buf = FFI.new("uint64_t[]", total)
+    for i, x in enumerate(a + b):
+        buf[i] = x
+
+    xoshiro = EXACT.exact_test_prng_create()
+    EXACT.exact_test_offset_sort(xoshiro, buf, len(a), len(b), 0, 0)
+    EXACT.exact_test_prng_destroy(xoshiro)
+    actual = EXACT.exact_test_truncated_mean_diff(buf, len(a), len(b), tail)
+    assert abs(expected - actual) < 1e-8
+
+
+@pytest.mark.skipif(EXACT is None, reason="exact permutation testing code not loaded")
+@given(
     a=u63_lists(min_size=1),
     b=u63_lists(min_size=1),
     quantile=st.floats(min_value=0.0, max_value=0.99),
@@ -147,3 +233,34 @@ def test_exact_test_normal_variates(mean_a, sd_a, mean_b_delta, sd_b):
     result = exact_test(a, b, eps=1e-2, statistics=statistics)
     assert result["median"].judgement in (0, signum(-mean_b_delta))
     assert result["shifted_median"].judgement in (0, signum(mean_b_delta))
+
+
+@pytest.mark.skipif(EXACT is None, reason="exact permutation testing code not loaded")
+@given(
+    a=st.lists(st.integers(min_value=0, max_value=100), min_size=1),
+    b=st.lists(st.integers(min_value=0, max_value=100), min_size=1),
+)
+def test_actual_data_results(a, b):
+    """Computes the median, mean, and lte prob with
+    `exact_test._actual_data_results`, and compares with reference
+    implementations.
+    """
+
+    def compute_q99(values):
+        values = sorted(values)
+        return values[math.floor(0.99 * len(values))]
+
+    def compute_mean(values):
+        return sum(values) / len(values)
+
+    expected_q99 = compute_q99(a) - compute_q99(b)
+    expected_mean = compute_mean(a) - compute_mean(b)
+    expected_gt = sum(x > y for x in a for y in b) / (len(a) * len(b))
+
+    sample = Sample(a, b)
+    plan = [q99("q99", p_a_lower=0.9), mean("mean", a_offset=1), gt_prob("gt")]
+
+    actual = _actual_data_results(sample, plan)
+    assert actual["q99"] == expected_q99
+    assert actual["gt"] == expected_gt
+    assert abs(actual["mean"] - expected_mean) < 1e-8

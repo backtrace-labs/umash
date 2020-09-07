@@ -365,6 +365,86 @@ exact_test_offset_sort(struct xoshiro *prng, uint64_t *observations, size_t m, s
 }
 
 double
+exact_test_gt_prob(const uint64_t *observations, size_t m, size_t n)
+{
+	__uint128_t acc = 0;
+	/*
+	 * Number of values in B class `< observations[i]`.
+	 *
+	 * This value is temporarily off when updating the span of
+	 * values in B that are exactly equal to `observations[i]`,
+	 * but the discrepancy is irrelevant since we break ties by
+	 * letting values from class A come first.
+	 */
+	uint64_t b_count = 0;
+
+	for (size_t i = 0, total = m + n; i < total; i++) {
+		bool class_a = (observations[i] & 1) == 0;
+
+		if (class_a) {
+			acc += b_count;
+		} else {
+			b_count++;
+		}
+	}
+
+	return acc / (1.0 * m * n);
+}
+
+double
+exact_test_lte_prob(const uint64_t *observations, size_t m, size_t n)
+{
+
+	return 1.0 - exact_test_gt_prob(observations, m, n);
+}
+
+double
+exact_test_truncated_mean_diff(
+    const uint64_t *observations, size_t m, size_t n, double truncate_frac)
+{
+	/* Index 0 = class A, 1 = class B. */
+	__int128_t sum[2] = { 0 };
+	double mean[2];
+	size_t count[2];
+	size_t start_count[2];
+	size_t stop_count[2];
+	size_t seen[2] = { 0 };
+
+	if (truncate_frac >= 0.5)
+		return nan("truncate");
+
+	start_count[0] = ceil(truncate_frac * m);
+	start_count[1] = ceil(truncate_frac * n);
+	stop_count[0] = m - start_count[0];
+	stop_count[1] = n - start_count[1];
+
+	if (start_count[0] >= stop_count[0] || start_count[1] >= stop_count[1])
+		return nan("");
+
+	for (size_t i = 0, total = m + n; i < total; i++) {
+		size_t class = observations[i] & 1;
+		size_t current_idx = seen[class]++;
+
+		if (current_idx < start_count[class] || current_idx >= stop_count[class])
+			continue;
+
+		sum[class] += observations[i] / 2;
+	}
+
+	for (size_t class_idx = 0; class_idx < 2; class_idx++) {
+		count[class_idx] = stop_count[class_idx] - start_count[class_idx];
+
+		mean[class_idx] = sum[class_idx] / (1.0 * count[class_idx]);
+	}
+
+	/* When things balance nicely, avoid potential cancellation. */
+	if (count[0] == count[1])
+		return (sum[0] - sum[1]) / (1.0 * count[0]);
+
+	return mean[0] - mean[1];
+}
+
+double
 exact_test_quantile_diff(
     const uint64_t *observations, size_t m, size_t n, double quantile)
 {

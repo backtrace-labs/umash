@@ -9,6 +9,9 @@ from cffi_util import read_stripped_header
 
 __all__ = [
     "exact_test",
+    "lte_prob",
+    "gt_prob",
+    "mean",
     "quantile",
     "median",
     "q99",
@@ -36,6 +39,52 @@ Statistic = namedtuple(
 )
 
 DEFAULT_STATISTIC = Statistic(None, 0.5, 0, 0, None, ())
+
+
+def lte_prob(name, p_a_lower=0.5, a_offset=0, b_offset=0):
+    """Returns a statistic that computes the probability that a value
+    chosen uniformly at random from A is <= a value uniformly chosen from
+    B."""
+    return DEFAULT_STATISTIC._replace(
+        name=name,
+        probability_a_lower=p_a_lower,
+        a_offset=a_offset,
+        b_offset=b_offset,
+        fn_name="exact_test_lte_prob",
+        fn_args=(),
+    )
+
+
+def gt_prob(name, p_a_lower=0.5, a_offset=0, b_offset=0):
+    """Returns a statistic that computes the probability that a value
+    chosen uniformly at random from A is > a value uniformly chosen from
+    B."""
+    return DEFAULT_STATISTIC._replace(
+        name=name,
+        probability_a_lower=p_a_lower,
+        a_offset=a_offset,
+        b_offset=b_offset,
+        fn_name="exact_test_gt_prob",
+        fn_args=(),
+    )
+
+
+def mean(name, truncate_tails=0.0, p_a_lower=0.5, a_offset=0, b_offset=0):
+    """Returns a statistic that computes the difference between the
+    (potentially truncated) arithmetic means of A and B.
+
+    If truncate_tail > 0, we remove that fraction (rounded up) of the
+    observations at both tails.  For example, truncate_tail=0.01 considers
+    only the most central 98% of the data points in the mean.
+    """
+    return DEFAULT_STATISTIC._replace(
+        name=name,
+        probability_a_lower=p_a_lower,
+        a_offset=a_offset,
+        b_offset=b_offset,
+        fn_name="exact_test_truncated_mean_diff",
+        fn_args=(truncate_tails,),
+    )
 
 
 def quantile(name, q, p_a_lower=0.5, a_offset=0, b_offset=0):
