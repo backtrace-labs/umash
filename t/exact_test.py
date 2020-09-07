@@ -340,8 +340,11 @@ def _generate_in_parallel(generator_fn, generator_args_fn, batch_size=None):
             for _ in range(2):
                 add_work_unit()
             for value in generate_values():
+                # Let work units run for longer without communications
+                # when we keep going after the initial batch: we're
+                # probably in this for the long run.
                 for _ in consume_completed_futures():
-                    add_work_unit()
+                    add_work_unit(return_after=5 * batch_size)
                 values = [value]
                 while values is not None:
                     yield from values
@@ -350,13 +353,13 @@ def _generate_in_parallel(generator_fn, generator_args_fn, batch_size=None):
             pool.terminate()
 
 
-def _resampled_data_results(sample, grouped_statistics):
-    """Yields values computed by the Statistics in `grouped_statistics`
+def _resampled_data_results(sample, grouped_statistics_fn):
+    """Yields values computed by the Statistics in `grouped_statistics_fn()`
     after reshuffling values from `sample.a_class` and
     `sample.b_class`.
     """
     return _generate_in_parallel(
-        _resampled_data_results_1, lambda: (sample, grouped_statistics)
+        _resampled_data_results_1, lambda: (sample, grouped_statistics_fn())
     )
 
 
@@ -461,11 +464,14 @@ def exact_test(
 
     ret = dict()
 
+    def group_unfathomed_statistics():
+        return _group_statistics_in_plan(
+            [stat for stat in statistics if stat.name not in ret]
+        )
+
     seen = 0
     test_every = 250
-    for sample in _resampled_data_results(
-        actual_data, _group_statistics_in_plan(statistics)
-    ):
+    for sample in _resampled_data_results(actual_data, group_unfathomed_statistics):
         for name, stat in sample.items():
             actual = actual_stats[name]
             current = accumulators[name]
