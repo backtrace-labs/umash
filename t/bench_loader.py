@@ -9,6 +9,7 @@ import subprocess
 import sys
 from types import SimpleNamespace
 
+from cffi_util import read_stripped_header
 
 SELF_DIR = os.path.dirname(os.path.abspath(__file__))
 TOPLEVEL = os.path.abspath(SELF_DIR + "/../") + "/"
@@ -16,26 +17,12 @@ TOPLEVEL = os.path.abspath(SELF_DIR + "/../") + "/"
 HEADERS = ["bench/runner.h"]
 
 
-def read_stripped_header(path, suffix):
-    """Returns the contents of a header file without preprocessor directives."""
-    ret = ""
-    in_directive = False
-    with open(path) as f:
-        for line in f:
-            if in_directive or re.match(r"^\s*#", line):
-                in_directive = line.endswith("\\\n")
-            else:
-                in_directive = False
-                # Substitute away the `ID(prefix)` macro.
-                line = re.sub(r"ID\(([^)]+)\)", r"\1_" + suffix, line)
-                ret += line
-    return ret
-
-
 def load_bench(suffix="WIP"):
     ffi = cffi.FFI()
     for header in HEADERS:
-        ffi.cdef(read_stripped_header(TOPLEVEL + header, suffix))
+        ffi.cdef(
+            read_stripped_header(TOPLEVEL + header, {r"ID\(([^)]+)\)": r"\1_" + suffix})
+        )
     path = TOPLEVEL + "umash_bench_runner-" + suffix + ".so"
     print("Loading %s" % path, file=sys.stderr)
     c = ffi.dlopen(path)

@@ -4,6 +4,7 @@ import os
 import re
 import sys
 
+from cffi_util import read_stripped_header
 
 SELF_DIR = os.path.dirname(os.path.abspath(__file__))
 TOPLEVEL = os.path.abspath(SELF_DIR + "/../") + "/"
@@ -19,24 +20,10 @@ HEADERS = [
 FFI = cffi.FFI()
 
 
-def read_stripped_header(path):
-    """Returns the contents of a header file without preprocessor directives."""
-    ret = ""
-    in_directive = False
-    with open(path) as f:
-        for line in f:
-            if in_directive or re.match(r"^\s*#", line):
-                in_directive = line.endswith("\\\n")
-            else:
-                in_directive = False
-                # HACK: ignore the C++ guard
-                if line != 'extern "C" {\n' and line != "}\n":
-                    ret += line
-    return ret
-
-
 for header in HEADERS:
-    FFI.cdef(read_stripped_header(TOPLEVEL + header))
+    FFI.cdef(
+        read_stripped_header(TOPLEVEL + header, {r'^extern "C" {\n': "", r"}\n": ""})
+    )
 
 C = FFI.dlopen(os.getenv("UMASH_TEST_LIB", TOPLEVEL + "umash_test_only.so"))
 
