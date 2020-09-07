@@ -27,3 +27,10 @@ ${CC:-cc} ${CFLAGS:- -O2 -std=gnu99 -W -Wall -mpclmul} \
 
 cd ../..;
 git worktree remove --force "bench-worktrees/$SHA";
+
+# Turn any global symbol that does not include the SHA suffix into a
+# local one that will not leak into the global `dlopen` namespace.
+LOCALIZE=$(nm -g "umash_bench_runner-$SHA.so" | \
+    awk "(/[0-9a-f]+ [A-Z] / && ! (\$3 ~ /_$SHA\$/)){print \"-L \" \$3}")
+
+objcopy $LOCALIZE "umash_bench_runner-$SHA.so"
