@@ -73,7 +73,9 @@ def test_offset_sort(values):
         buf[i] = x
     # Sort `len(values)` sampled values from A, and none from B.
     # That's the same as sorting the values shifted left by 1 bit.
-    EXACT.exact_test_offset_sort(buf, len(values), 0, 0, 0)
+    xoshiro = EXACT.exact_test_prng_create()
+    EXACT.exact_test_offset_sort(xoshiro, buf, len(values), 0, 0, 0)
+    EXACT.exact_test_prng_destroy(xoshiro)
 
     actual = [buf[i] for i in range(len(values))]
     assert expected == actual
@@ -96,7 +98,9 @@ def test_quantile_diff(a, b, quantile):
     for i, x in enumerate(a + b):
         buf[i] = x
 
-    EXACT.exact_test_offset_sort(buf, len(a), len(b), 0, 0)
+    xoshiro = EXACT.exact_test_prng_create()
+    EXACT.exact_test_offset_sort(xoshiro, buf, len(a), len(b), 0, 0)
+    EXACT.exact_test_prng_destroy(xoshiro)
     actual = EXACT.exact_test_quantile_diff(buf, len(a), len(b), quantile)
     assert expected == actual
 

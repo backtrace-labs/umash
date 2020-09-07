@@ -121,7 +121,10 @@ def _actual_data_results(sample, statistics):
     total = m + n
     copy = FFI.new("uint64_t[]", total)
     FFI.memmove(copy, buf, total * FFI.sizeof("uint64_t"))
-    EXACT.exact_test_offset_sort(copy, m, n, 0, 0)
+
+    xoshiro = EXACT.exact_test_prng_create()
+    EXACT.exact_test_offset_sort(xoshiro, copy, m, n, 0, 0)
+    EXACT.exact_test_prng_destroy(xoshiro)
 
     for stat in statistics:
         value = getattr(EXACT, stat.fn_name)(copy, m, n, *stat.fn_args)
@@ -163,7 +166,9 @@ def _resampled_data_results(sample, grouped_statistics):
 
             for (a_offset, b_offset), stats_for_offset in stats_for_p.items():
                 FFI.memmove(sorted_buf, shuffled_buf, total * FFI.sizeof("uint64_t"))
-                EXACT.exact_test_offset_sort(sorted_buf, m, n, a_offset, b_offset)
+                EXACT.exact_test_offset_sort(
+                    xoshiro, sorted_buf, m, n, a_offset, b_offset
+                )
                 for stat in stats_for_offset:
                     results[stat.name] = getattr(EXACT, stat.fn_name)(
                         sorted_buf, m, n, *stat.fn_args
