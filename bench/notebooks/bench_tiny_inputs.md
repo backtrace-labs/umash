@@ -37,12 +37,14 @@ counts
 
 ```python
 # Gather the raw data for the two revisions we want to compare
-TEST="WIP"  # Or an actual commit ref
-BASELINE="HEAD"  # Or any other commit ref
+TEST = "WIP"  # Or an actual commit ref
+BASELINE = "HEAD"  # Or any other commit ref
 results = umash_bench.compare_short_inputs(current=TEST,
                                            baseline=BASELINE,
                                            length_limit=4,
                                            min_count=1000000)
+
+TEST, BASELINE = results.keys()  # Convert to the actual keys.
 ```
 
 ```python
@@ -67,7 +69,7 @@ for sz in range(1, 4):
     fig = px.histogram(dict(WIP=wip, Baseline=baseline),
                       title="Latency for input size = %i" % sz,
                       histnorm='probability density',
-                      nbins=max(a + b),
+                      nbins=max(wip + baseline),
                       marginal="box")
     fig.update_xaxes(range=(0, 100))
     fig.show()
