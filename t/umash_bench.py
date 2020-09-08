@@ -1,7 +1,7 @@
 """Builds and benchmarks multiple versions of UMASH on inputs
 generated from traces.
 """
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import itertools
 import random
 
@@ -42,7 +42,7 @@ def compare_short_inputs(
     length_limit=4,
     cflags=None,
     block_size=128,
-    min_count=10000,
+    min_count=100000,
     runner="umash_bench_individual",
 ):
     """Compares the performance of two implementations for short input
@@ -67,6 +67,10 @@ def compare_short_inputs(
         (0, getattr(current_lib, runner), defaultdict(list)),
         (1, getattr(baseline_lib, runner), defaultdict(list)),
     ]
+
+    # Don't record results for the first pair of calls: it could
+    # suffer from systematic warm-up effects.
+    record_results = False
     for _ in range(1 + min_count // len(length_arguments)):
         for block in grouper(length_arguments, block_size):
             random.shuffle(implementations)
@@ -79,8 +83,13 @@ def compare_short_inputs(
 
             for _, fn, results in implementations:
                 fn(timings, inputs, count, max_len)
-                _update_results(results, inputs, timings, count)
+                if record_results:
+                    _update_results(results, inputs, timings, count)
+            record_results = True
         random.shuffle(length_arguments)
-    # Return the result dicts in order (current, then baseline).
+    # Undo shuffling, and return the current and baseline values in
+    # order.
     implementations.sort()
-    return [x[2] for x in implementations]
+    return OrderedDict(
+        {current_suffix: implementations[0][2], baseline_suffix: implementations[1][2]}
+    )
