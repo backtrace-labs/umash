@@ -9,5 +9,3 @@ pycryptodome~=3.9.8
 
 # Development helpers
 black~=19.10b0
-ipython~=7.11.1
-pyflakes~=2.1.1

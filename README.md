@@ -120,6 +120,11 @@ when in doubt, whatever `t/format.sh` does is good enough.
 See `smhasher/HOWTO-SMHASHER.md` for patches to easily integrate UMASH
 in the SMHasher hash performance and quality test suite.
 
+We are also setting up Jupyter notebooks to make it easier to compare
+different implementations, to visualise the results, and to
+automatically run a set of statistical tests on that data. See
+`bench/README.md` for more details.
+
 Help wanted
 -----------
 

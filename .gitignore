@@ -8,9 +8,10 @@ example
 *.so
 *.o
 *.a
-__pycache__
-t/__pycache__
-t/.hypothesis
-t/umash-venv
+__pycache__/
+.hypothesis/
+.ipynb_checkpoints/
+umash-venv/
 bench-worktrees/
 traces/
+*.ipynb

@@ -13,6 +13,9 @@ python3 -m venv "${BASE}/umash-venv/"
 
 pip3 install -r "${BASE}/requirements.txt"
 
+pip3 install -r "${BASE}/requirements-bench.txt"
+
 black "${BASE}/"*.py
 
-(cd "${BASE}"; ipython3)
+cd "${BASE}/../bench/notebooks"
+exec env PYTHONPATH="$BASE:$PYTHONPATH" jupyter notebook

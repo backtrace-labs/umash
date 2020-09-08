@@ -1,0 +1,11 @@
+# Heavier dependencies for t/bench.sh and more involved development.
+
+# Useful for analysing benchmarks
+pandas
+jupyter
+jupytext
+plotly
+
+# Development helpers
+ipython~=7.11.1
+pyflakes~=2.1.1
