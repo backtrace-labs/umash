@@ -22,7 +22,7 @@ import plotly.express as px
 ```
 
 ```python
-# List the dsitribution of input sizes in the trace.
+# List the distribution of input sizes in the trace.
 from collections import defaultdict
 
 acc = defaultdict(lambda: 0)
@@ -41,6 +41,7 @@ TEST="WIP"  # Or an actual commit ref
 BASELINE="HEAD"  # Or any other commit ref
 results = umash_bench.compare_short_inputs(current=TEST,
                                            baseline=BASELINE,
+                                           length_limit=4,
                                            min_count=1000000)
 ```
 
