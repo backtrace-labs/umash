@@ -60,17 +60,19 @@ for label, values in results.items():
 ```python
 # Visualise the two latency distributions for each input size
 for sz in range(1, 4):
-    wip = list(results[TEST][sz])
+    test = list(results[TEST][sz])
     baseline = list(results[BASELINE][sz])
-    random.shuffle(wip)
+    random.shuffle(test)
     random.shuffle(baseline)
-    wip = wip[:10000]
+    test = test[:10000]
     baseline = baseline[:10000]
-    fig = px.histogram(dict(WIP=wip, Baseline=baseline),
-                      title="Latency for input size = %i" % sz,
-                      histnorm='probability density',
-                      nbins=max(wip + baseline),
-                      marginal="box")
+    fig = px.histogram(dict(Test=test, Baseline=baseline),
+                       title="Latency for input size = %i" % sz,
+                       histnorm='probability density',
+                       nbins=max(test + baseline),
+                       barmode="overlay",
+                       opacity=0.5,
+                       marginal="box")
     fig.update_xaxes(range=(0, 100))
     fig.show()
 ```
