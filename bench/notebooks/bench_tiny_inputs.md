@@ -44,7 +44,7 @@ results = umash_bench.compare_short_inputs(current=TEST,
                                            length_limit=4,
                                            min_count=1000000)
 
-TEST, BASELINE = results.keys()  # Convert to the actual keys.
+TEST, BASELINE = results.keys()  # Convert to the actual keys: HEAD etc. are normalised to SHAs
 ```
 
 ```python
@@ -77,15 +77,19 @@ for sz in range(1, 4):
 
 ```python
 # Run an exact permutation test for each input size to see if any difference is worth looking at.
-[(i,
-  exact_test(a=results[TEST][i][:20000],  # We don't need too too many data points
-             b=results[BASELINE][i][:20000],
-             eps=1e-4,
-             statistics=[
-                 mean("mean", .5e-3),
-                 lte_prob("lte"),
-                 q99("q99"),
-                 q99("q99_sa", a_offset=5)  # Compare against q99 w/ A 3 cycles slower than B
-             ])
- ) for i in range(1, 4)]
+stats = [(i,
+          exact_test(a=results[TEST][i][:20000],  # We don't need too too many data points
+                     b=results[BASELINE][i][:20000],
+                     eps=1e-4,
+                     statistics=[
+                         mean("mean", .5e-3),
+                         lte_prob("lte"),
+                         q99("q99"),
+                         q99("q99_sa", a_offset=5)  # Compare against q99 w/ A 5 cycles slower than B
+                     ])
+         ) for i in range(1, 4)]
+```
+
+```python
+stats
 ```
