@@ -474,7 +474,7 @@ select_ptr(bool cond, const void *then, const void *otherwise)
 
 #ifdef __GNUC__
 	/* Force strict evaluation of both arguments. */
-	__asm__("" : "+r"(then), "+r"(otherwise));
+	__asm__("" :: "r"(then), "r"(otherwise));
 #endif
 
 	ret = (cond) ? then : otherwise;
