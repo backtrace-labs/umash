@@ -41,6 +41,11 @@ def _get_file_contents(url):
     hashed_name = name + "-" + digest + ext
     cache_path = CACHE_DIR + hashed_name
     if not os.path.exists(cache_path):
+        try:
+            os.mkdir(CACHE_DIR)
+        except FileExistsError:
+            pass
+
         with urllib.request.urlopen(url) as response, open(
             cache_path, "wb"
         ) as out_file:
