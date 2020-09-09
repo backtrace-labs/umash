@@ -364,8 +364,10 @@ def _resampled_data_results(sample, grouped_statistics_fn):
 
 
 ResultAccumulator = namedtuple(
-    "ResultAccumulator", ["trials", "lte_actual", "gte_actual"], defaults=[0, 0, 0]
+    "ResultAccumulator", ["trials", "lte_actual", "gte_actual"]
 )
+
+INITIAL_RESULT_ACCUMULATOR = ResultAccumulator(0, 0, 0)
 
 
 def _significance_test(
@@ -458,9 +460,7 @@ def exact_test(
     actual_stats = _actual_data_results(actual_data, statistics)
     if log:
         print("actual: %s" % actual_stats, file=log)
-    accumulators = dict()
-    for stat_name in actual_stats:
-        accumulators[stat_name] = ResultAccumulator()
+    accumulators = {name: INITIAL_RESULT_ACCUMULATOR for name in actual_stats}
 
     ret = dict()
 
