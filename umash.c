@@ -463,6 +463,30 @@ ph_last_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
 }
 
 /**
+ * Returns `then` if `cond` is true, `otherwise` if false.
+ *
+ * This noise helps compiler emit conditional moves.
+ */
+static inline const void *
+select_ptr(bool cond, const void *then, const void *otherwise)
+{
+	const char *ret;
+
+#ifdef __GNUC__
+	/* Force strict evaluation of both arguments. */
+	__asm__("" : "+r"(then), "+r"(otherwise));
+#endif
+
+	ret = (cond) ? then : otherwise;
+
+#ifdef __GNUC__
+	/* And also force the result to be materialised with a blackhole. */
+	__asm__("" : "+r"(ret));
+#endif
+	return ret;
+}
+
+/**
  * Short UMASH (<= 8 bytes).
  */
 TEST_DEF inline uint64_t
@@ -488,7 +512,7 @@ vec_to_u64(const void *data, size_t n_bytes)
 		 * If the size is odd, load the first byte in `byte`;
 		 * otherwise, load in a zero.
 		 */
-		memcpy(&byte, ((n_bytes & 1) != 0) ? data : zeros, 1);
+		memcpy(&byte, select_ptr(n_bytes & 1, data, zeros), 1);
 		lo = byte;
 
 		/*
@@ -496,7 +520,7 @@ vec_to_u64(const void *data, size_t n_bytes)
 		 * otherwise, load in a zero.
 		 */
 		memcpy(&word,
-		    ((n_bytes & 2) != 0) ? (const char *)data + n_bytes - 2 : zeros, 2);
+		    select_ptr(n_bytes & 2, (const char *)data + n_bytes - 2, zeros), 2);
 		/*
 		 * We have now read `bytes[0 ... n_bytes - 1]`
 		 * exactly once without overwriting any data.
