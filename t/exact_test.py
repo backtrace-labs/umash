@@ -448,6 +448,9 @@ def exact_test(
     if not statistics:
         return dict()
 
+    if len(statistics) != len({stat.name for stat in statistics}):
+        raise "Statistics' names must be unique."
+
     actual_data = Sample(a, b)
     num_stats = len(statistics)
     # Apply a fudged Bonferroni correction for the two-sided quantile
