@@ -39,9 +39,13 @@ counts
 # Gather the raw data for the two revisions we want to compare
 TEST = "WIP"  # Or an actual commit ref
 BASELINE = "HEAD"  # Or any other commit ref
+CFLAGS = None
+CC = None
 results = umash_bench.compare_short_inputs(current=TEST,
                                            baseline=BASELINE,
                                            length_limit=4,
+                                           cflags=CFLAGS,
+                                           cc=CC,
                                            min_count=1000000)
 
 TEST, BASELINE = results.keys()  # Convert to the actual keys: HEAD etc. are normalised to SHAs

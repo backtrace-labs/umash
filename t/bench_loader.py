@@ -38,11 +38,14 @@ def load_bench(suffix="WIP"):
     return renamed_symbols, ffi, suffix
 
 
-def build_and_load(commit="WIP", cflags=None):
+def build_and_load(commit="WIP", cflags=None, cc=None):
     env = None
-    if cflags is not None:
-        current_env = dict(((k, v) for k, v in os.environ.items()))
-        current_env["CFLAGS"] = cflags
+    if cflags is not None or cc is not None:
+        env = dict(((k, v) for k, v in os.environ.items()))
+        if cflags is not None:
+            env["CFLAGS"] = cflags
+        if cc is not None:
+            env["CC"] = cc
     result = subprocess.check_output(
         [TOPLEVEL + "t/build-bench-runner.sh", commit], env=env
     )

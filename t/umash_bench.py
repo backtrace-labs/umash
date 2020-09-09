@@ -41,6 +41,7 @@ def compare_short_inputs(
     trace_url=umash_traces.STARTUP_URL,
     length_limit=4,
     cflags=None,
+    cc=None,
     block_size=128,
     min_count=100000,
     runner="umash_bench_individual",
@@ -52,10 +53,10 @@ def compare_short_inputs(
     with shuffled versions of the trace.
     """
     current_lib, ffi, current_suffix = bench_loader.build_and_load(
-        current, cflags=cflags
+        current, cflags=cflags, cc=cc,
     )
     baseline_lib, _, baseline_suffix = bench_loader.build_and_load(
-        baseline, cflags=cflags
+        baseline, cflags=cflags, cc=cc,
     )
     length_arguments = list(_full_call_sizes(trace_url, length_limit))
     max_len = max(length_arguments)
