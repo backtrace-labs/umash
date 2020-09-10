@@ -8,16 +8,14 @@ import hypothesis
 from hypothesis import assume, given
 import hypothesis.strategies as st
 from exact_test import (
-    EXACT,
-    FFI,
     Sample,
     exact_test,
     gt_prob,
     median,
     mean,
     q99,
-    _actual_data_results,
 )
+from exact_test_sampler import EXACT, FFI, actual_data_results
 
 
 def u63_lists(min_size=0):
@@ -260,7 +258,7 @@ def test_actual_data_results(a, b):
     sample = Sample(a, b)
     plan = [q99("q99", p_a_lower=0.9), mean("mean", a_offset=1), gt_prob("gt")]
 
-    actual = _actual_data_results(sample, plan)
+    actual = actual_data_results(sample, plan)
     assert actual["q99"] == expected_q99
     assert actual["gt"] == expected_gt
     assert abs(actual["mean"] - expected_mean) < 1e-8
