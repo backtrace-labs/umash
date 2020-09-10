@@ -11,9 +11,9 @@ python3 -m venv "${BASE}/umash-venv/"
 
 . "${BASE}/umash-venv/bin/activate"
 
-pip3 install -r "${BASE}/requirements.txt"
-
-pip3 install -r "${BASE}/requirements-bench.txt"
+pip3 install wheel
+pip3 install --prefer-binary -r "${BASE}/requirements.txt"
+pip3 install --prefer-binary -r "${BASE}/requirements-bench.txt"
 
 black "${BASE}/"*.py
 
