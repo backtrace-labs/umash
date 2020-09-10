@@ -1,9 +1,10 @@
 import cffi
 from collections import namedtuple
-from multiprocessing import Manager
 from multiprocessing.pool import Pool
 import os
 import secrets
+import threading
+import time
 
 from cffi_util import read_stripped_header
 
@@ -123,50 +124,65 @@ def _resampled_data_results_1(sample, grouped_statistics):
         EXACT.exact_test_prng_destroy(xoshiro)
 
 
-def _generate_in_parallel_worker(
-    queue,
-    generator_fn,
-    generator_args,
-    initial_batch_size,
-    max_batch_size,
-    return_after,
-):
+def _generate_in_parallel_worker(generator_fn, generator_args, max_results, max_delay):
     """Toplevel worker for a process pool.  Batches values yielded by
-    `generator_fn(*generator_args)` and pushes batches to `queue`."""
-    batch = []
-    # Let the batch size grow linearly to improve responsiveness when
-    # we only need a few results to stop the analysis.
-    batch_size = initial_batch_size
-    total = 0
+    `generator_fn(*generator_args)` until we have too many values, or
+    we hit `max_delay`, and then return that list of values.
+    """
+    results = []
+    end = time.monotonic() + max_delay
     for value in generator_fn(*generator_args):
-        batch.append(value)
-        if len(batch) >= batch_size:
-            total += len(batch)
-            queue.put(batch)
-            if total >= return_after:
-                return
-            batch = []
-            if batch_size < max_batch_size:
-                batch_size += 1
+        results.append(value)
+        if len(results) >= max_results or time.monotonic() >= end:
+            return results
 
 
-def _generate_in_parallel(generator_fn, generator_args_fn, batch_size=None):
+# At first, return as soon as we have INITIAL_BATCH_SIZE results
+INITIAL_BATCH_SIZE = 10
+# And let that limit grow up to MAX_BATCH_SIZE
+MAX_BATCH_SIZE = 100 * 1000
+# Growth rate for the batch size
+BATCH_SIZE_GROWTH_FACTOR = 2
+
+# We wait for up to this fraction of the total computation runtime
+# before returning values
+PROPORTIONAL_DELAY = 0.05
+
+# Wait for at least MIN_DELAY seconds before returning the values we have
+MIN_DELAY = 0.01
+# And wait for up to MAX_DELAY seconds before returning.
+MAX_DELAY = 10
+
+# We lazily create a pool of POOL_SIZE workers.
+POOL_SIZE = os.cpu_count() - 1
+
+POOL_LOCK = threading.Lock()
+POOL = None
+
+
+def _get_pool():
+    global POOL
+    with POOL_LOCK:
+        if POOL is None:
+            POOL = Pool(POOL_SIZE)
+        return POOL
+
+
+def _generate_in_parallel(generator_fn, generator_args_fn):
     """Merges values yielded by `generator_fn(*generator_args_fn())` in
     arbitrary order.
     """
-    ncpu = os.cpu_count()
-    # Use a managed queue and multiprocessing to avoid the GIL.
-    # Overall, this already seems like a net win at 4 cores, compared
-    # to multithreading: we lose some CPU time to IPC and the queue
-    # manager process, but less than what we wasted waiting on the GIL
-    # (~10-20% on all 4 cores).
-    queue = Manager().Queue(maxsize=4 * ncpu)
+    # We want multiprocessing to avoid the GIL.  We use relatively
+    # coarse-grained futures (instead of a managed queue) to simplify
+    # the transition to RPCs.
 
-    # Queue up npu + 2 work units.
+    # We queue up futures, with up to `max_waiting` not yet running.
+    max_waiting = 2
     pending = []
 
-    if batch_size is None:
-        batch_size = 10 * ncpu
+    begin = time.monotonic()
+    batch_size = INITIAL_BATCH_SIZE
+    pool = _get_pool()
 
     def generate_values():
         """Calls the generator fn to get new values, while recycling the
@@ -176,12 +192,6 @@ def _generate_in_parallel(generator_fn, generator_args_fn, batch_size=None):
                 if i >= batch_size:
                     break
                 yield value
-
-    def get_nowait():
-        try:
-            return queue.get_nowait()
-        except:
-            return None
 
     def consume_completed_futures():
         active = []
@@ -195,41 +205,39 @@ def _generate_in_parallel(generator_fn, generator_args_fn, batch_size=None):
         pending.extend(active)
         return [future.get(0) for future in completed]
 
-    with Pool(ncpu - 1) as pool:
-        # Adds a new work unit to the pending list.
-        def add_work_unit(initial_batch_size=batch_size, return_after=2 * batch_size):
-            pending.append(
-                pool.apply_async(
-                    _generate_in_parallel_worker,
-                    (
-                        queue,
-                        generator_fn,
-                        generator_args_fn(),
-                        initial_batch_size,
-                        batch_size,
-                        return_after,
-                    ),
-                )
-            )
+    # Adds a new work unit to the pending list.
+    def add_work_unit():
+        delay = PROPORTIONAL_DELAY * (time.monotonic() - begin)
+        if delay < MIN_DELAY:
+            delay = MIN_DELAY
+        if delay > MAX_DELAY:
+            delay = MAX_DELAY
+        future_results = pool.apply_async(
+            _generate_in_parallel_worker,
+            (generator_fn, generator_args_fn(), batch_size, delay),
+        )
+        pending.append(future_results)
 
-        try:
-            # Initial work units ramp up.
-            for _ in range(ncpu):
-                add_work_unit(0)
-            for _ in range(2):
-                add_work_unit()
-            for value in generate_values():
-                # Let work units run for longer without communications
-                # when we keep going after the initial batch: we're
-                # probably in this for the long run.
-                for _ in consume_completed_futures():
-                    add_work_unit(return_after=5 * batch_size)
-                values = [value]
-                while values is not None:
-                    yield from values
-                    values = get_nowait()
-        finally:
-            pool.terminate()
+    def fill_pending_list():
+        for _ in range(POOL_SIZE + max_waiting):
+            # Yeah, we're using internals, but this one hasn't
+            # changed since 3.5 (or earlier), and I don't know why
+            # this value isn't exposed.
+            if pool._taskqueue.qsize() >= max_waiting:
+                return
+            add_work_unit()
+
+    fill_pending_list()
+    for value in generate_values():
+        yield value
+        any_completed = False
+        for completed in consume_completed_futures():
+            for value in completed:
+                yield value
+            any_completed = True
+        if any_completed:
+            batch_size = min(BATCH_SIZE_GROWTH_FACTOR * batch_size, MAX_BATCH_SIZE)
+            fill_pending_list()
 
 
 def resampled_data_results(sample, grouped_statistics_fn):
