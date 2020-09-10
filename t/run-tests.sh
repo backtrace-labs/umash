@@ -28,4 +28,5 @@ fi
 
 cd "${BASE}";
 exec env LD_PRELOAD="$LD_PRELOAD:$ASAN_PATH" \
+     PYTHONPATH="$BASE:$BASE/protos/:$PYTHONPATH" \
      python3 -m pytest -v --forked -n auto "$@"

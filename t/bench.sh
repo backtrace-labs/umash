@@ -17,5 +17,10 @@ pip3 install --prefer-binary -r "${BASE}/requirements-bench.txt"
 
 black "${BASE}/"*.py
 
+mkdir -p "${BASE}/protos"
+python3 -m grpc_tools.protoc -I"${BASE}/../bench/protos" \
+        --python_out="${BASE}/protos/" --grpc_python_out="${BASE}/protos/" \
+        "${BASE}/../bench/protos/"*.proto
+
 cd "${BASE}/../bench/notebooks"
-exec env PYTHONPATH="$BASE:$PYTHONPATH" jupyter notebook
+exec env PYTHONPATH="$BASE:$BASE/protos/:$PYTHONPATH" jupyter notebook

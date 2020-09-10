@@ -1,5 +1,10 @@
 # Heavier dependencies for t/bench.sh and more involved development.
 
+# Monte Carlo gRPC
+attrs
+grpcio
+grpcio-tools
+
 # Useful for analysing benchmarks
 pandas
 jupyter

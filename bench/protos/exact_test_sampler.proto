@@ -1,0 +1,44 @@
+syntax = "proto2";
+
+package exact_test_sampler;
+
+// A RawData message represents values observed during real
+// benchmarking, for two different implementations (A and B).
+//
+// Best practices would have use wrap the `uint64` values in
+// a message for extensibility, but we expect these repeated
+// fields to be relatively large (thousands of values).
+message RawData {
+  // Values observed for the A class.
+  repeated uint64 a_values = 1 [packed = true];
+  // Values observed for the B class.
+  repeated uint64 b_values = 2 [packed = true];
+}
+
+// The initial request for analysis must both the raw data
+// (observations from real benchmarking), and the analysis
+// parameters.  Later messages inherit the last `raw_data`
+// or parameters, and usually only include the parameters.
+message AnalysisRequest {
+  optional RawData raw_data = 1;
+  // Analysis parameters (returned by
+  // `exact_test._group_statistics_in_plan`), pickled into a byte
+  // array.
+  optional bytes parameters = 2;
+}
+
+// An analysis request receives a stream of result sets as a response.
+// A `ResultSet` is a set of `StatisticValues`, where each reports a
+// bag of simulated Monte Carlo values for a given `statistic_name`.
+message ResultSet {
+  message StatisticValues {
+    optional string statistic_name = 1;
+    repeated double values = 2;
+  }
+
+  repeated StatisticValues results = 1;
+}
+
+service ExactTestSampler {
+  rpc simulate(stream AnalysisRequest) returns (stream ResultSet) {}
+}

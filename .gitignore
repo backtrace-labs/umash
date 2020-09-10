@@ -9,6 +9,7 @@ example
 *.o
 *.a
 __pycache__/
+t/protos/
 .hypothesis/
 .ipynb_checkpoints/
 umash-venv/

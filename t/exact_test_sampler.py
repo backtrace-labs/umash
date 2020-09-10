@@ -1,6 +1,8 @@
+import attr
 import cffi
 from collections import namedtuple
 from multiprocessing.pool import Pool
+import pickle
 import queue
 import os
 import secrets
@@ -8,6 +10,26 @@ import threading
 import time
 
 from cffi_util import read_stripped_header
+
+# Don't force a dependency on gRPC just for testing.
+try:
+    from exact_test_sampler_pb2 import AnalysisRequest
+    from exact_test_sampler_pb2_grpc import ExactTestSamplerServicer
+except:
+    print("Defaulting dummy gRPC/proto definitions in exact_test_sampler.py")
+
+    @attr.s
+    class RawData:
+        a_values = attr.ib(factory=list)
+        b_values = attr.ib(factory=list)
+
+    @attr.s
+    class AnalysisRequest:
+        raw_data = attr.ib(factory=RawData)
+        parameters = attr.ib(factory=bytes)
+
+    class ExactTestSamplerServicer:
+        pass
 
 
 SELF_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -230,6 +252,74 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
             fill_pending_list()
 
 
+@attr.s
+class ExactTestParameters:
+    # Signaled when the request should be exited
+    done = attr.ib(factory=threading.Event)
+    # Signaled when sample and params are both populated
+    ready = attr.ib(factory=threading.Event)
+    lock = attr.ib(factory=threading.Lock)
+    sample = attr.ib(default=None)
+    params = attr.ib(default=None)
+
+
+class ExactTestSampler(ExactTestSamplerServicer):
+    # How long to wait for a_values, b_values, and params.
+    INITIAL_DATA_TIMEOUT = 60
+
+    @staticmethod
+    def _update_test_params(params, update_requests, ctx):
+        for analysis_request in update_requests:
+            if ctx and not ctx.is_active():
+                break
+            with params.lock:
+                if (
+                    analysis_request.raw_data.a_values
+                    or analysis_request.raw_data.b_values
+                ):
+                    params.sample = Sample(
+                        a_class=list(analysis_request.raw_data.a_values),
+                        b_class=list(analysis_request.raw_data.b_values),
+                    )
+
+                if analysis_request.parameters:
+                    params.params = pickle.loads(analysis_request.parameters)
+
+                if params.sample is not None and params.params is not None:
+                    params.ready.set()
+        params.done.set()
+
+    def simulate(self, requests, ctx):
+        """Requests is an iterator of AnalysisRequest.  This method yields
+        arrays of analysis values, and is not yet a full-blown Servicer
+        implementation.
+        """
+        params = ExactTestParameters()
+        updater = None
+
+        try:
+            updater = threading.Thread(
+                target=self._update_test_params,
+                args=(params, requests, ctx),
+                daemon=True,
+            )
+            updater.start()
+
+            params.ready.wait(timeout=self.INITIAL_DATA_TIMEOUT)
+            for value in _generate_in_parallel(
+                _resampled_data_results_1, lambda: (params.sample, params.params)
+            ):
+                if params.done.is_set():
+                    break
+                yield value
+                if params.done.is_set():
+                    break
+        finally:
+            params.done.set()
+            if updater is not None and updater.is_alive():
+                updater.join(0.001)
+
+
 class BufferedIterator:
     """Exposes a queue-like interface for an arbitrary iterator.
 
@@ -291,11 +381,15 @@ def resampled_data_results(sample, grouped_statistics_queue):
     `grouped_statistics_queue.get()` after reshuffling values from
     `sample.a_class` and `sample.b_class`.
     """
-    cached_stats = [grouped_statistics_queue.get()]
+    request_queue = queue.SimpleQueue()
+    cached_stats = [None]
 
-    def grouped_statistics_fn():
+    def grouped_statistics_fn(block=False):
         try:
-            cached_stats[0] = grouped_statistics_queue.get(block=False)
+            cached_stats[0] = grouped_statistics_queue.get(block=block)
+            req = AnalysisRequest()
+            req.parameters = pickle.dumps(cached_stats[0])
+            request_queue.put(req)
         except queue.Empty:
             pass
         return cached_stats[0]
@@ -313,16 +407,25 @@ def resampled_data_results(sample, grouped_statistics_queue):
                     current_stats = new_stats
                     break
 
-    parallel_generator = _generate_in_parallel(
-        _resampled_data_results_1, lambda: (sample, grouped_statistics_fn())
-    )
+    try:
+        sampler = ExactTestSampler()
+        initial_req = AnalysisRequest()
+        initial_req.raw_data.a_values[:] = sample.a_class
+        initial_req.raw_data.b_values[:] = sample.b_class
+        request_queue.put(initial_req)
+        # Make sure we have an initial value for the analysis parameers.
+        grouped_statistics_fn(block=True)
 
-    with BufferedIterator(parallel_generator) as buf:
-        for value in serial_generator():
-            yield value
-            try:
-                while True:
-                    for value in buf.get_nowait():
-                        yield value
-            except queue.Empty:
-                pass
+        parallel_generator = sampler.simulate(iter(request_queue.get, None), None)
+        with BufferedIterator(parallel_generator) as buf:
+            for value in serial_generator():
+                yield value
+                try:
+                    while True:
+                        for value in buf.get_nowait():
+                            yield value
+                except queue.Empty:
+                    pass
+    finally:
+        # Mark the end of the request iterator.
+        request_queue.put(None)
