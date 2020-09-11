@@ -185,15 +185,6 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
     batch_size = INITIAL_BATCH_SIZE
     pool = _get_pool()
 
-    def generate_values():
-        """Calls the generator fn to get new values, while recycling the
-        arguments from time to time."""
-        while True:
-            for i, value in enumerate(generator_fn(*generator_args_fn())):
-                if i >= batch_size:
-                    break
-                yield value
-
     def consume_completed_futures():
         active = []
         completed = []
@@ -229,8 +220,7 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
             add_work_unit()
 
     fill_pending_list()
-    for value in generate_values():
-        yield value
+    while True:
         any_completed = False
         for completed in consume_completed_futures():
             for value in completed:
@@ -311,13 +301,28 @@ def resampled_data_results(sample, grouped_statistics_queue):
             pass
         return cached_stats[0]
 
+    def serial_generator():
+        """Calls the generator fn to get new values, while regenerating the
+        arguments from time to time.
+        """
+        current_stats = grouped_statistics_fn()
+        while True:
+            for value in _resampled_data_results_1(sample, current_stats):
+                yield value
+                new_stats = grouped_statistics_fn()
+                if current_stats is not new_stats:
+                    current_stats = new_stats
+                    break
+
     parallel_generator = _generate_in_parallel(
         _resampled_data_results_1, lambda: (sample, grouped_statistics_fn())
     )
 
     with BufferedIterator(parallel_generator) as buf:
-        while not buf.is_done():
-            value = buf.get()
-            if buf.is_done():
-                break
+        for value in serial_generator():
             yield value
+            try:
+                while True:
+                    yield buf.get_nowait()
+            except queue.Empty:
+                pass
