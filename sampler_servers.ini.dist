@@ -1,0 +1,8 @@
+# Copy this file to .sampler_servers.ini to configure connections to
+# external Monte Carlo exact testing servers
+#
+# Each entry has the following form:
+#
+# [upstream_name]
+# hostname = exact_test.example.com # optional, defaults to the upstream_name
+# port = 12345 # or some other numeric port

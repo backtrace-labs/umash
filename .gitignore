@@ -16,3 +16,4 @@ umash-venv/
 bench-worktrees/
 traces/
 *.ipynb
+.sampler_servers.ini

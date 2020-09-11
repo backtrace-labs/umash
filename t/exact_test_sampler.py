@@ -13,10 +13,14 @@ from cffi_util import read_stripped_header
 
 # Don't force a dependency on gRPC just for testing.
 try:
+    from exact_test_sampler_client import get_sampler_servers
     from exact_test_sampler_pb2 import AnalysisRequest, ResultSet
     from exact_test_sampler_pb2_grpc import ExactTestSamplerServicer
 except:
     print("Defaulting dummy gRPC/proto definitions in exact_test_sampler.py")
+
+    def get_sampler_servers():
+        return []
 
     @attr.s
     class RawData:
@@ -456,7 +460,7 @@ def resampled_data_results(sample, grouped_statistics_queue):
     `grouped_statistics_queue.get()` after reshuffling values from
     `sample.a_class` and `sample.b_class`.
     """
-    request_queue = queue.SimpleQueue()
+    request_queues = []
     cached_stats = [None]
 
     def grouped_statistics_fn(block=False):
@@ -464,7 +468,8 @@ def resampled_data_results(sample, grouped_statistics_queue):
             cached_stats[0] = grouped_statistics_queue.get(block=block)
             req = AnalysisRequest()
             req.parameters = pickle.dumps(cached_stats[0])
-            request_queue.put(req)
+            for reqqueue in request_queues:
+                reqqueue.put(req)
         except queue.Empty:
             pass
         return cached_stats[0]
@@ -483,24 +488,38 @@ def resampled_data_results(sample, grouped_statistics_queue):
                     break
 
     try:
-        sampler = ExactTestSampler()
+        samplers = [ExactTestSampler()] + get_sampler_servers()
         initial_req = AnalysisRequest()
         initial_req.raw_data.a_values[:] = sample.a_class
         initial_req.raw_data.b_values[:] = sample.b_class
-        request_queue.put(initial_req)
+
+        for _ in samplers:
+            request_queues.append(queue.SimpleQueue())
+            request_queues[-1].put(initial_req)
+
         # Make sure we have an initial value for the analysis parameers.
         grouped_statistics_fn(block=True)
 
-        parallel_generator = sampler.simulate(iter(request_queue.get, None), None)
-        with BufferedIterator([parallel_generator]) as buf:
-            for value in serial_generator():
-                yield value
-                try:
-                    while True:
-                        for value in _convert_proto_to_result_dicts(buf.get_nowait()):
-                            yield value
-                except queue.Empty:
-                    pass
+        parallel_generators = [
+            sampler.simulate(iter(queue.get, None), None)
+            for sampler, queue in zip(samplers, request_queues)
+        ]
+        with BufferedIterator(parallel_generators) as buf:
+            try:
+                for value in serial_generator():
+                    yield value
+                    try:
+                        while True:
+                            for value in _convert_proto_to_result_dicts(
+                                buf.get_nowait()
+                            ):
+                                yield value
+                    except queue.Empty:
+                        pass
+            finally:
+                for reqqueue in request_queues:
+                    reqqueue.put(None)
     finally:
         # Mark the end of the request iterator.
-        request_queue.put(None)
+        for reqqueue in request_queues:
+            reqqueue.put(None)
