@@ -241,11 +241,66 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
             fill_pending_list()
 
 
+class BufferedIterator:
+    """Exposes a queue-like interface for an arbitrary iterator.
+
+    Works by internally spinning up a reader thread.
+    """
+
+    BUFFER_SIZE = 4
+
+    def __init__(self, iterator, block_on_exit=True):
+        self.iterator = iterator
+        self.queue = queue.Queue(self.BUFFER_SIZE)
+        self.done = threading.Event()
+        self.worker = None
+        self.block_on_exit = block_on_exit
+
+    def is_done(self):
+        return self.done.is_set() or self.worker is None or not self.worker.is_alive()
+
+    # get and get_nowait may None to denote the end of the iterator.
+    def get(self, block=True, timeout=None):
+        return self.queue.get(block, timeout)
+
+    def get_nowait(self):
+        return self.queue.get_nowait()
+
+    def _pull_from_iterator(self):
+        for value in self.iterator:
+            if self.done.is_set():
+                break
+            self.queue.put(value)
+            if self.done.is_set():
+                break
+        # Make sure the reader wakes up.  If the queue is full, the
+        # reader should soon grab an item and notice that the queue is
+        # done.
+        self.done.set()
+        try:
+            self.queue.put_nowait(None)
+        except queue.Full:
+            pass
+
+    def __enter__(self):
+        self.done.clear()
+        self.worker = threading.Thread(target=self._pull_from_iterator)
+        self.worker.start()
+        return self
+
+    def __exit__(self, *_):
+        self.done.set()
+        try:
+            self.queue.get_nowait()
+        except queue.Empty:
+            pass
+        self.worker.join(None if self.block_on_exit else 0)
+
+
 def resampled_data_results(sample, grouped_statistics_queue):
     """Yields values computed by the `Statistics` returned by
     `grouped_statistics_queue.get()` after reshuffling values from
     `sample.a_class` and `sample.b_class`.
-
     """
     cached_stats = [grouped_statistics_queue.get()]
 
@@ -256,6 +311,13 @@ def resampled_data_results(sample, grouped_statistics_queue):
             pass
         return cached_stats[0]
 
-    return _generate_in_parallel(
+    parallel_generator = _generate_in_parallel(
         _resampled_data_results_1, lambda: (sample, grouped_statistics_fn())
     )
+
+    with BufferedIterator(parallel_generator) as buf:
+        while not buf.is_done():
+            value = buf.get()
+            if buf.is_done():
+                break
+            yield value
