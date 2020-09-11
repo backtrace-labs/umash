@@ -211,15 +211,20 @@ BATCH_SIZE_GROWTH_FACTOR = 2
 PROPORTIONAL_DELAY = 0.05
 
 # Wait for at least MIN_DELAY seconds before returning the values we have
-MIN_DELAY = 0.01
+MIN_DELAY = 0.05
 # And wait for up to MAX_DELAY seconds before returning.
 MAX_DELAY = 10
 
 # We lazily create a pool of POOL_SIZE workers.
-POOL_SIZE = os.cpu_count() - 1
+POOL_SIZE = max(1, os.cpu_count() - 1)
 
 POOL_LOCK = threading.Lock()
 POOL = None
+
+# Backoff parameters when polling for updates in _generate_in_parallel.
+POLL_PROPORTIONAL_DELAY = 0.5
+POLL_MIN_DELAY = 0.01
+POLL_MAX_DELAY = 1.0
 
 
 def _get_pool():
@@ -240,6 +245,9 @@ def _generate_in_parallel(generator_fn, generator_args_fn, stop_event=None):
     # coarse-grained futures (instead of a managed queue) to simplify
     # the transition to RPCs.
 
+    if stop_event is None:
+        stop_event = threading.Event()
+
     # We queue up futures, with up to `max_waiting` not yet running.
     max_waiting = 2
     pending = []
@@ -247,6 +255,15 @@ def _generate_in_parallel(generator_fn, generator_args_fn, stop_event=None):
     begin = time.monotonic()
     batch_size = INITIAL_BATCH_SIZE
     pool = _get_pool()
+
+    def backoff(last_change):
+        elapsed = time.monotonic() - last_change
+        delay = POLL_PROPORTIONAL_DELAY * elapsed
+        if delay < POLL_MIN_DELAY:
+            delay = POLL_MIN_DELAY
+        if delay > POLL_MAX_DELAY:
+            delay = POLL_MAX_DELAY
+        stop_event.wait(delay)
 
     def consume_completed_futures():
         active = []
@@ -274,23 +291,31 @@ def _generate_in_parallel(generator_fn, generator_args_fn, stop_event=None):
         pending.append(future_results)
 
     def fill_pending_list():
+        any_change = False
         for _ in range(POOL_SIZE + max_waiting):
             # Yeah, we're using internals, but this one hasn't
             # changed since 3.5 (or earlier), and I don't know why
             # this value isn't exposed.
             if pool._taskqueue.qsize() >= max_waiting:
-                return
+                break
             add_work_unit()
+            any_change = True
+        return any_change
 
     fill_pending_list()
-    while stop_event is None or not stop_event.is_set():
+    last_activity = begin
+    while not stop_event.is_set():
         any_completed = False
         for completed in consume_completed_futures():
             yield completed
             any_completed = True
         if any_completed:
             batch_size = min(BATCH_SIZE_GROWTH_FACTOR * batch_size, MAX_BATCH_SIZE)
-            fill_pending_list()
+        any_change = fill_pending_list()
+        if any_completed or any_change:
+            last_activity = time.monotonic()
+        else:
+            backoff(last_activity)
 
 
 @attr.s
