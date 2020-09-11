@@ -1,5 +1,6 @@
 from collections import defaultdict, namedtuple
 import math
+import queue
 import sys
 
 from csm import csm
@@ -155,6 +156,8 @@ def _significance_test(
 
     If a statistically significant result is found, writes it to
     `ret`.
+
+    Returns whether a new significant result was found.
     """
     lt_significant, lt_level = csm(trials, eps, lte_actual, log_inner_eps)
     gt_significant, gt_level = csm(trials, eps, gte_actual, log_inner_eps)
@@ -183,20 +186,22 @@ def _significance_test(
         # realistically happen under then null
         if lte_actual / trials < eps:
             ret[name] = partial_result._replace(judgement=-1)
-            return
+            return True
         count_in_middle += 1
 
     if gt_significant:
         # We're pretty sure the actual stat is too high.
         if gte_actual / trials < eps:
             ret[name] = partial_result._replace(judgement=1)
-            return
+            return True
         count_in_middle += 1
 
     if count_in_middle == 2:
         # We're sure the actual stat isn't too low nor too
         # high for the null.
         ret[name] = partial_result._replace(judgement=0)
+        return True
+    return False
 
 
 def exact_test(
@@ -232,14 +237,19 @@ def exact_test(
 
     ret = dict()
 
-    def group_unfathomed_statistics():
-        return _group_statistics_in_plan(
-            [stat for stat in statistics if stat.name not in ret]
+    grouped_stats_queue = queue.SimpleQueue()
+
+    def update_grouped_stats():
+        grouped_stats_queue.put(
+            _group_statistics_in_plan(
+                [stat for stat in statistics if stat.name not in ret]
+            )
         )
 
     seen = 0
     test_every = 250
-    for sample in resampled_data_results(actual_data, group_unfathomed_statistics):
+    update_grouped_stats()
+    for sample in resampled_data_results(actual_data, grouped_stats_queue):
         for name, stat in sample.items():
             actual = actual_stats[name]
             current = accumulators[name]
@@ -256,10 +266,11 @@ def exact_test(
 
         if seen >= 40 * test_every:
             test_every *= 10
+        new_significant = True
         for name, acc in accumulators.items():
             if name in ret:  # We already have a result -> skip
                 continue
-            _significance_test(
+            if _significance_test(
                 ret,
                 eps,
                 log_inner_eps,
@@ -271,6 +282,10 @@ def exact_test(
                 acc.gte_actual,
                 acc.trials,
                 log,
-            )
+            ):
+                new_significant = True
+
+        if new_significant:
+            update_grouped_stats()
         if len(ret) == len(actual_stats):
             return {name: ret[name] for name in actual_stats}

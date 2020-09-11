@@ -1,6 +1,7 @@
 import cffi
 from collections import namedtuple
 from multiprocessing.pool import Pool
+import queue
 import os
 import secrets
 import threading
@@ -240,11 +241,21 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
             fill_pending_list()
 
 
-def resampled_data_results(sample, grouped_statistics_fn):
-    """Yields values computed by the Statistics in `grouped_statistics_fn()`
-    after reshuffling values from `sample.a_class` and
-    `sample.b_class`.
+def resampled_data_results(sample, grouped_statistics_queue):
+    """Yields values computed by the `Statistics` returned by
+    `grouped_statistics_queue.get()` after reshuffling values from
+    `sample.a_class` and `sample.b_class`.
+
     """
+    cached_stats = [grouped_statistics_queue.get()]
+
+    def grouped_statistics_fn():
+        try:
+            cached_stats[0] = grouped_statistics_queue.get(block=False)
+        except queue.Empty:
+            pass
+        return cached_stats[0]
+
     return _generate_in_parallel(
         _resampled_data_results_1, lambda: (sample, grouped_statistics_fn())
     )
