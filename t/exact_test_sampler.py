@@ -1,6 +1,6 @@
 import attr
 import cffi
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from multiprocessing.pool import Pool
 import pickle
 import queue
@@ -13,7 +13,7 @@ from cffi_util import read_stripped_header
 
 # Don't force a dependency on gRPC just for testing.
 try:
-    from exact_test_sampler_pb2 import AnalysisRequest
+    from exact_test_sampler_pb2 import AnalysisRequest, ResultSet
     from exact_test_sampler_pb2_grpc import ExactTestSamplerServicer
 except:
     print("Defaulting dummy gRPC/proto definitions in exact_test_sampler.py")
@@ -27,6 +27,22 @@ except:
     class AnalysisRequest:
         raw_data = attr.ib(factory=RawData)
         parameters = attr.ib(factory=bytes)
+
+    @attr.s
+    class ResultSet:
+        @attr.s
+        class StatisticValues:
+            name = attr.ib(factory=str)
+            values = attr.ib(factory=list)
+
+        results = attr.ib(factory=list)
+
+        def SerializeToString(self):
+            """We don't really serialise."""
+            return self
+
+        def ParseFromString(self, value):
+            self.results = value.results
 
     class ExactTestSamplerServicer:
         pass
@@ -147,17 +163,40 @@ def _resampled_data_results_1(sample, grouped_statistics):
         EXACT.exact_test_prng_destroy(xoshiro)
 
 
+def _convert_result_arrays_to_proto(dict_of_arrays):
+    ret = ResultSet()
+    for name, values in dict_of_arrays.items():
+        proto = ResultSet.StatisticValues()
+        proto.statistic_name = name
+        proto.values[:] = values
+        ret.results.append(proto)
+    return ret
+
+
+def _convert_proto_to_result_dicts(result_set):
+    max_length = max(len(stats.values) for stats in result_set.results)
+    dicts = [dict() for _ in range(max_length)]
+
+    for stats in result_set.results:
+        name = stats.statistic_name
+        for i, value in enumerate(stats.values):
+            dicts[i][name] = value
+    return dicts
+
+
 def _generate_in_parallel_worker(generator_fn, generator_args, max_results, max_delay):
     """Toplevel worker for a process pool.  Batches values yielded by
     `generator_fn(*generator_args)` until we have too many values, or
-    we hit `max_delay`, and then return that list of values.
+    we hit `max_delay`, and then return that list of values, converted
+    to a ResultSet.
     """
-    results = []
+    results = defaultdict(list)
     end = time.monotonic() + max_delay
-    for value in generator_fn(*generator_args):
-        results.append(value)
-        if len(results) >= max_results or time.monotonic() >= end:
-            return results
+    for i, value in enumerate(generator_fn(*generator_args)):
+        for k, v in value.items():
+            results[k].append(v)
+        if i >= max_results or time.monotonic() >= end:
+            return _convert_result_arrays_to_proto(results)
 
 
 # At first, return as soon as we have INITIAL_BATCH_SIZE results
@@ -422,7 +461,7 @@ def resampled_data_results(sample, grouped_statistics_queue):
                 yield value
                 try:
                     while True:
-                        for value in buf.get_nowait():
+                        for value in _convert_proto_to_result_dicts(buf.get_nowait()):
                             yield value
                 except queue.Empty:
                     pass
