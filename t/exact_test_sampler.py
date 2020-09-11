@@ -391,18 +391,18 @@ class ExactTestSampler(ExactTestSamplerServicer):
 
 
 class BufferedIterator:
-    """Exposes a queue-like interface for an arbitrary iterator.
+    """Exposes a queue-like interface for a array of arbitrary iterator.
 
     Works by internally spinning up a reader thread.
     """
 
     BUFFER_SIZE = 4
 
-    def __init__(self, iterator, block_on_exit=True):
-        self.iterator = iterator
-        self.queue = queue.Queue(self.BUFFER_SIZE)
+    def __init__(self, iterators, block_on_exit=True):
+        self.iterators = iterators
+        self.queue = queue.Queue(self.BUFFER_SIZE + 2 * len(self.iterators))
         self.done = threading.Event()
-        self.worker = None
+        self.workers = None
         self.block_on_exit = block_on_exit
 
     def is_done(self):
@@ -415,8 +415,8 @@ class BufferedIterator:
     def get_nowait(self):
         return self.queue.get_nowait()
 
-    def _pull_from_iterator(self):
-        for value in self.iterator:
+    def _pull_from_iterator(self, iterator):
+        for value in iterator:
             if self.done.is_set():
                 break
             self.queue.put(value)
@@ -433,17 +433,22 @@ class BufferedIterator:
 
     def __enter__(self):
         self.done.clear()
-        self.worker = threading.Thread(target=self._pull_from_iterator)
-        self.worker.start()
+        self.workers = []
+        for iterator in self.iterators:
+            worker = threading.Thread(target=self._pull_from_iterator, args=(iterator,))
+            worker.start()
+            self.workers.append(worker)
         return self
 
     def __exit__(self, *_):
         self.done.set()
-        try:
-            self.queue.get_nowait()
-        except queue.Empty:
-            pass
-        self.worker.join(None if self.block_on_exit else 0)
+        for worker in self.workers:
+            try:
+                for _ in self.workers:
+                    self.queue.get_nowait()
+            except queue.Empty:
+                pass
+            worker.join(None if self.block_on_exit else 0)
 
 
 def resampled_data_results(sample, grouped_statistics_queue):
@@ -487,7 +492,7 @@ def resampled_data_results(sample, grouped_statistics_queue):
         grouped_statistics_fn(block=True)
 
         parallel_generator = sampler.simulate(iter(request_queue.get, None), None)
-        with BufferedIterator(parallel_generator) as buf:
+        with BufferedIterator([parallel_generator]) as buf:
             for value in serial_generator():
                 yield value
                 try:
