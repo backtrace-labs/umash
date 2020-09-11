@@ -230,9 +230,11 @@ def _get_pool():
         return POOL
 
 
-def _generate_in_parallel(generator_fn, generator_args_fn):
-    """Merges values yielded by `generator_fn(*generator_args_fn())` in
-    arbitrary order.
+def _generate_in_parallel(generator_fn, generator_args_fn, stop_event=None):
+    """Yields values returned by parallel calls to
+    `generator_fn(*generator_args_fn())` in arbitrary order.
+
+    If `stop_event` is provided, returns when `stop_event.is_set()`.
     """
     # We want multiprocessing to avoid the GIL.  We use relatively
     # coarse-grained futures (instead of a managed queue) to simplify
@@ -281,7 +283,7 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
             add_work_unit()
 
     fill_pending_list()
-    while True:
+    while stop_event is None or not stop_event.is_set():
         any_completed = False
         for completed in consume_completed_futures():
             yield completed
@@ -336,6 +338,10 @@ class ExactTestSampler(ExactTestSamplerServicer):
         params = ExactTestParameters()
         updater = None
 
+        def read_params():
+            with params.lock:
+                return (params.sample, params.params)
+
         try:
             updater = threading.Thread(
                 target=self._update_test_params,
@@ -346,7 +352,7 @@ class ExactTestSampler(ExactTestSamplerServicer):
 
             params.ready.wait(timeout=self.INITIAL_DATA_TIMEOUT)
             for value in _generate_in_parallel(
-                _resampled_data_results_1, lambda: (params.sample, params.params)
+                _resampled_data_results_1, read_params, params.done
             ):
                 if params.done.is_set():
                     break
