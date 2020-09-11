@@ -223,8 +223,7 @@ def _generate_in_parallel(generator_fn, generator_args_fn):
     while True:
         any_completed = False
         for completed in consume_completed_futures():
-            for value in completed:
-                yield value
+            yield completed
             any_completed = True
         if any_completed:
             batch_size = min(BATCH_SIZE_GROWTH_FACTOR * batch_size, MAX_BATCH_SIZE)
@@ -323,6 +322,7 @@ def resampled_data_results(sample, grouped_statistics_queue):
             yield value
             try:
                 while True:
-                    yield buf.get_nowait()
+                    for value in buf.get_nowait():
+                        yield value
             except queue.Empty:
                 pass
