@@ -266,7 +266,7 @@ def exact_test(
 
         if seen >= 40 * test_every:
             test_every *= 10
-        new_significant = True
+        new_significant = False
         for name, acc in accumulators.items():
             if name in ret:  # We already have a result -> skip
                 continue
