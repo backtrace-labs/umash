@@ -14,7 +14,7 @@ from cffi_util import read_stripped_header
 # Don't force a dependency on gRPC just for testing.
 try:
     from exact_test_sampler_client import get_sampler_servers
-    from exact_test_sampler_pb2 import AnalysisRequest, ResultSet
+    from exact_test_sampler_pb2 import AnalysisRequest, ResultSet, StatusRequest
     from exact_test_sampler_pb2_grpc import ExactTestSamplerServicer
 except:
     print("Defaulting dummy gRPC/proto definitions in exact_test_sampler.py")
@@ -47,6 +47,10 @@ except:
 
         def ParseFromString(self, value):
             self.results = value.results
+
+    @attr.s
+    class StatusRequest:
+        pass
 
     class ExactTestSamplerServicer:
         pass
@@ -360,6 +364,9 @@ class ExactTestSampler(ExactTestSamplerServicer):
                 if params.sample is not None and params.params is not None:
                     params.ready.set()
         params.done.set()
+
+    def status(self, request, context):
+        return StatusRequest()
 
     def simulate(self, requests, ctx):
         """Requests is an iterator of AnalysisRequest.  This method yields

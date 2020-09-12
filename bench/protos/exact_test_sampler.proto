@@ -39,6 +39,14 @@ message ResultSet {
   repeated StatisticValues results = 1;
 }
 
+message StatusResponse {
+}
+message StatusRequest {
+}
+
 service ExactTestSampler {
-  rpc simulate(stream AnalysisRequest) returns (stream ResultSet) {}
+  rpc simulate(stream AnalysisRequest) returns (stream ResultSet) {
+  }
+  rpc status(StatusRequest) returns (StatusResponse) {
+  }
 }

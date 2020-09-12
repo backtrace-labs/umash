@@ -15,12 +15,16 @@ import grpc
 import os
 import sys
 
+from exact_test_sampler_pb2 import StatusRequest
 from exact_test_sampler_pb2_grpc import ExactTestSamplerStub
 
 SELF_DIR = os.path.dirname(os.path.abspath(__file__))
 TOPLEVEL = os.path.abspath(SELF_DIR + "/../") + "/"
 CONFIG_PATH = TOPLEVEL + ".sampler_servers.ini"
 SECONDARY_CONFIG_PATH = TOPLEVEL + "sampler_servers.ini.dist"
+
+
+CONNECTION_TIMEOUT = 1  # seconds
 
 
 def parse_sampler_servers(path=CONFIG_PATH):
@@ -38,21 +42,23 @@ def parse_sampler_servers(path=CONFIG_PATH):
             if host == "local_sampler_executor":
                 continue
             hostname = config.get(host, "hostname", fallback=host)
-            ret.append(hostname + ":" + config.get(host, "port"))
+            ret.append((host, hostname + ":" + config.get(host, "port")))
     except FileNotFoundError:
         pass
     return ret, use_local
 
 
 def _print_sampler_servers():
+    path = CONFIG_PATH
     try:
-        servers, _ = parse_sampler_servers()
+        servers, _ = parse_sampler_servers(path)
         if not servers:
-            servers, _ = parse_sampler_servers(SECONDARY_CONFIG_PATH)
+            path = SECONDARY_CONFIG_PATH
+            servers, _ = parse_sampler_servers(path)
     except Exception as e:
         print("Exc: %s" % e)
         servers = []
-    print("Found %i sampler servers in %s." % (len(servers), CONFIG_PATH))
+    print("Found %i sampler servers in %s." % (len(servers), path))
 
 
 _print_sampler_servers()
@@ -76,13 +82,16 @@ def get_sampler_servers(local_stub=None):
         servers, use_local = parse_sampler_servers(SECONDARY_CONFIG_PATH)
     if use_local and local_stub is not None:
         ret.append(local_stub)
-    for connection_string in servers:
+    for name, connection_string in servers:
         try:
             channel = grpc.insecure_channel(connection_string)
-            ret.append(ExactTestSamplerStub(channel))
+            stub = ExactTestSamplerStub(channel)
+            stub.status(StatusRequest(), timeout=CONNECTION_TIMEOUT)
+            ret.append(stub)
         except Exception as e:
             print(
-                "Unabled to open connection to %s: %s." % (connection_string, e),
+                "Unabled to open connection %s to %s: %s."
+                % (name, connection_string, e),
                 file=sys.stderr,
             )
     return ret
