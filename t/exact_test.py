@@ -2,6 +2,7 @@ from collections import defaultdict, namedtuple
 import math
 import queue
 import sys
+import time
 
 from csm import csm
 from exact_test_sampler import (
@@ -246,9 +247,12 @@ def exact_test(
             )
         )
 
+    begin = time.monotonic()
     seen = 0
     test_every = 250
     update_grouped_stats()
+    eval_period_begin = time.monotonic()
+    eval_period_seen = 0
     for sample in resampled_data_results(actual_data, grouped_stats_queue):
         for name, stat in sample.items():
             actual = actual_stats[name]
@@ -266,6 +270,21 @@ def exact_test(
 
         if seen >= 40 * test_every:
             test_every *= 10
+
+        if log is not None:
+            now = time.monotonic()
+            print(
+                "%i\tElapsed: %f\t(%f eval/s)"
+                % (
+                    seen,
+                    now - begin,
+                    (seen - eval_period_seen) / (1e-8 + now - eval_period_begin),
+                ),
+                file=log
+            )
+            eval_period_begin = now
+            eval_period_seen = seen
+
         new_significant = False
         for name, acc in accumulators.items():
             if name in ret:  # We already have a result -> skip
