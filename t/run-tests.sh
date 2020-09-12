@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 BASE=$(dirname $(readlink -f "$0"))
+PYTHON=${PYTHON3:-python3}
 
 (cd "${BASE}/../";
  ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} -DUMASH_TEST_ONLY umash.c \
@@ -8,7 +9,7 @@ BASE=$(dirname $(readlink -f "$0"))
  ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} -c example.c -o /dev/null;
 )
 
-python3 -m venv "${BASE}/umash-venv/"
+$PYTHON -m venv "${BASE}/umash-venv/"
 
 . "${BASE}/umash-venv/bin/activate"
 
@@ -29,4 +30,4 @@ fi
 cd "${BASE}";
 exec env LD_PRELOAD="$LD_PRELOAD:$ASAN_PATH" \
      PYTHONPATH="$BASE:$BASE/protos/:$PYTHONPATH" \
-     python3 -m pytest -v --forked -n auto "$@"
+     $PYTHON -m pytest -v --forked -n auto "$@"
