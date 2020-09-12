@@ -280,7 +280,7 @@ def exact_test(
                     now - begin,
                     (seen - eval_period_seen) / (1e-8 + now - eval_period_begin),
                 ),
-                file=log
+                file=log,
             )
             eval_period_begin = now
             eval_period_seen = seen

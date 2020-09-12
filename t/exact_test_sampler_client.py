@@ -86,7 +86,12 @@ def get_sampler_servers(local_stub=None):
         try:
             channel = grpc.insecure_channel(connection_string)
             stub = ExactTestSamplerStub(channel)
-            stub.status(StatusRequest(), timeout=CONNECTION_TIMEOUT)
+            status = stub.status(StatusRequest(), timeout=CONNECTION_TIMEOUT)
+            print(
+                "Succesfully connected to %s @ %s (status=%s)."
+                % (name, connection_string, status),
+                file=sys.stderr,
+            )
             ret.append(stub)
         except Exception as e:
             print(
