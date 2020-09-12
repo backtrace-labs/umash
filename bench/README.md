@@ -8,7 +8,7 @@ Really quick start
 
 2. Open one of the [jupytext](https://github.com/mwouts/jupytext) notebooks
    under `bench/notebooks` in Jupyter.
-   
+
 3. The default settings compare the current tree, the `TEST`
    implementation, with the `BASELINE` implementation in `HEAD`.
    Overwrite these global variables to other commit hashes to
@@ -29,7 +29,7 @@ is on average faster than the baseline.
 A results like
 
     'mean': Result(actual_value=-2.4834334334334334, judgement=-1, m=20000, n=20000, num_trials=2000000)
-    
+
 reports that the test code was on average 2.48 cycles faster than the
 baseline, during our benchmarking loop.  The `judgement` tells us if
 this difference is statistically significant: -1 means the value is
@@ -64,6 +64,47 @@ baseline.  If we find `judgement=1` for "q99\_sa", the difference in
 99th percentiles is so positive, that it's improbably high even for
 that pessimistic null hypothesis; we can probably conclude that the
 test version has made the 99th percentile worse.
+
+Speed up the analysis
+---------------------
+
+The bulk of the time in the notebooks will be spent not generating
+benchmarking data, but analysing it to determine whether the reported
+statistic values (e.g., different in means) are statistically
+significant.  This can take a surprising amount of time, on the order
+of 1 CPU hours per input size on my 1.1 GHz Kaby Lake laptop.
+Thankfully, this Monte Carlo step is also embarrassingly parallel, and
+there's already gRPC wrappers for the computational core.
+
+Set up servers by cloning the UMASH repository on each compute server,
+and executing `t/exact_test_server.sh $PORT`.  This will spin up a
+compute server that listens on `localhost:$PORT` for work units.  You
+may also leave the port argument blank (`t/exact_test_server.sh`) to
+let the server pick a listening port.  The server always prints the
+listening port on success.
+
+The server only accepts connections from localhost because it does not
+implement authentication or permissioning.  Use something like an
+[ssh tunnel](https://help.ubuntu.com/community/SSH/OpenSSH/PortForwarding)
+to expose the port to analysis machines.
+
+We can now go back to the analysis machine, open ssh tunnels to each
+`exact_test_server`, and edit (create) a `.sampler_servers.ini` in
+the UMASH directory.  For each server, add an entry like
+
+    [compute_server_1]  # name of the connection
+    hostname = localhost
+    port = 9000
+
+It's not a big deal if you get the format or information wrong.  We
+re-parse that configuration file for every call to
+`exact_test.exact_test`, so there's no need to restart a notebook's
+kernel; simply edit the configuration file and rerun the step.
+
+With or without distributed analysis, it also makes sense to tune
+down the `eps` (false result rate) argument during development.  I
+would use `eps=1e-3` or `eps=1e-2` for rapid feedback, and re-run from
+scratch with `eps=1e-4` once things look ready for a pull request.
 
 What does it do?
 ----------------
