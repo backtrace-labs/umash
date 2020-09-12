@@ -19,8 +19,8 @@ try:
 except:
     print("Defaulting dummy gRPC/proto definitions in exact_test_sampler.py")
 
-    def get_sampler_servers():
-        return []
+    def get_sampler_servers(local_stub):
+        return [local_stub]
 
     @attr.s
     class RawData:
@@ -490,7 +490,7 @@ def resampled_data_results(sample, grouped_statistics_queue):
                     break
 
     try:
-        samplers = [ExactTestSampler()] + get_sampler_servers()
+        samplers = get_sampler_servers(ExactTestSampler())
         initial_req = AnalysisRequest()
         initial_req.raw_data.a_values[:] = sample.a_class
         initial_req.raw_data.b_values[:] = sample.b_class

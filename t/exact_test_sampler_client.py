@@ -26,25 +26,29 @@ SECONDARY_CONFIG_PATH = TOPLEVEL + "sampler_servers.ini.dist"
 def parse_sampler_servers(path=CONFIG_PATH):
     config = configparser.ConfigParser()
     ret = []
+    use_local = True
     try:
         config.read(path)
+        use_local = config.getboolean(
+            "local_sampler_executor", "local_parallelism", fallback=True
+        )
         for host in config:
             if host == "DEFAULT":
                 continue
-            hostname = host
-            if "hostname" in config[host]:
-                hostname = config[host]["hostname"]
-            ret.append(hostname + ":" + config[host]["port"])
+            if host == "local_sampler_executor":
+                continue
+            hostname = config.get(host, "hostname", fallback=host)
+            ret.append(hostname + ":" + config.get(host, "port"))
     except FileNotFoundError:
         pass
-    return ret
+    return ret, use_local
 
 
 def _print_sampler_servers():
     try:
-        servers = parse_sampler_servers()
+        servers, _ = parse_sampler_servers()
         if not servers:
-            servers = parse_sampler_servers(SECONDARY_CONFIG_PATH)
+            servers, _ = parse_sampler_servers(SECONDARY_CONFIG_PATH)
     except Exception as e:
         print("Exc: %s" % e)
         servers = []
@@ -54,14 +58,24 @@ def _print_sampler_servers():
 _print_sampler_servers()
 
 
-def get_sampler_servers():
+def get_sampler_servers(local_stub=None):
+    """Parses the config file (or the fallback at the checked in location)
+    to get a list of connection strings, and to determine whether local
+    parallel evaluation is enabled.
+
+    Returns a list of stubs for each configured connection, including
+    local_stub`, the local parallel evaluation object, if provided
+    and local parallelism is enabled (not explicitly disabled).
+    """
     ret = []
     # Disable remote connections in pytest.
     if "pytest" in sys.modules:
-        return ret
-    servers = parse_sampler_servers()
+        return [local_stub] if local_stub is not None else []
+    servers, use_local = parse_sampler_servers()
     if not servers:
-        servers = parse_sampler_servers(SECONDARY_CONFIG_PATH)
+        servers, use_local = parse_sampler_servers(SECONDARY_CONFIG_PATH)
+    if use_local and local_stub is not None:
+        ret.append(local_stub)
     for connection_string in servers:
         try:
             channel = grpc.insecure_channel(connection_string)

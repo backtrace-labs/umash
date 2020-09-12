@@ -4,5 +4,14 @@
 # Each entry has the following form:
 #
 # [upstream_name]
-# hostname = exact_test.example.com # optional, defaults to the upstream_name
-# port = 12345 # or some other numeric port
+# # hostname is optional, defaults to the upstream_name
+# hostname = exact_test.example.com
+# # the port is an arbitrary numeric port
+# port = 12345
+
+
+# This is a special section for local execution
+[local_sampler_executor]
+# Set local_parallelism = False to only use one process for analysis
+# (combined local evaluation and gRPC wrangling).
+local_parallelism = True
