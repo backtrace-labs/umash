@@ -24,7 +24,7 @@ CONFIG_PATH = TOPLEVEL + ".sampler_servers.ini"
 SECONDARY_CONFIG_PATH = TOPLEVEL + "sampler_servers.ini.dist"
 
 
-CONNECTION_TIMEOUT = 1  # seconds
+CONNECTION_TIMEOUT = 5  # seconds
 
 
 def parse_sampler_servers(path=CONFIG_PATH):
