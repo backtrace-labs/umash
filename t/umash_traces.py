@@ -27,7 +27,7 @@ def _decompress_by_ext(path, ext):
     elif ext == "":
         return open(path, "rb")
     else:
-        raise "Unknown extension %s" % ext
+        raise Exception("Unknown extension %s" % ext)
 
 
 def _get_file_contents(url):

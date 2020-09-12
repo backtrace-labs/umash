@@ -219,7 +219,7 @@ def exact_test(
         return dict()
 
     if len(statistics) != len({stat.name for stat in statistics}):
-        raise "Statistics' names must be unique."
+        raise Exception("Statistics' names must be unique.")
 
     actual_data = Sample(a, b)
     num_stats = len(statistics)

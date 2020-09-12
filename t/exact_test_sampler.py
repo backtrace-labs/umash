@@ -147,7 +147,9 @@ def _resampled_data_results_1(sample, grouped_statistics):
             if not EXACT.exact_test_shuffle(
                 xoshiro, shuffled_buf, m, n, p_a_lt, error_ptr
             ):
-                raise "Shuffle failed: %s" % str(FFI.string(error_ptr[0]), "utf-8")
+                raise Exception(
+                    "Shuffle failed: %s" % str(FFI.string(error_ptr[0]), "utf-8")
+                )
 
             for (a_offset, b_offset), stats_for_offset in stats_for_p.items():
                 FFI.memmove(sorted_buf, shuffled_buf, total * FFI.sizeof("uint64_t"))
