@@ -17,13 +17,15 @@ def grouper(iterable, n, fillvalue=None):
     return itertools.zip_longest(*args, fillvalue=fillvalue)
 
 
-def _full_call_sizes(url, limit=(1 << 64)):
+def _full_call_sizes(url, limit=(1 << 64), length_fixup=None):
     """Generates the umash_fp sizes < limit (if provided)."""
+    if length_fixup is None:
+        length_fixup = 0
     thread_traces = defaultdict(list)
     for trace in umash_traces.umash_full_calls(url):
         tid = trace[1]
-        size = trace[-1]
-        if size < limit:
+        size = trace[-1] + length_fixup
+        if 0 <= size < limit:
             thread_traces[tid].append(size)
     return itertools.chain.from_iterable(thread_traces.values())
 
@@ -40,6 +42,7 @@ def compare_short_inputs(
     baseline="HEAD",
     trace_url=umash_traces.STARTUP_URL,
     length_limit=4,
+    length_fixup=None,
     cflags=None,
     cc=None,
     block_size=128,
@@ -51,6 +54,10 @@ def compare_short_inputs(
 
     If the trace is too short to satisfy `min_count`, retry the experiment
     with shuffled versions of the trace.
+
+    Tracing may reveal suboptimal integration, e.g., where a program
+    includes the NUL terminator in the hash.  Set length_fixup=-1
+    to subtract 1 from the length of each call.
     """
     current_lib, ffi, current_suffix = bench_loader.build_and_load(
         current, cflags=cflags, cc=cc,
@@ -58,7 +65,7 @@ def compare_short_inputs(
     baseline_lib, _, baseline_suffix = bench_loader.build_and_load(
         baseline, cflags=cflags, cc=cc,
     )
-    length_arguments = list(_full_call_sizes(trace_url, length_limit))
+    length_arguments = list(_full_call_sizes(trace_url, length_limit, length_fixup))
     max_len = max(length_arguments)
 
     inputs = ffi.new("size_t[]", block_size)

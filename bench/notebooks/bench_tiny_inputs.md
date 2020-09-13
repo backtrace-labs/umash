@@ -27,7 +27,7 @@ from collections import defaultdict
 
 acc = defaultdict(lambda: 0)
 for call in umash_traces.umash_full_calls():
-    size = call[-1]
+    size = call[-1] - 1
     if size <= 16:
         acc[size] += 1
 
@@ -44,6 +44,7 @@ CC = None
 results = umash_bench.compare_short_inputs(current=TEST,
                                            baseline=BASELINE,
                                            length_limit=4,
+                                           length_fixup=-1,
                                            cflags=CFLAGS,
                                            cc=CC,
                                            min_count=1000000)
@@ -55,7 +56,7 @@ TEST, BASELINE = results.keys()  # Convert to the actual keys: HEAD etc. are nor
 # Summarise the range of latencies (in RDTSC cycles) for the two revisions and three input sizes
 for label, values in results.items():
     print(label)
-    for i in range(1, 4):
+    for i in range(4):
         total = len(values[i])
         kept = sum(x < 100 for x in values[i])
         print("\t%i: %i %i %f (%i %i)" % (i, total, kept, kept / total, min(values[i]), max(values[i])))
@@ -63,7 +64,7 @@ for label, values in results.items():
 
 ```python
 # Visualise the two latency distributions for each input size
-for sz in range(1, 4):
+for sz in range(4):
     test = list(results[TEST][sz])
     baseline = list(results[BASELINE][sz])
     random.shuffle(test)
@@ -93,7 +94,7 @@ stats = [(i,
                          q99("q99"),
                          q99("q99_sa", a_offset=5)  # Compare against q99 w/ A 5 cycles slower than B
                      ])
-         ) for i in range(1, 4)]
+         ) for i in range(4)]
 ```
 
 ```python
