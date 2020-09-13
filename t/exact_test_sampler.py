@@ -1,6 +1,7 @@
 import attr
 import cffi
 from collections import defaultdict, namedtuple
+import itertools
 from multiprocessing.pool import Pool
 import pickle
 import queue
@@ -20,7 +21,7 @@ except:
     print("Defaulting dummy gRPC/proto definitions in exact_test_sampler.py")
 
     def get_sampler_servers(local_stub):
-        return [local_stub]
+        return [local_stub], True
 
     @attr.s
     class RawData:
@@ -469,7 +470,7 @@ class BufferedIterator:
             worker.join(None if self.block_on_exit else 0)
 
 
-def resampled_data_results(sample, grouped_statistics_queue):
+def resampled_data_results(sample, grouped_statistics_queue, inline_eval=None):
     """Yields values computed by the `Statistics` returned by
     `grouped_statistics_queue.get()` after reshuffling values from
     `sample.a_class` and `sample.b_class`.
@@ -502,7 +503,9 @@ def resampled_data_results(sample, grouped_statistics_queue):
                     break
 
     try:
-        samplers = get_sampler_servers(ExactTestSampler())
+        samplers, config_inline_eval = get_sampler_servers(ExactTestSampler())
+        if inline_eval is None:
+            inline_eval = config_inline_eval
         initial_req = AnalysisRequest()
         initial_req.raw_data.a_values[:] = sample.a_class
         initial_req.raw_data.b_values[:] = sample.b_class
@@ -520,11 +523,18 @@ def resampled_data_results(sample, grouped_statistics_queue):
         ]
         with BufferedIterator(parallel_generators) as buf:
             try:
-                for value in serial_generator():
-                    yield value
+                inline_values = (
+                    serial_generator() if inline_eval else itertools.repeat(None)
+                )
+                for value in inline_values:
+                    if inline_eval:
+                        yield value
                     try:
                         while True:
-                            par_value = buf.get_nowait()
+                            # If inline_eval is disabled, we only
+                            # yield values received through `buf`.
+                            # We should block.
+                            par_value = buf.get(block=not inline_eval)
                             if par_value is None:
                                 return
                             for value in _convert_proto_to_result_dicts(par_value):

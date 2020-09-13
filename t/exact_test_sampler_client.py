@@ -31,10 +31,14 @@ def parse_sampler_servers(path=CONFIG_PATH):
     config = configparser.ConfigParser()
     ret = []
     use_local = True
+    inline_eval = True
     try:
         config.read(path)
         use_local = config.getboolean(
             "local_sampler_executor", "local_parallelism", fallback=True
+        )
+        inline_eval = config.getboolean(
+            "local_sampler_executor", "inline_evaluation", fallback=True
         )
         for host in config:
             if host == "DEFAULT":
@@ -45,16 +49,16 @@ def parse_sampler_servers(path=CONFIG_PATH):
             ret.append((host, hostname + ":" + config.get(host, "port")))
     except FileNotFoundError:
         pass
-    return ret, use_local
+    return ret, use_local, inline_eval
 
 
 def _print_sampler_servers():
     path = CONFIG_PATH
     try:
-        servers, _ = parse_sampler_servers(path)
+        servers, *_ = parse_sampler_servers(path)
         if not servers:
             path = SECONDARY_CONFIG_PATH
-            servers, _ = parse_sampler_servers(path)
+            servers, *_ = parse_sampler_servers(path)
     except Exception as e:
         print("Exc: %s" % e)
         servers = []
@@ -72,14 +76,17 @@ def get_sampler_servers(local_stub=None):
     Returns a list of stubs for each configured connection, including
     local_stub`, the local parallel evaluation object, if provided
     and local parallelism is enabled (not explicitly disabled).
+
+    As a second value, returns whether inline (single-threaded)
+    evaluation is enabled.
     """
     ret = []
     # Disable remote connections in pytest.
     if "pytest" in sys.modules:
-        return [local_stub] if local_stub is not None else []
-    servers, use_local = parse_sampler_servers()
+        return ([local_stub] if local_stub is not None else []), True
+    servers, use_local, inline_eval = parse_sampler_servers()
     if not servers:
-        servers, use_local = parse_sampler_servers(SECONDARY_CONFIG_PATH)
+        servers, use_local, inline_eval = parse_sampler_servers(SECONDARY_CONFIG_PATH)
     if use_local and local_stub is not None:
         ret.append(local_stub)
     for name, connection_string in servers:
@@ -99,4 +106,4 @@ def get_sampler_servers(local_stub=None):
                 % (name, connection_string, e),
                 file=sys.stderr,
             )
-    return ret
+    return ret, inline_eval

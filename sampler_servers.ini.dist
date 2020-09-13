@@ -15,3 +15,7 @@
 # Set local_parallelism = False to only use one process for analysis
 # (combined local evaluation and gRPC wrangling).
 local_parallelism = True
+# Set inline_evaluation = False to only use the main process for I/O:
+# any evaluation happens in fork children (if local_parallelism is True),
+# or in remote compute servers.
+inline_evaluation = True
