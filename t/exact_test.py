@@ -237,6 +237,17 @@ def exact_test(
     accumulators = {name: INITIAL_RESULT_ACCUMULATOR for name in actual_stats}
 
     ret = dict()
+    # If we have a NaN, we're not going to resolve that.  Mark it as
+    # converged.  Similarly, if we don't have any data, return that
+    # ASAP.
+    for name, actual in actual_stats.items():
+        if actual != actual or (not actual_data.a_class and not actual_data.b_class):
+            ret[name] = Result(
+                actual, 0, len(actual_data.a_class), len(actual_data.b_class), 0
+            )
+
+    if len(ret) == len(actual_stats):
+        return ret
 
     grouped_stats_queue = queue.SimpleQueue()
 
