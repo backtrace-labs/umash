@@ -455,6 +455,11 @@ class BufferedIterator:
 
     def __exit__(self, *_):
         self.done.set()
+        try:
+            # Make sure there's a value in the queue.
+            self.queue.put_nowait(None)
+        except queue.Full:
+            pass
         for worker in self.workers:
             try:
                 for _ in self.workers:
@@ -519,9 +524,10 @@ def resampled_data_results(sample, grouped_statistics_queue):
                     yield value
                     try:
                         while True:
-                            for value in _convert_proto_to_result_dicts(
-                                buf.get_nowait()
-                            ):
+                            par_value = buf.get_nowait()
+                            if par_value is None:
+                                return
+                            for value in _convert_proto_to_result_dicts(par_value):
                                 yield value
                             # Try and update the config.
                             grouped_statistics_fn()
