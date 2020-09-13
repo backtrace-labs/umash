@@ -523,6 +523,8 @@ def resampled_data_results(sample, grouped_statistics_queue):
                                 buf.get_nowait()
                             ):
                                 yield value
+                            # Try and update the config.
+                            grouped_statistics_fn()
                     except queue.Empty:
                         pass
             finally:
