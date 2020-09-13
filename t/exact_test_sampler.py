@@ -5,6 +5,7 @@ import itertools
 from multiprocessing.pool import Pool
 import pickle
 import queue
+import random
 import os
 import secrets
 import threading
@@ -200,7 +201,12 @@ def _generate_in_parallel_worker(generator_fn, generator_args, max_results, max_
     `generator_fn(*generator_args)` until we have too many values, or
     we hit `max_delay`, and then return that list of values, converted
     to a ResultSet.
+
+    We apply some jitter to both `max_results` and `max_delay` to avoid
+    synchronisation and then thundering herd issues.
     """
+    max_results = 1 + int(max_results * (0.5 + random.random()))
+    max_delay *= 0.5 + random.random()
     results = defaultdict(list)
     end = time.monotonic() + max_delay
     for i, value in enumerate(generator_fn(*generator_args)):
