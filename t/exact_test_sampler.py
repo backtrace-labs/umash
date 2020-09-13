@@ -543,7 +543,7 @@ def resampled_data_results(sample, grouped_statistics_queue, inline_eval=None):
             sampler.simulate(iter(queue.get, None), None)
             for sampler, queue in zip(samplers, request_queues)
         ]
-        with BufferedIterator(parallel_generators) as buf:
+        with BufferedIterator(parallel_generators, block_on_exit=False) as buf:
             try:
                 inline_values = (
                     serial_generator() if inline_eval else itertools.repeat(None)
