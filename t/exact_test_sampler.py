@@ -339,7 +339,9 @@ def _generate_in_parallel(generator_fn, generator_args_fn, stop_event=None):
 class ExactTestParameters:
     # Signaled when the request should be exited
     done = attr.ib(factory=threading.Event)
-    # Signaled when sample and params are both populated
+    # Signaled when sample and params are both populated...
+    # or when the request should be exited, since it's so
+    # hard to wait on two events.
     ready = attr.ib(factory=threading.Event)
     lock = attr.ib(factory=threading.Lock)
     sample = attr.ib(default=None)
@@ -352,25 +354,28 @@ class ExactTestSampler(ExactTestSamplerServicer):
 
     @staticmethod
     def _update_test_params(params, update_requests, ctx):
-        for analysis_request in update_requests:
-            if ctx and not ctx.is_active():
-                break
-            with params.lock:
-                if (
-                    analysis_request.raw_data.a_values
-                    or analysis_request.raw_data.b_values
-                ):
-                    params.sample = Sample(
-                        a_class=list(analysis_request.raw_data.a_values),
-                        b_class=list(analysis_request.raw_data.b_values),
-                    )
+        try:
+            for analysis_request in update_requests:
+                if ctx and not ctx.is_active():
+                    break
+                with params.lock:
+                    if (
+                        analysis_request.raw_data.a_values
+                        or analysis_request.raw_data.b_values
+                    ):
+                        params.sample = Sample(
+                            a_class=list(analysis_request.raw_data.a_values),
+                            b_class=list(analysis_request.raw_data.b_values),
+                        )
 
-                if analysis_request.parameters:
-                    params.params = pickle.loads(analysis_request.parameters)
+                    if analysis_request.parameters:
+                        params.params = pickle.loads(analysis_request.parameters)
 
-                if params.sample is not None and params.params is not None:
-                    params.ready.set()
-        params.done.set()
+                    if params.sample is not None and params.params is not None:
+                        params.ready.set()
+        finally:
+            params.done.set()
+            params.ready.set()
 
     def status(self, request, context):
         return StatusRequest()
@@ -387,6 +392,13 @@ class ExactTestSampler(ExactTestSamplerServicer):
             with params.lock:
                 return (params.sample, params.params)
 
+        def mark_cancelled():
+            params.done.set()
+            params.ready.set()
+
+        if ctx is not None:
+            ctx.add_callback(mark_cancelled)
+
         try:
             updater = threading.Thread(
                 target=self._update_test_params,
@@ -395,7 +407,10 @@ class ExactTestSampler(ExactTestSamplerServicer):
             )
             updater.start()
 
-            params.ready.wait(timeout=self.INITIAL_DATA_TIMEOUT)
+            if not params.ready.wait(timeout=self.INITIAL_DATA_TIMEOUT):
+                return
+            if params.done.is_set():
+                return
             for value in _generate_in_parallel(
                 _resampled_data_results_1, read_params, params.done
             ):
@@ -406,6 +421,7 @@ class ExactTestSampler(ExactTestSamplerServicer):
                     break
         finally:
             params.done.set()
+            params.ready.set()
             if updater is not None and updater.is_alive():
                 updater.join(0.001)
 
