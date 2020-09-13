@@ -14,7 +14,7 @@ jupyter:
 ---
 
 ```python
-# Latency test for input sizes < 4 bytes.
+# Latency test for input sizes <= 8 bytes, focusing on 4, 5-7, and 8 byte inputs.
 
 import random
 import umash_bench
@@ -45,36 +45,50 @@ CFLAGS = None
 CC = None
 results = umash_bench.compare_short_inputs(current=TEST,
                                            baseline=BASELINE,
-                                           length_limit=4,
+                                           length_limit=9,
                                            length_fixup=-1,
                                            cflags=CFLAGS,
                                            cc=CC,
                                            min_count=1000000)
 
 TEST, BASELINE = results.keys()  # Convert to the actual keys: HEAD etc. are normalised to SHAs
+
+# Regroup the size classes in `results`: we want 0-3, 4, 5-7, 8. We focus on 0-3 bytes individually in
+# bench_tiny_inputs, and 5-7 bytes all use the same code path and similar unaligned overlapping loads.
+
+regrouped_keys = ["0-3", 4, "5-7", 8]
+
+regrouped = dict()
+for k, v in results.items():
+     regrouped[k] = {
+         "0-3": v[0] + v[1] + v[2] + v[3],
+         4: v[4],
+         "5-7": v[5] + v[6] + v[7],
+         8: v[8]
+     }
 ```
 
 ```python
-# Summarise the range of latencies (in RDTSC cycles) for the two revisions and three input sizes
-for label, values in results.items():
+# Summarise the range of latencies (in RDTSC cycles) for the two revisions and input size classes
+for label, values in regrouped.items():
     print(label)
-    for i in range(4):
+    for i in regrouped_keys:
         total = len(values[i])
         kept = sum(x < 100 for x in values[i])
-        print("\t%i: %i %i %f (%i %i)" % (i, total, kept, kept / total, min(values[i]), max(values[i])))
+        print("\t%s: %i %i %f (%i %i)" % (i, total, kept, kept / total, min(values[i]), max(values[i])))
 ```
 
 ```python
 # Visualise the two latency distributions for each input size
-for sz in range(4):
-    test = list(results[TEST][sz])
-    baseline = list(results[BASELINE][sz])
+for sz in regrouped_keys:
+    test = list(regrouped[TEST][sz])
+    baseline = list(regrouped[BASELINE][sz])
     random.shuffle(test)
     random.shuffle(baseline)
-    test = test[:10000]
-    baseline = baseline[:10000]
+    test = test[:5000]
+    baseline = baseline[:5000]
     fig = px.histogram(dict(Test=test, Baseline=baseline),
-                       title="Latency for input size = %i" % sz,
+                       title="Latency for input size = %s" % sz,
                        histnorm='probability density',
                        nbins=max(test + baseline),
                        barmode="overlay",
@@ -87,8 +101,8 @@ for sz in range(4):
 ```python
 # Run an exact permutation test for each input size to see if any difference is worth looking at.
 stats = [(i,
-          exact_test(a=results[TEST][i][:20000],  # We don't need too too many data points
-                     b=results[BASELINE][i][:20000],
+          exact_test(a=regrouped[TEST][i][:20000],  # We don't need too too many data points
+                     b=regrouped[BASELINE][i][:20000],
                      eps=1e-4,
                      statistics=[
                          mean("mean", .5e-3),
@@ -96,7 +110,7 @@ stats = [(i,
                          q99("q99"),
                          q99("q99_sa", a_offset=5)  # Compare against q99 w/ A 5 cycles slower than B
                      ])
-         ) for i in range(4)]
+         ) for i in regrouped_keys]
 ```
 
 ```python
