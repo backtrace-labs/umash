@@ -4,117 +4,119 @@ ok 1 - Found Hash # umash64
 ### - umash 64 -
 ### seedbits: 64 statebits: 2560 hashbits: 64
 ###################################################################
+ok 2 - Verification code # umash64
+# umash64              - Verification value 0x78350DAF : Passed.
 ### Sanity Tests ###
 # Sanity check simple key bit flips and consistency - hashbytes=8..........
-ok 2 - SanityTest # umash64
+ok 3 - SanityTest # umash64
 # Sanity check null suffixes change the hash (simple)..........
-ok 3 - Appended Zeroes Test # umash64
-ok 4 - Sanity Test # umash64
+ok 4 - Appended Zeroes Test # umash64
+ok 5 - Sanity Test # umash64
 ### Speed Tests ###
 ## Bulk speed test - 262144-byte keys
-# Alignment  7 -  8.252 bytes/cycle - 23609.39 MiB/sec @ 3 ghz
-# Alignment  6 -  8.256 bytes/cycle - 23621.23 MiB/sec @ 3 ghz
-# Alignment  5 -  8.251 bytes/cycle - 23605.76 MiB/sec @ 3 ghz
-# Alignment  4 -  8.252 bytes/cycle - 23610.34 MiB/sec @ 3 ghz
-# Alignment  3 -  8.255 bytes/cycle - 23618.89 MiB/sec @ 3 ghz
-# Alignment  2 -  8.248 bytes/cycle - 23598.16 MiB/sec @ 3 ghz
-# Alignment  1 -  8.251 bytes/cycle - 23607.50 MiB/sec @ 3 ghz
-# Alignment  0 -  8.338 bytes/cycle - 23855.21 MiB/sec @ 3 ghz
-# Average      -  8.263 bytes/cycle - 23640.81 MiB/sec @ 3 ghz
+# Alignment  7 -  7.255 bytes/cycle - 20755.59 MiB/sec @ 3 ghz
+# Alignment  6 -  9.355 bytes/cycle - 26764.14 MiB/sec @ 3 ghz
+# Alignment  5 -  9.208 bytes/cycle - 26345.50 MiB/sec @ 3 ghz
+# Alignment  4 -  9.209 bytes/cycle - 26347.27 MiB/sec @ 3 ghz
+# Alignment  3 -  9.643 bytes/cycle - 27590.24 MiB/sec @ 3 ghz
+# Alignment  2 -  9.231 bytes/cycle - 26411.48 MiB/sec @ 3 ghz
+# Alignment  1 -  9.280 bytes/cycle - 26549.75 MiB/sec @ 3 ghz
+# Alignment  0 -  9.638 bytes/cycle - 27573.48 MiB/sec @ 3 ghz
+# Average      -  9.102 bytes/cycle - 26042.18 MiB/sec @ 3 ghz
 ## KeySpeed tests
-# umash64                   0 byte keys       18.000 c/h
-# umash64                   1 byte keys       23.000 c/h       23.000 c/b        0.043 b/c
-# umash64                   2 byte keys       24.470 c/h       12.235 c/b        0.082 b/c
-# umash64                   3 byte keys       24.000 c/h        8.000 c/b        0.125 b/c
-# umash64                   4 byte keys       24.000 c/h        6.000 c/b        0.167 b/c
-# umash64                   5 byte keys       24.000 c/h        4.800 c/b        0.208 b/c
-# umash64                   6 byte keys       24.000 c/h        4.000 c/b        0.250 b/c
-# umash64                   7 byte keys       24.000 c/h        3.429 c/b        0.292 b/c
-# umash64                   8 byte keys       24.000 c/h        3.000 c/b        0.333 b/c
-# umash64                   9 byte keys       47.134 c/h        5.237 c/b        0.191 b/c
-# umash64                  10 byte keys       47.044 c/h        4.704 c/b        0.213 b/c
-# umash64                  11 byte keys       47.026 c/h        4.275 c/b        0.234 b/c
-# umash64                  12 byte keys       47.050 c/h        3.921 c/b        0.255 b/c
-# umash64                  13 byte keys       47.043 c/h        3.619 c/b        0.276 b/c
-# umash64                  14 byte keys       47.049 c/h        3.361 c/b        0.298 b/c
-# umash64                  15 byte keys       47.044 c/h        3.136 c/b        0.319 b/c
-# umash64                  16 byte keys       46.000 c/h        2.875 c/b        0.348 b/c
-# umash64                  17 byte keys       52.248 c/h        3.073 c/b        0.325 b/c
-# umash64                  18 byte keys       52.244 c/h        2.902 c/b        0.345 b/c
-# umash64                  19 byte keys       52.248 c/h        2.750 c/b        0.364 b/c
-# umash64                  20 byte keys       52.256 c/h        2.613 c/b        0.383 b/c
-# umash64                  21 byte keys       52.253 c/h        2.488 c/b        0.402 b/c
-# umash64                  22 byte keys       52.239 c/h        2.375 c/b        0.421 b/c
-# umash64                  23 byte keys       52.236 c/h        2.271 c/b        0.440 b/c
-# umash64                  24 byte keys       52.247 c/h        2.177 c/b        0.459 b/c
-# umash64                  25 byte keys       52.241 c/h        2.090 c/b        0.479 b/c
-# umash64                  26 byte keys       52.248 c/h        2.010 c/b        0.498 b/c
-# umash64                  27 byte keys       52.234 c/h        1.935 c/b        0.517 b/c
-# umash64                  28 byte keys       52.252 c/h        1.866 c/b        0.536 b/c
-# umash64                  29 byte keys       52.250 c/h        1.802 c/b        0.555 b/c
-# umash64                  30 byte keys       52.248 c/h        1.742 c/b        0.574 b/c
-# umash64                  31 byte keys       52.240 c/h        1.685 c/b        0.593 b/c
-#                          Average < 32       42.767 c/h        2.759 c/b        0.362 b/c
-# umash64                  32 byte keys       52.259 c/h        1.633 c/b        0.612 b/c
-# umash64                  36 byte keys       54.098 c/h        1.503 c/b        0.665 b/c
-# umash64                  40 byte keys       54.166 c/h        1.354 c/b        0.738 b/c
-# umash64                  44 byte keys       54.116 c/h        1.230 c/b        0.813 b/c
-# umash64                  48 byte keys       54.155 c/h        1.128 c/b        0.886 b/c
-# umash64                  52 byte keys       56.900 c/h        1.094 c/b        0.914 b/c
-# umash64                  56 byte keys       56.897 c/h        1.016 c/b        0.984 b/c
-# umash64                  60 byte keys       58.194 c/h        0.970 c/b        1.031 b/c
-# umash64                  64 byte keys       56.905 c/h        0.889 c/b        1.125 b/c
-# umash64                  68 byte keys       59.760 c/h        0.879 c/b        1.138 b/c
-# umash64                  72 byte keys       59.650 c/h        0.828 c/b        1.207 b/c
-# umash64                  76 byte keys       59.677 c/h        0.785 c/b        1.274 b/c
-# umash64                  80 byte keys       59.697 c/h        0.746 c/b        1.340 b/c
-# umash64                  84 byte keys       62.810 c/h        0.748 c/b        1.337 b/c
-# umash64                  88 byte keys       62.810 c/h        0.714 c/b        1.401 b/c
-# umash64                  92 byte keys       62.797 c/h        0.683 c/b        1.465 b/c
-# umash64                  96 byte keys       62.810 c/h        0.654 c/b        1.528 b/c
-# umash64                 100 byte keys       65.860 c/h        0.659 c/b        1.518 b/c
-# umash64                 104 byte keys       65.862 c/h        0.633 c/b        1.579 b/c
-# umash64                 108 byte keys       65.891 c/h        0.610 c/b        1.639 b/c
-# umash64                 112 byte keys       65.902 c/h        0.588 c/b        1.700 b/c
-# umash64                 116 byte keys       68.945 c/h        0.594 c/b        1.682 b/c
-# umash64                 120 byte keys       68.988 c/h        0.575 c/b        1.739 b/c
-# umash64                 124 byte keys       68.977 c/h        0.556 c/b        1.798 b/c
-#                         Average < 128       50.476 c/h        1.194 c/b        0.838 b/c
-# umash64                 128 byte keys       67.000 c/h        0.523 c/b        1.910 b/c
-# umash64                 256 byte keys       76.726 c/h        0.300 c/b        3.337 b/c
-# umash64                 512 byte keys      113.916 c/h        0.222 c/b        4.495 b/c
-# umash64                1024 byte keys      176.206 c/h        0.172 c/b        5.811 b/c
-# umash64                2048 byte keys      296.449 c/h        0.145 c/b        6.908 b/c
-# umash64                4096 byte keys      538.727 c/h        0.132 c/b        7.603 b/c
-# umash64                8192 byte keys     1016.738 c/h        0.124 c/b        8.057 b/c
-# umash64               16384 byte keys     1974.477 c/h        0.121 c/b        8.298 b/c
-# umash64               32768 byte keys     3988.423 c/h        0.122 c/b        8.216 b/c
-# umash64               65536 byte keys     7883.625 c/h        0.120 c/b        8.313 b/c
-#                       Overall Average      287.257 c/h        0.142 c/b        7.032 b/c
-ok 5 - Speed (always passes) # umash64
+# umash64                   0 byte keys       17.202 c/h
+# umash64                   1 byte keys       17.860 c/h       17.860 c/b        0.056 b/c
+# umash64                   2 byte keys       17.765 c/h        8.882 c/b        0.113 b/c
+# umash64                   3 byte keys       17.000 c/h        5.667 c/b        0.176 b/c
+# umash64                   4 byte keys       16.441 c/h        4.110 c/b        0.243 b/c
+# umash64                   5 byte keys       16.000 c/h        3.200 c/b        0.312 b/c
+# umash64                   6 byte keys       16.228 c/h        2.705 c/b        0.370 b/c
+# umash64                   7 byte keys       16.000 c/h        2.286 c/b        0.438 b/c
+# umash64                   8 byte keys       16.000 c/h        2.000 c/b        0.500 b/c
+# umash64                   9 byte keys       35.000 c/h        3.889 c/b        0.257 b/c
+# umash64                  10 byte keys       33.940 c/h        3.394 c/b        0.295 b/c
+# umash64                  11 byte keys       34.127 c/h        3.102 c/b        0.322 b/c
+# umash64                  12 byte keys       34.470 c/h        2.872 c/b        0.348 b/c
+# umash64                  13 byte keys       34.226 c/h        2.633 c/b        0.380 b/c
+# umash64                  14 byte keys       34.619 c/h        2.473 c/b        0.404 b/c
+# umash64                  15 byte keys       35.000 c/h        2.333 c/b        0.429 b/c
+# umash64                  16 byte keys       28.911 c/h        1.807 c/b        0.553 b/c
+# umash64                  17 byte keys       38.713 c/h        2.277 c/b        0.439 b/c
+# umash64                  18 byte keys       38.828 c/h        2.157 c/b        0.464 b/c
+# umash64                  19 byte keys       38.092 c/h        2.005 c/b        0.499 b/c
+# umash64                  20 byte keys       38.090 c/h        1.905 c/b        0.525 b/c
+# umash64                  21 byte keys       38.297 c/h        1.824 c/b        0.548 b/c
+# umash64                  22 byte keys       38.090 c/h        1.731 c/b        0.578 b/c
+# umash64                  23 byte keys       37.709 c/h        1.640 c/b        0.610 b/c
+# umash64                  24 byte keys       37.886 c/h        1.579 c/b        0.633 b/c
+# umash64                  25 byte keys       36.000 c/h        1.440 c/b        0.694 b/c
+# umash64                  26 byte keys       41.124 c/h        1.582 c/b        0.632 b/c
+# umash64                  27 byte keys       37.047 c/h        1.372 c/b        0.729 b/c
+# umash64                  28 byte keys       37.439 c/h        1.337 c/b        0.748 b/c
+# umash64                  29 byte keys       39.125 c/h        1.349 c/b        0.741 b/c
+# umash64                  30 byte keys       37.265 c/h        1.242 c/b        0.805 b/c
+# umash64                  31 byte keys       36.000 c/h        1.161 c/b        0.861 b/c
+#                          Average < 32       30.953 c/h        1.997 c/b        0.501 b/c
+# umash64                  32 byte keys       36.000 c/h        1.125 c/b        0.889 b/c
+# umash64                  36 byte keys       37.000 c/h        1.028 c/b        0.973 b/c
+# umash64                  40 byte keys       43.070 c/h        1.077 c/b        0.929 b/c
+# umash64                  44 byte keys       37.000 c/h        0.841 c/b        1.189 b/c
+# umash64                  48 byte keys       37.000 c/h        0.771 c/b        1.297 b/c
+# umash64                  52 byte keys       42.399 c/h        0.815 c/b        1.226 b/c
+# umash64                  56 byte keys       37.997 c/h        0.679 c/b        1.474 b/c
+# umash64                  60 byte keys       42.406 c/h        0.707 c/b        1.415 b/c
+# umash64                  64 byte keys       41.348 c/h        0.646 c/b        1.548 b/c
+# umash64                  68 byte keys       38.000 c/h        0.559 c/b        1.789 b/c
+# umash64                  72 byte keys       40.000 c/h        0.556 c/b        1.800 b/c
+# umash64                  76 byte keys       40.000 c/h        0.526 c/b        1.900 b/c
+# umash64                  80 byte keys       40.000 c/h        0.500 c/b        2.000 b/c
+# umash64                  84 byte keys       41.000 c/h        0.488 c/b        2.049 b/c
+# umash64                  88 byte keys       39.705 c/h        0.451 c/b        2.216 b/c
+# umash64                  92 byte keys       40.936 c/h        0.445 c/b        2.247 b/c
+# umash64                  96 byte keys       40.475 c/h        0.422 c/b        2.372 b/c
+# umash64                 100 byte keys       40.770 c/h        0.408 c/b        2.453 b/c
+# umash64                 104 byte keys       40.000 c/h        0.385 c/b        2.600 b/c
+# umash64                 108 byte keys       40.000 c/h        0.370 c/b        2.700 b/c
+# umash64                 112 byte keys       40.000 c/h        0.357 c/b        2.800 b/c
+# umash64                 116 byte keys       46.497 c/h        0.401 c/b        2.495 b/c
+# umash64                 120 byte keys       45.248 c/h        0.377 c/b        2.652 b/c
+# umash64                 124 byte keys       39.763 c/h        0.321 c/b        3.118 b/c
+#                         Average < 128       34.948 c/h        0.826 c/b        1.210 b/c
+# umash64                 128 byte keys       41.000 c/h        0.320 c/b        3.122 b/c
+# umash64                 256 byte keys       54.377 c/h        0.212 c/b        4.708 b/c
+# umash64                 512 byte keys       86.314 c/h        0.169 c/b        5.932 b/c
+# umash64                1024 byte keys      135.336 c/h        0.132 c/b        7.566 b/c
+# umash64                2048 byte keys      231.307 c/h        0.113 c/b        8.854 b/c
+# umash64                4096 byte keys      423.725 c/h        0.103 c/b        9.667 b/c
+# umash64                8192 byte keys      808.416 c/h        0.099 c/b       10.133 b/c
+# umash64               16384 byte keys     1644.729 c/h        0.100 c/b        9.962 b/c
+# umash64               32768 byte keys     3310.409 c/h        0.101 c/b        9.898 b/c
+# umash64               65536 byte keys     6488.623 c/h        0.099 c/b       10.100 b/c
+#                       Overall Average      230.020 c/h        0.114 c/b        8.781 b/c
+ok 6 - Speed (always passes) # umash64
 ### Differential Tests ###
 # Testing 8303632 up-to-5-bit differentials in 64-bit keys -> 64 bit hashes.
 # 1000 reps, 8303632000 total tests, expecting 0.00 random collisions..........
-ok 6 - Differential collisions # umash64
-ok 7 - Nothing skipped during differential collision check # umash64
+ok 7 - Differential collisions # umash64
+ok 8 - Nothing skipped during differential collision check # umash64
 # 0 total collisions, of which 0 single collisions were ignored
-ok 8 - ProcessDifferentials
+ok 9 - ProcessDifferentials
 # Testing 11017632 up-to-4-bit differentials in 128-bit keys -> 64 bit hashes.
 # 1000 reps, 11017632000 total tests, expecting 0.00 random collisions..........
-ok 9 - Differential collisions # umash64
-ok 10 - Nothing skipped during differential collision check # umash64
+ok 10 - Differential collisions # umash64
+ok 11 - Nothing skipped during differential collision check # umash64
 # 0 total collisions, of which 0 single collisions were ignored
-ok 11 - ProcessDifferentials
+ok 12 - ProcessDifferentials
 # Testing 2796416 up-to-3-bit differentials in 256-bit keys -> 64 bit hashes.
 # 1000 reps, 2796416000 total tests, expecting 0.00 random collisions..........
-ok 12 - Differential collisions # umash64
-ok 13 - Nothing skipped during differential collision check # umash64
+ok 13 - Differential collisions # umash64
+ok 14 - Nothing skipped during differential collision check # umash64
 # 0 total collisions, of which 0 single collisions were ignored
-ok 14 - ProcessDifferentials
-ok 15 - Differential # umash64
+ok 15 - ProcessDifferentials
+ok 16 - Differential # umash64
 ### Differential Distribution Tests ###
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 16 - Collision Rate for differential distribution - bit 0
+ok 17 - Collision Rate for differential distribution - bit 0
 
 
 [...........]
@@ -181,80 +183,10 @@ ok 16 - Collision Rate for differential distribution - bit 0
 [...........]
 [...........]
 [...........]
-ok 17 - Distribution Bias Check for differential distribution - bit 0
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 18 - Collision Rate for differential distribution - bit 1
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 19 - Distribution Bias Check for differential distribution - bit 1
+ok 18 - Distribution Bias Check for differential distribution - bit 0
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 20 - Collision Rate for differential distribution - bit 2
+ok 19 - Collision Rate for differential distribution - bit 1
 
 
 [...........]
@@ -321,80 +253,10 @@ ok 20 - Collision Rate for differential distribution - bit 2
 [...........]
 [...........]
 [...........]
-ok 21 - Distribution Bias Check for differential distribution - bit 2
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 22 - Collision Rate for differential distribution - bit 3
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 23 - Distribution Bias Check for differential distribution - bit 3
+ok 20 - Distribution Bias Check for differential distribution - bit 1
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 24 - Collision Rate for differential distribution - bit 4
+ok 21 - Collision Rate for differential distribution - bit 2
 
 
 [...........]
@@ -461,80 +323,10 @@ ok 24 - Collision Rate for differential distribution - bit 4
 [...........]
 [...........]
 [...........]
-ok 25 - Distribution Bias Check for differential distribution - bit 4
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 26 - Collision Rate for differential distribution - bit 5
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 27 - Distribution Bias Check for differential distribution - bit 5
+ok 22 - Distribution Bias Check for differential distribution - bit 2
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 28 - Collision Rate for differential distribution - bit 6
+ok 23 - Collision Rate for differential distribution - bit 3
 
 
 [...........]
@@ -601,80 +393,10 @@ ok 28 - Collision Rate for differential distribution - bit 6
 [...........]
 [...........]
 [...........]
-ok 29 - Distribution Bias Check for differential distribution - bit 6
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 30 - Collision Rate for differential distribution - bit 7
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 31 - Distribution Bias Check for differential distribution - bit 7
+ok 24 - Distribution Bias Check for differential distribution - bit 3
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 32 - Collision Rate for differential distribution - bit 8
+ok 25 - Collision Rate for differential distribution - bit 4
 
 
 [...........]
@@ -741,80 +463,10 @@ ok 32 - Collision Rate for differential distribution - bit 8
 [...........]
 [...........]
 [...........]
-ok 33 - Distribution Bias Check for differential distribution - bit 8
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 34 - Collision Rate for differential distribution - bit 9
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 35 - Distribution Bias Check for differential distribution - bit 9
+ok 26 - Distribution Bias Check for differential distribution - bit 4
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 36 - Collision Rate for differential distribution - bit 10
+ok 27 - Collision Rate for differential distribution - bit 5
 
 
 [...........]
@@ -881,80 +533,10 @@ ok 36 - Collision Rate for differential distribution - bit 10
 [...........]
 [...........]
 [...........]
-ok 37 - Distribution Bias Check for differential distribution - bit 10
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 38 - Collision Rate for differential distribution - bit 11
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 39 - Distribution Bias Check for differential distribution - bit 11
+ok 28 - Distribution Bias Check for differential distribution - bit 5
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 40 - Collision Rate for differential distribution - bit 12
+ok 29 - Collision Rate for differential distribution - bit 6
 
 
 [...........]
@@ -1021,80 +603,10 @@ ok 40 - Collision Rate for differential distribution - bit 12
 [...........]
 [...........]
 [...........]
-ok 41 - Distribution Bias Check for differential distribution - bit 12
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 42 - Collision Rate for differential distribution - bit 13
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 43 - Distribution Bias Check for differential distribution - bit 13
+ok 30 - Distribution Bias Check for differential distribution - bit 6
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 44 - Collision Rate for differential distribution - bit 14
+ok 31 - Collision Rate for differential distribution - bit 7
 
 
 [...........]
@@ -1161,80 +673,10 @@ ok 44 - Collision Rate for differential distribution - bit 14
 [...........]
 [...........]
 [...........]
-ok 45 - Distribution Bias Check for differential distribution - bit 14
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 46 - Collision Rate for differential distribution - bit 15
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 47 - Distribution Bias Check for differential distribution - bit 15
+ok 32 - Distribution Bias Check for differential distribution - bit 7
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 48 - Collision Rate for differential distribution - bit 16
+ok 33 - Collision Rate for differential distribution - bit 8
 
 
 [...........]
@@ -1301,80 +743,10 @@ ok 48 - Collision Rate for differential distribution - bit 16
 [...........]
 [...........]
 [...........]
-ok 49 - Distribution Bias Check for differential distribution - bit 16
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 50 - Collision Rate for differential distribution - bit 17
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 51 - Distribution Bias Check for differential distribution - bit 17
+ok 34 - Distribution Bias Check for differential distribution - bit 8
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 52 - Collision Rate for differential distribution - bit 18
+ok 35 - Collision Rate for differential distribution - bit 9
 
 
 [...........]
@@ -1441,80 +813,10 @@ ok 52 - Collision Rate for differential distribution - bit 18
 [...........]
 [...........]
 [...........]
-ok 53 - Distribution Bias Check for differential distribution - bit 18
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 54 - Collision Rate for differential distribution - bit 19
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 55 - Distribution Bias Check for differential distribution - bit 19
+ok 36 - Distribution Bias Check for differential distribution - bit 9
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 56 - Collision Rate for differential distribution - bit 20
+ok 37 - Collision Rate for differential distribution - bit 10
 
 
 [...........]
@@ -1581,80 +883,10 @@ ok 56 - Collision Rate for differential distribution - bit 20
 [...........]
 [...........]
 [...........]
-ok 57 - Distribution Bias Check for differential distribution - bit 20
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 58 - Collision Rate for differential distribution - bit 21
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 59 - Distribution Bias Check for differential distribution - bit 21
+ok 38 - Distribution Bias Check for differential distribution - bit 10
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 60 - Collision Rate for differential distribution - bit 22
+ok 39 - Collision Rate for differential distribution - bit 11
 
 
 [...........]
@@ -1721,80 +953,10 @@ ok 60 - Collision Rate for differential distribution - bit 22
 [...........]
 [...........]
 [...........]
-ok 61 - Distribution Bias Check for differential distribution - bit 22
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 62 - Collision Rate for differential distribution - bit 23
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 63 - Distribution Bias Check for differential distribution - bit 23
+ok 40 - Distribution Bias Check for differential distribution - bit 11
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 64 - Collision Rate for differential distribution - bit 24
+ok 41 - Collision Rate for differential distribution - bit 12
 
 
 [...........]
@@ -1861,80 +1023,10 @@ ok 64 - Collision Rate for differential distribution - bit 24
 [...........]
 [...........]
 [...........]
-ok 65 - Distribution Bias Check for differential distribution - bit 24
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 66 - Collision Rate for differential distribution - bit 25
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 67 - Distribution Bias Check for differential distribution - bit 25
+ok 42 - Distribution Bias Check for differential distribution - bit 12
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 68 - Collision Rate for differential distribution - bit 26
+ok 43 - Collision Rate for differential distribution - bit 13
 
 
 [...........]
@@ -2001,80 +1093,10 @@ ok 68 - Collision Rate for differential distribution - bit 26
 [...........]
 [...........]
 [...........]
-ok 69 - Distribution Bias Check for differential distribution - bit 26
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 70 - Collision Rate for differential distribution - bit 27
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 71 - Distribution Bias Check for differential distribution - bit 27
+ok 44 - Distribution Bias Check for differential distribution - bit 13
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 72 - Collision Rate for differential distribution - bit 28
+ok 45 - Collision Rate for differential distribution - bit 14
 
 
 [...........]
@@ -2141,80 +1163,10 @@ ok 72 - Collision Rate for differential distribution - bit 28
 [...........]
 [...........]
 [...........]
-ok 73 - Distribution Bias Check for differential distribution - bit 28
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 74 - Collision Rate for differential distribution - bit 29
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 75 - Distribution Bias Check for differential distribution - bit 29
+ok 46 - Distribution Bias Check for differential distribution - bit 14
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 76 - Collision Rate for differential distribution - bit 30
+ok 47 - Collision Rate for differential distribution - bit 15
 
 
 [...........]
@@ -2281,80 +1233,10 @@ ok 76 - Collision Rate for differential distribution - bit 30
 [...........]
 [...........]
 [...........]
-ok 77 - Distribution Bias Check for differential distribution - bit 30
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 78 - Collision Rate for differential distribution - bit 31
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 79 - Distribution Bias Check for differential distribution - bit 31
+ok 48 - Distribution Bias Check for differential distribution - bit 15
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 80 - Collision Rate for differential distribution - bit 32
+ok 49 - Collision Rate for differential distribution - bit 16
 
 
 [...........]
@@ -2421,80 +1303,10 @@ ok 80 - Collision Rate for differential distribution - bit 32
 [...........]
 [...........]
 [...........]
-ok 81 - Distribution Bias Check for differential distribution - bit 32
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 82 - Collision Rate for differential distribution - bit 33
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 83 - Distribution Bias Check for differential distribution - bit 33
+ok 50 - Distribution Bias Check for differential distribution - bit 16
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 84 - Collision Rate for differential distribution - bit 34
+ok 51 - Collision Rate for differential distribution - bit 17
 
 
 [...........]
@@ -2561,80 +1373,10 @@ ok 84 - Collision Rate for differential distribution - bit 34
 [...........]
 [...........]
 [...........]
-ok 85 - Distribution Bias Check for differential distribution - bit 34
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 86 - Collision Rate for differential distribution - bit 35
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 87 - Distribution Bias Check for differential distribution - bit 35
+ok 52 - Distribution Bias Check for differential distribution - bit 17
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 88 - Collision Rate for differential distribution - bit 36
+ok 53 - Collision Rate for differential distribution - bit 18
 
 
 [...........]
@@ -2701,80 +1443,10 @@ ok 88 - Collision Rate for differential distribution - bit 36
 [...........]
 [...........]
 [...........]
-ok 89 - Distribution Bias Check for differential distribution - bit 36
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 90 - Collision Rate for differential distribution - bit 37
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 91 - Distribution Bias Check for differential distribution - bit 37
+ok 54 - Distribution Bias Check for differential distribution - bit 18
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 92 - Collision Rate for differential distribution - bit 38
+ok 55 - Collision Rate for differential distribution - bit 19
 
 
 [...........]
@@ -2841,80 +1513,10 @@ ok 92 - Collision Rate for differential distribution - bit 38
 [...........]
 [...........]
 [...........]
-ok 93 - Distribution Bias Check for differential distribution - bit 38
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 94 - Collision Rate for differential distribution - bit 39
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 95 - Distribution Bias Check for differential distribution - bit 39
+ok 56 - Distribution Bias Check for differential distribution - bit 19
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 96 - Collision Rate for differential distribution - bit 40
+ok 57 - Collision Rate for differential distribution - bit 20
 
 
 [...........]
@@ -2981,80 +1583,10 @@ ok 96 - Collision Rate for differential distribution - bit 40
 [...........]
 [...........]
 [...........]
-ok 97 - Distribution Bias Check for differential distribution - bit 40
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 98 - Collision Rate for differential distribution - bit 41
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 99 - Distribution Bias Check for differential distribution - bit 41
+ok 58 - Distribution Bias Check for differential distribution - bit 20
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 100 - Collision Rate for differential distribution - bit 42
+ok 59 - Collision Rate for differential distribution - bit 21
 
 
 [...........]
@@ -3121,80 +1653,10 @@ ok 100 - Collision Rate for differential distribution - bit 42
 [...........]
 [...........]
 [...........]
-ok 101 - Distribution Bias Check for differential distribution - bit 42
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 102 - Collision Rate for differential distribution - bit 43
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 103 - Distribution Bias Check for differential distribution - bit 43
+ok 60 - Distribution Bias Check for differential distribution - bit 21
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 104 - Collision Rate for differential distribution - bit 44
+ok 61 - Collision Rate for differential distribution - bit 22
 
 
 [...........]
@@ -3261,80 +1723,10 @@ ok 104 - Collision Rate for differential distribution - bit 44
 [...........]
 [...........]
 [...........]
-ok 105 - Distribution Bias Check for differential distribution - bit 44
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 106 - Collision Rate for differential distribution - bit 45
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 107 - Distribution Bias Check for differential distribution - bit 45
+ok 62 - Distribution Bias Check for differential distribution - bit 22
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 108 - Collision Rate for differential distribution - bit 46
+ok 63 - Collision Rate for differential distribution - bit 23
 
 
 [...........]
@@ -3401,80 +1793,10 @@ ok 108 - Collision Rate for differential distribution - bit 46
 [...........]
 [...........]
 [...........]
-ok 109 - Distribution Bias Check for differential distribution - bit 46
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 110 - Collision Rate for differential distribution - bit 47
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 111 - Distribution Bias Check for differential distribution - bit 47
+ok 64 - Distribution Bias Check for differential distribution - bit 23
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 112 - Collision Rate for differential distribution - bit 48
+ok 65 - Collision Rate for differential distribution - bit 24
 
 
 [...........]
@@ -3541,80 +1863,10 @@ ok 112 - Collision Rate for differential distribution - bit 48
 [...........]
 [...........]
 [...........]
-ok 113 - Distribution Bias Check for differential distribution - bit 48
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 114 - Collision Rate for differential distribution - bit 49
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 115 - Distribution Bias Check for differential distribution - bit 49
+ok 66 - Distribution Bias Check for differential distribution - bit 24
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 116 - Collision Rate for differential distribution - bit 50
+ok 67 - Collision Rate for differential distribution - bit 25
 
 
 [...........]
@@ -3681,80 +1933,10 @@ ok 116 - Collision Rate for differential distribution - bit 50
 [...........]
 [...........]
 [...........]
-ok 117 - Distribution Bias Check for differential distribution - bit 50
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 118 - Collision Rate for differential distribution - bit 51
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 119 - Distribution Bias Check for differential distribution - bit 51
+ok 68 - Distribution Bias Check for differential distribution - bit 25
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 120 - Collision Rate for differential distribution - bit 52
+ok 69 - Collision Rate for differential distribution - bit 26
 
 
 [...........]
@@ -3821,80 +2003,10 @@ ok 120 - Collision Rate for differential distribution - bit 52
 [...........]
 [...........]
 [...........]
-ok 121 - Distribution Bias Check for differential distribution - bit 52
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 122 - Collision Rate for differential distribution - bit 53
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 123 - Distribution Bias Check for differential distribution - bit 53
+ok 70 - Distribution Bias Check for differential distribution - bit 26
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 124 - Collision Rate for differential distribution - bit 54
+ok 71 - Collision Rate for differential distribution - bit 27
 
 
 [...........]
@@ -3961,80 +2073,10 @@ ok 124 - Collision Rate for differential distribution - bit 54
 [...........]
 [...........]
 [...........]
-ok 125 - Distribution Bias Check for differential distribution - bit 54
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 126 - Collision Rate for differential distribution - bit 55
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 127 - Distribution Bias Check for differential distribution - bit 55
+ok 72 - Distribution Bias Check for differential distribution - bit 27
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 128 - Collision Rate for differential distribution - bit 56
+ok 73 - Collision Rate for differential distribution - bit 28
 
 
 [...........]
@@ -4101,80 +2143,10 @@ ok 128 - Collision Rate for differential distribution - bit 56
 [...........]
 [...........]
 [...........]
-ok 129 - Distribution Bias Check for differential distribution - bit 56
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 130 - Collision Rate for differential distribution - bit 57
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 131 - Distribution Bias Check for differential distribution - bit 57
+ok 74 - Distribution Bias Check for differential distribution - bit 28
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 132 - Collision Rate for differential distribution - bit 58
+ok 75 - Collision Rate for differential distribution - bit 29
 
 
 [...........]
@@ -4241,80 +2213,10 @@ ok 132 - Collision Rate for differential distribution - bit 58
 [...........]
 [...........]
 [...........]
-ok 133 - Distribution Bias Check for differential distribution - bit 58
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 134 - Collision Rate for differential distribution - bit 59
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 135 - Distribution Bias Check for differential distribution - bit 59
+ok 76 - Distribution Bias Check for differential distribution - bit 29
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 136 - Collision Rate for differential distribution - bit 60
+ok 77 - Collision Rate for differential distribution - bit 30
 
 
 [...........]
@@ -4381,80 +2283,10 @@ ok 136 - Collision Rate for differential distribution - bit 60
 [...........]
 [...........]
 [...........]
-ok 137 - Distribution Bias Check for differential distribution - bit 60
-
-# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 138 - Collision Rate for differential distribution - bit 61
-
-
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-[...........]
-ok 139 - Distribution Bias Check for differential distribution - bit 61
+ok 78 - Distribution Bias Check for differential distribution - bit 30
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 140 - Collision Rate for differential distribution - bit 62
+ok 79 - Collision Rate for differential distribution - bit 31
 
 
 [...........]
@@ -4521,10 +2353,10 @@ ok 140 - Collision Rate for differential distribution - bit 62
 [...........]
 [...........]
 [...........]
-ok 141 - Distribution Bias Check for differential distribution - bit 62
+ok 80 - Distribution Bias Check for differential distribution - bit 31
 
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 142 - Collision Rate for differential distribution - bit 63
+ok 81 - Collision Rate for differential distribution - bit 32
 
 
 [...........]
@@ -4591,65 +2423,2235 @@ ok 142 - Collision Rate for differential distribution - bit 63
 [...........]
 [...........]
 [...........]
-ok 143 - Distribution Bias Check for differential distribution - bit 63
+ok 82 - Distribution Bias Check for differential distribution - bit 32
 
-ok 144 - Differential Distribution # umash64
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 83 - Collision Rate for differential distribution - bit 33
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 84 - Distribution Bias Check for differential distribution - bit 33
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 85 - Collision Rate for differential distribution - bit 34
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 86 - Distribution Bias Check for differential distribution - bit 34
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 87 - Collision Rate for differential distribution - bit 35
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 88 - Distribution Bias Check for differential distribution - bit 35
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 89 - Collision Rate for differential distribution - bit 36
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 90 - Distribution Bias Check for differential distribution - bit 36
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 91 - Collision Rate for differential distribution - bit 37
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 92 - Distribution Bias Check for differential distribution - bit 37
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 93 - Collision Rate for differential distribution - bit 38
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 94 - Distribution Bias Check for differential distribution - bit 38
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 95 - Collision Rate for differential distribution - bit 39
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 96 - Distribution Bias Check for differential distribution - bit 39
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 97 - Collision Rate for differential distribution - bit 40
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 98 - Distribution Bias Check for differential distribution - bit 40
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 99 - Collision Rate for differential distribution - bit 41
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 100 - Distribution Bias Check for differential distribution - bit 41
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 101 - Collision Rate for differential distribution - bit 42
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 102 - Distribution Bias Check for differential distribution - bit 42
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 103 - Collision Rate for differential distribution - bit 43
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 104 - Distribution Bias Check for differential distribution - bit 43
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 105 - Collision Rate for differential distribution - bit 44
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 106 - Distribution Bias Check for differential distribution - bit 44
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 107 - Collision Rate for differential distribution - bit 45
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 108 - Distribution Bias Check for differential distribution - bit 45
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 109 - Collision Rate for differential distribution - bit 46
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 110 - Distribution Bias Check for differential distribution - bit 46
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 111 - Collision Rate for differential distribution - bit 47
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 112 - Distribution Bias Check for differential distribution - bit 47
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 113 - Collision Rate for differential distribution - bit 48
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 114 - Distribution Bias Check for differential distribution - bit 48
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 115 - Collision Rate for differential distribution - bit 49
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 116 - Distribution Bias Check for differential distribution - bit 49
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 117 - Collision Rate for differential distribution - bit 50
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 118 - Distribution Bias Check for differential distribution - bit 50
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 119 - Collision Rate for differential distribution - bit 51
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 120 - Distribution Bias Check for differential distribution - bit 51
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 121 - Collision Rate for differential distribution - bit 52
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 122 - Distribution Bias Check for differential distribution - bit 52
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 123 - Collision Rate for differential distribution - bit 53
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 124 - Distribution Bias Check for differential distribution - bit 53
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 125 - Collision Rate for differential distribution - bit 54
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 126 - Distribution Bias Check for differential distribution - bit 54
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 127 - Collision Rate for differential distribution - bit 55
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 128 - Distribution Bias Check for differential distribution - bit 55
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 129 - Collision Rate for differential distribution - bit 56
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 130 - Distribution Bias Check for differential distribution - bit 56
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 131 - Collision Rate for differential distribution - bit 57
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 132 - Distribution Bias Check for differential distribution - bit 57
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 133 - Collision Rate for differential distribution - bit 58
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 134 - Distribution Bias Check for differential distribution - bit 58
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 135 - Collision Rate for differential distribution - bit 59
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 136 - Distribution Bias Check for differential distribution - bit 59
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 137 - Collision Rate for differential distribution - bit 60
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 138 - Distribution Bias Check for differential distribution - bit 60
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 139 - Collision Rate for differential distribution - bit 61
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 140 - Distribution Bias Check for differential distribution - bit 61
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 141 - Collision Rate for differential distribution - bit 62
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 142 - Distribution Bias Check for differential distribution - bit 62
+
+# Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
+ok 143 - Collision Rate for differential distribution - bit 63
+
+
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+[...........]
+ok 144 - Distribution Bias Check for differential distribution - bit 63
+
+ok 145 - Differential Distribution # umash64
 ### Avalanche Tests ### - seed-bits: 64 hash-bits: 64
 # Samples 400000, expected error 0.00064000, confidence level 99.99994267%
-# Testing   0-bit keys.......... ok.     # worst-bit:   0.611% error-ratio: 9.764272e-01
-ok 145 - Strict Avalanche Criteria - 0 bit/0 byte keys # umash64
-# Testing   8-bit keys.......... ok.     # worst-bit:   0.613% error-ratio: 1.012452e+00
-ok 146 - Strict Avalanche Criteria - 8 bit/1 byte keys # umash64
-# Testing  16-bit keys.......... ok.     # worst-bit:   0.637% error-ratio: 1.009834e+00
-ok 147 - Strict Avalanche Criteria - 16 bit/2 byte keys # umash64
-# Testing  24-bit keys.......... ok.     # worst-bit:   0.615% error-ratio: 1.010657e+00
-ok 148 - Strict Avalanche Criteria - 24 bit/3 byte keys # umash64
-# Testing  32-bit keys.......... ok.     # worst-bit:   0.591% error-ratio: 9.857825e-01
-ok 149 - Strict Avalanche Criteria - 32 bit/4 byte keys # umash64
-# Testing  40-bit keys.......... ok.     # worst-bit:   0.570% error-ratio: 9.942263e-01
-ok 150 - Strict Avalanche Criteria - 40 bit/5 byte keys # umash64
-# Testing  48-bit keys.......... ok.     # worst-bit:   0.574% error-ratio: 1.005401e+00
-ok 151 - Strict Avalanche Criteria - 48 bit/6 byte keys # umash64
-# Testing  56-bit keys.......... ok.     # worst-bit:   0.578% error-ratio: 9.958244e-01
-ok 152 - Strict Avalanche Criteria - 56 bit/7 byte keys # umash64
-# Testing  64-bit keys.......... ok.     # worst-bit:   0.609% error-ratio: 1.013756e+00
-ok 153 - Strict Avalanche Criteria - 64 bit/8 byte keys # umash64
-# Testing  72-bit keys.......... ok.     # worst-bit:   0.650% error-ratio: 9.968114e-01
-ok 154 - Strict Avalanche Criteria - 72 bit/9 byte keys # umash64
-# Testing  80-bit keys.......... ok.     # worst-bit:   0.588% error-ratio: 1.002051e+00
-ok 155 - Strict Avalanche Criteria - 80 bit/10 byte keys # umash64
-# Testing  88-bit keys.......... ok.     # worst-bit:   0.598% error-ratio: 1.000274e+00
-ok 156 - Strict Avalanche Criteria - 88 bit/11 byte keys # umash64
-# Testing  96-bit keys.......... ok.     # worst-bit:   0.631% error-ratio: 1.022488e+00
-ok 157 - Strict Avalanche Criteria - 96 bit/12 byte keys # umash64
-# Testing 104-bit keys.......... ok.     # worst-bit:   0.641% error-ratio: 1.003276e+00
-ok 158 - Strict Avalanche Criteria - 104 bit/13 byte keys # umash64
-# Testing 112-bit keys.......... ok.     # worst-bit:   0.633% error-ratio: 9.841086e-01
-ok 159 - Strict Avalanche Criteria - 112 bit/14 byte keys # umash64
-# Testing 120-bit keys.......... ok.     # worst-bit:   0.644% error-ratio: 1.004329e+00
-ok 160 - Strict Avalanche Criteria - 120 bit/15 byte keys # umash64
-# Testing 128-bit keys.......... ok.     # worst-bit:   0.653% error-ratio: 1.012332e+00
-ok 161 - Strict Avalanche Criteria - 128 bit/16 byte keys # umash64
-# Testing 136-bit keys.......... ok.     # worst-bit:   0.706% error-ratio: 1.006353e+00
-ok 162 - Strict Avalanche Criteria - 136 bit/17 byte keys # umash64
-# Testing 144-bit keys.......... ok.     # worst-bit:   0.674% error-ratio: 1.015147e+00
-ok 163 - Strict Avalanche Criteria - 144 bit/18 byte keys # umash64
-# Testing 152-bit keys.......... ok.     # worst-bit:   0.643% error-ratio: 1.026145e+00
-ok 164 - Strict Avalanche Criteria - 152 bit/19 byte keys # umash64
-# Testing 152-bit keys.......... ok.     # worst-bit:   0.646% error-ratio: 1.013700e+00
+# Testing   0-bit keys.......... ok.     # worst-bit:   0.567% error-ratio: 9.821518e-01
+ok 146 - Strict Avalanche Criteria - 0 bit/0 byte keys # umash64
+# Testing   8-bit keys.......... ok.     # worst-bit:   0.702% error-ratio: 1.036490e+00
+ok 147 - Strict Avalanche Criteria - 8 bit/1 byte keys # umash64
+# Testing  16-bit keys.......... ok.     # worst-bit:   0.569% error-ratio: 1.002413e+00
+ok 148 - Strict Avalanche Criteria - 16 bit/2 byte keys # umash64
+# Testing  24-bit keys.......... ok.     # worst-bit:   0.629% error-ratio: 9.957605e-01
+ok 149 - Strict Avalanche Criteria - 24 bit/3 byte keys # umash64
+# Testing  32-bit keys.......... ok.     # worst-bit:   0.547% error-ratio: 9.951370e-01
+ok 150 - Strict Avalanche Criteria - 32 bit/4 byte keys # umash64
+# Testing  40-bit keys.......... ok.     # worst-bit:   0.626% error-ratio: 9.985698e-01
+ok 151 - Strict Avalanche Criteria - 40 bit/5 byte keys # umash64
+# Testing  48-bit keys.......... ok.     # worst-bit:   0.619% error-ratio: 1.001594e+00
+ok 152 - Strict Avalanche Criteria - 48 bit/6 byte keys # umash64
+# Testing  56-bit keys.......... ok.     # worst-bit:   0.599% error-ratio: 9.925014e-01
+ok 153 - Strict Avalanche Criteria - 56 bit/7 byte keys # umash64
+# Testing  64-bit keys.......... ok.     # worst-bit:   0.609% error-ratio: 1.000320e+00
+ok 154 - Strict Avalanche Criteria - 64 bit/8 byte keys # umash64
+# Testing  72-bit keys.......... ok.     # worst-bit:   0.644% error-ratio: 1.005286e+00
+ok 155 - Strict Avalanche Criteria - 72 bit/9 byte keys # umash64
+# Testing  80-bit keys.......... ok.     # worst-bit:   0.640% error-ratio: 9.521805e-01
+ok 156 - Strict Avalanche Criteria - 80 bit/10 byte keys # umash64
+# Testing  88-bit keys.......... ok.     # worst-bit:   0.629% error-ratio: 1.012750e+00
+ok 157 - Strict Avalanche Criteria - 88 bit/11 byte keys # umash64
+# Testing  96-bit keys.......... ok.     # worst-bit:   0.614% error-ratio: 9.911331e-01
+ok 158 - Strict Avalanche Criteria - 96 bit/12 byte keys # umash64
+# Testing 104-bit keys.......... ok.     # worst-bit:   0.666% error-ratio: 9.644262e-01
+ok 159 - Strict Avalanche Criteria - 104 bit/13 byte keys # umash64
+# Testing 112-bit keys.......... ok.     # worst-bit:   0.700% error-ratio: 9.896008e-01
+ok 160 - Strict Avalanche Criteria - 112 bit/14 byte keys # umash64
+# Testing 120-bit keys.......... ok.     # worst-bit:   0.584% error-ratio: 9.890568e-01
+ok 161 - Strict Avalanche Criteria - 120 bit/15 byte keys # umash64
+# Testing 128-bit keys.......... ok.     # worst-bit:   0.750% error-ratio: 9.997767e-01
+ok 162 - Strict Avalanche Criteria - 128 bit/16 byte keys # umash64
+# Testing 136-bit keys.......... ok.     # worst-bit:   0.589% error-ratio: 1.017356e+00
+ok 163 - Strict Avalanche Criteria - 136 bit/17 byte keys # umash64
+# Testing 144-bit keys.......... ok.     # worst-bit:   0.702% error-ratio: 1.000576e+00
+ok 164 - Strict Avalanche Criteria - 144 bit/18 byte keys # umash64
+# Testing 152-bit keys.......... ok.     # worst-bit:   0.637% error-ratio: 9.960312e-01
 ok 165 - Strict Avalanche Criteria - 152 bit/19 byte keys # umash64
-# Testing 200-bit keys.......... ok.     # worst-bit:   0.590% error-ratio: 9.955910e-01
-ok 166 - Strict Avalanche Criteria - 200 bit/25 byte keys # umash64
-# Testing 256-bit keys.......... ok.     # worst-bit:   0.714% error-ratio: 9.891332e-01
-ok 167 - Strict Avalanche Criteria - 256 bit/32 byte keys # umash64
-# Testing 520-bit keys.......... ok.     # worst-bit:   0.639% error-ratio: 9.966497e-01
-ok 168 - Strict Avalanche Criteria - 520 bit/65 byte keys # umash64
-# Testing 512-bit keys.......... ok.     # worst-bit:   0.689% error-ratio: 1.004812e+00
-ok 169 - Strict Avalanche Criteria - 512 bit/64 byte keys # umash64
-# Testing 1024-bit keys.......... ok.     # worst-bit:   0.740% error-ratio: 1.002765e+00
-ok 170 - Strict Avalanche Criteria - 1024 bit/128 byte keys # umash64
-# Testing 2048-bit keys.......... ok.     # worst-bit:   0.653% error-ratio: 9.945944e-01
-ok 171 - Strict Avalanche Criteria - 2048 bit/256 byte keys # umash64
+# Testing 152-bit keys.......... ok.     # worst-bit:   0.663% error-ratio: 1.011296e+00
+ok 166 - Strict Avalanche Criteria - 152 bit/19 byte keys # umash64
+# Testing 200-bit keys.......... ok.     # worst-bit:   0.674% error-ratio: 9.988116e-01
+ok 167 - Strict Avalanche Criteria - 200 bit/25 byte keys # umash64
+# Testing 256-bit keys.......... ok.     # worst-bit:   0.636% error-ratio: 1.007084e+00
+ok 168 - Strict Avalanche Criteria - 256 bit/32 byte keys # umash64
+# Testing 520-bit keys.......... ok.     # worst-bit:   0.704% error-ratio: 1.001604e+00
+ok 169 - Strict Avalanche Criteria - 520 bit/65 byte keys # umash64
+# Testing 512-bit keys.......... ok.     # worst-bit:   0.637% error-ratio: 1.007187e+00
+ok 170 - Strict Avalanche Criteria - 512 bit/64 byte keys # umash64
+# Testing 1024-bit keys.......... ok.     # worst-bit:   0.759% error-ratio: 9.957373e-01
+ok 171 - Strict Avalanche Criteria - 1024 bit/128 byte keys # umash64
+# Testing 2048-bit keys.......... ok.     # worst-bit:   0.707% error-ratio: 9.929639e-01
+ok 172 - Strict Avalanche Criteria - 2048 bit/256 byte keys # umash64
 ### Bit Independence Criteria ###
 ...........
 (  0,  1) - ........................................................................................
@@ -6731,709 +6733,709 @@ ok 171 - Strict Avalanche Criteria - 2048 bit/256 byte keys # umash64
 ----------------------------------------------------------------------------------------------------
 ( 62, 63) - ........................................................................................
 ----------------------------------------------------------------------------------------------------
-# Max bias 0.006144 - ( 35 :  27, 55)
-ok 172 - Bit Independence Criteria (BicTest3) # umash64
+# Max bias 0.005866 - ( 65 :  18, 21)
+ok 173 - Bit Independence Criteria (BicTest3) # umash64
 ### Keyset 'Cyclic' Tests ###
 # Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 173 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
-ok 174 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
+ok 174 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
+ok 175 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 9 bytes - 10000000 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 175 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 9 bytes - 10000000 keys
-ok 176 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 9 bytes - 10000000 keys
+ok 176 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 9 bytes - 10000000 keys
+ok 177 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 9 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 10 bytes - 10000000 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 177 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 10 bytes - 10000000 keys
-ok 178 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 10 bytes - 10000000 keys
+ok 178 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 10 bytes - 10000000 keys
+ok 179 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 10 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 11 bytes - 10000000 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 179 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 11 bytes - 10000000 keys
-ok 180 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 11 bytes - 10000000 keys
+ok 180 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 11 bytes - 10000000 keys
+ok 181 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 11 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 12 bytes - 10000000 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 181 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 12 bytes - 10000000 keys
-ok 182 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 12 bytes - 10000000 keys
-ok 183 - Keyset 'Cyclic' # umash64
+ok 182 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 12 bytes - 10000000 keys
+ok 183 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 12 bytes - 10000000 keys
+ok 184 - Keyset 'Cyclic' # umash64
 ### Keyset 'TwoBytes' Tests ###
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 184 - Collision Rate for Keyset 'TwoBytes' - up-to-4-byte keys, 652545 total keys
-ok 185 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-4-byte keys, 652545 total keys
+ok 185 - Collision Rate for Keyset 'TwoBytes' - up-to-4-byte keys, 652545 total keys
+ok 186 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-4-byte keys, 652545 total keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 186 - Collision Rate for Keyset 'TwoBytes' - up-to-8-byte keys, 5471025 total keys
-ok 187 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-8-byte keys, 5471025 total keys
+ok 187 - Collision Rate for Keyset 'TwoBytes' - up-to-8-byte keys, 5471025 total keys
+ok 188 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-8-byte keys, 5471025 total keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 188 - Collision Rate for Keyset 'TwoBytes' - up-to-12-byte keys, 18616785 total keys
-ok 189 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-12-byte keys, 18616785 total keys
+ok 189 - Collision Rate for Keyset 'TwoBytes' - up-to-12-byte keys, 18616785 total keys
+ok 190 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-12-byte keys, 18616785 total keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 190 - Collision Rate for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
-ok 191 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
+ok 191 - Collision Rate for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
+ok 192 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 192 - Collision Rate for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
-ok 193 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
-ok 194 - Keyset 'TwoBytes' # umash64
+ok 193 - Collision Rate for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
+ok 194 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
+ok 195 - Keyset 'TwoBytes' # umash64
 ### Keyset 'Sparse' Tests ###
 # Keyset 'Sparse' - 4096-bit keys with up to 2 bits set - 8390657 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 195 - Collision Rate for Keyset 'Sparse' - 4096-bit keys with up to 2 bits set
-ok 196 - Distribution Bias Check for Keyset 'Sparse' - 4096-bit keys with up to 2 bits set
+ok 196 - Collision Rate for Keyset 'Sparse' - 4096-bit keys with up to 2 bits set
+ok 197 - Distribution Bias Check for Keyset 'Sparse' - 4096-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 2048-bit keys with up to 2 bits set - 2098177 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 197 - Collision Rate for Keyset 'Sparse' - 2048-bit keys with up to 2 bits set
-ok 198 - Distribution Bias Check for Keyset 'Sparse' - 2048-bit keys with up to 2 bits set
+ok 198 - Collision Rate for Keyset 'Sparse' - 2048-bit keys with up to 2 bits set
+ok 199 - Distribution Bias Check for Keyset 'Sparse' - 2048-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 1024-bit keys with up to 2 bits set - 524801 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 199 - Collision Rate for Keyset 'Sparse' - 1024-bit keys with up to 2 bits set
-ok 200 - Distribution Bias Check for Keyset 'Sparse' - 1024-bit keys with up to 2 bits set
+ok 200 - Collision Rate for Keyset 'Sparse' - 1024-bit keys with up to 2 bits set
+ok 201 - Distribution Bias Check for Keyset 'Sparse' - 1024-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 512-bit keys with up to 2 bits set - 131329 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 201 - Collision Rate for Keyset 'Sparse' - 512-bit keys with up to 2 bits set
-ok 202 - Distribution Bias Check for Keyset 'Sparse' - 512-bit keys with up to 2 bits set
+ok 202 - Collision Rate for Keyset 'Sparse' - 512-bit keys with up to 2 bits set
+ok 203 - Distribution Bias Check for Keyset 'Sparse' - 512-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 256-bit keys with up to 3 bits set - 2796417 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 203 - Collision Rate for Keyset 'Sparse' - 256-bit keys with up to 3 bits set
-ok 204 - Distribution Bias Check for Keyset 'Sparse' - 256-bit keys with up to 3 bits set
+ok 204 - Collision Rate for Keyset 'Sparse' - 256-bit keys with up to 3 bits set
+ok 205 - Distribution Bias Check for Keyset 'Sparse' - 256-bit keys with up to 3 bits set
 # Keyset 'Sparse' - 32-bit keys with up to 6 bits set - 1149017 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 205 - Collision Rate for Keyset 'Sparse' - 32-bit keys with up to 6 bits set
-ok 206 - Distribution Bias Check for Keyset 'Sparse' - 32-bit keys with up to 6 bits set
+ok 206 - Collision Rate for Keyset 'Sparse' - 32-bit keys with up to 6 bits set
+ok 207 - Distribution Bias Check for Keyset 'Sparse' - 32-bit keys with up to 6 bits set
 # Keyset 'Sparse' - 40-bit keys with up to 6 bits set - 4598479 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 207 - Collision Rate for Keyset 'Sparse' - 40-bit keys with up to 6 bits set
-ok 208 - Distribution Bias Check for Keyset 'Sparse' - 40-bit keys with up to 6 bits set
+ok 208 - Collision Rate for Keyset 'Sparse' - 40-bit keys with up to 6 bits set
+ok 209 - Distribution Bias Check for Keyset 'Sparse' - 40-bit keys with up to 6 bits set
 # Keyset 'Sparse' - 48-bit keys with up to 5 bits set - 1925357 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 209 - Collision Rate for Keyset 'Sparse' - 48-bit keys with up to 5 bits set
-ok 210 - Distribution Bias Check for Keyset 'Sparse' - 48-bit keys with up to 5 bits set
+ok 210 - Collision Rate for Keyset 'Sparse' - 48-bit keys with up to 5 bits set
+ok 211 - Distribution Bias Check for Keyset 'Sparse' - 48-bit keys with up to 5 bits set
 # Keyset 'Sparse' - 56-bit keys with up to 5 bits set - 4216423 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 211 - Collision Rate for Keyset 'Sparse' - 56-bit keys with up to 5 bits set
-ok 212 - Distribution Bias Check for Keyset 'Sparse' - 56-bit keys with up to 5 bits set
+ok 212 - Collision Rate for Keyset 'Sparse' - 56-bit keys with up to 5 bits set
+ok 213 - Distribution Bias Check for Keyset 'Sparse' - 56-bit keys with up to 5 bits set
 # Keyset 'Sparse' - 64-bit keys with up to 5 bits set - 8303633 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 213 - Collision Rate for Keyset 'Sparse' - 64-bit keys with up to 5 bits set
-ok 214 - Distribution Bias Check for Keyset 'Sparse' - 64-bit keys with up to 5 bits set
+ok 214 - Collision Rate for Keyset 'Sparse' - 64-bit keys with up to 5 bits set
+ok 215 - Distribution Bias Check for Keyset 'Sparse' - 64-bit keys with up to 5 bits set
 # Keyset 'Sparse' - 96-bit keys with up to 4 bits set - 3469497 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 215 - Collision Rate for Keyset 'Sparse' - 96-bit keys with up to 4 bits set
-ok 216 - Distribution Bias Check for Keyset 'Sparse' - 96-bit keys with up to 4 bits set
-ok 217 - Keyset 'Sparse' # umash64
+ok 216 - Collision Rate for Keyset 'Sparse' - 96-bit keys with up to 4 bits set
+ok 217 - Distribution Bias Check for Keyset 'Sparse' - 96-bit keys with up to 4 bits set
+ok 218 - Keyset 'Sparse' # umash64
 ### Keyset 'Crc-MultiCollision' Tests ###
 # Keyset 'Crc(a)-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 218 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 1 # umash64
+ok 219 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 1 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 219 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 2 # umash64
+ok 220 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 2 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 220 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 3 # umash64
+ok 221 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 3 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 221 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 4 # umash64
+ok 222 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 4 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 222 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 5 # umash64
+ok 223 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 5 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 223 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 6 # umash64
+ok 224 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 6 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 224 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 7 # umash64
+ok 225 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 7 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 225 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 8 # umash64
+ok 226 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 8 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 226 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 9 # umash64
+ok 227 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 9 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 227 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 10 # umash64
+ok 228 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 10 # umash64
 # Keyset 'Crc(b)-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 228 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 1 # umash64
+ok 229 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 1 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 229 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 2 # umash64
+ok 230 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 2 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 230 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 3 # umash64
+ok 231 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 3 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 231 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 4 # umash64
+ok 232 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 4 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 232 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 5 # umash64
+ok 233 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 5 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 233 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 6 # umash64
+ok 234 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 6 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 234 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 7 # umash64
+ok 235 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 7 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 235 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 8 # umash64
+ok 236 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 8 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 236 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 9 # umash64
+ok 237 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 9 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 237 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 10 # umash64
+ok 238 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 10 # umash64
 ### Keyset 'Murmur2-MultiCollision' Tests ###
 # Keyset 'Murmur2-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 238 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 1 # umash64
+ok 239 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 1 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 239 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 2 # umash64
+ok 240 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 2 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 240 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 3 # umash64
+ok 241 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 3 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 241 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 4 # umash64
+ok 242 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 4 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 242 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 5 # umash64
+ok 243 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 5 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 243 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 6 # umash64
+ok 244 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 6 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 244 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 7 # umash64
+ok 245 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 7 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 245 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 8 # umash64
+ok 246 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 8 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 246 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 9 # umash64
+ok 247 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 9 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 247 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 10 # umash64
+ok 248 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 10 # umash64
 ### Keyset 'Murmur3A-MultiCollision' Tests ###
 # Keyset 'Murmur3A-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 248 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 1 # umash64
+ok 249 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 1 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 249 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 2 # umash64
+ok 250 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 2 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 250 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 3 # umash64
+ok 251 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 3 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 251 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 4 # umash64
+ok 252 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 4 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 252 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 5 # umash64
+ok 253 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 5 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 253 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 6 # umash64
+ok 254 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 6 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 254 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 7 # umash64
+ok 255 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 7 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 255 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 8 # umash64
+ok 256 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 8 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 256 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 9 # umash64
+ok 257 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 9 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 257 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 10 # umash64
+ok 258 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 10 # umash64
 ### Keyset 'Murmur3F-MultiCollision' Tests ###
 # Keyset 'Murmur3F-MultiCollision' - 1048575 x 16 block keys - 512-bytes long - 10 seeds
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 258 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 1 # umash64
+ok 259 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 1 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 259 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 2 # umash64
+ok 260 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 2 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 260 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 3 # umash64
+ok 261 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 3 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 261 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 4 # umash64
+ok 262 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 4 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 262 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 5 # umash64
+ok 263 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 5 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 263 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 6 # umash64
+ok 264 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 6 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 264 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 7 # umash64
+ok 265 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 7 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 265 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 8 # umash64
+ok 266 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 8 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 266 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 9 # umash64
+ok 267 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 9 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 267 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 10 # umash64
+ok 268 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 10 # umash64
 ### Keyset 'City64-MultiCollision' Tests ###
 # Keyset 'City64-MultiCollision' - 10 x 2 block keys - 16-bytes long - 10 seeds
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 268 - Collision Rate for Keyset 'City64-MultiCollision' - seed 1 # umash64
+ok 269 - Collision Rate for Keyset 'City64-MultiCollision' - seed 1 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 269 - Collision Rate for Keyset 'City64-MultiCollision' - seed 2 # umash64
+ok 270 - Collision Rate for Keyset 'City64-MultiCollision' - seed 2 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 270 - Collision Rate for Keyset 'City64-MultiCollision' - seed 3 # umash64
+ok 271 - Collision Rate for Keyset 'City64-MultiCollision' - seed 3 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 271 - Collision Rate for Keyset 'City64-MultiCollision' - seed 4 # umash64
+ok 272 - Collision Rate for Keyset 'City64-MultiCollision' - seed 4 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 272 - Collision Rate for Keyset 'City64-MultiCollision' - seed 5 # umash64
+ok 273 - Collision Rate for Keyset 'City64-MultiCollision' - seed 5 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 273 - Collision Rate for Keyset 'City64-MultiCollision' - seed 6 # umash64
+ok 274 - Collision Rate for Keyset 'City64-MultiCollision' - seed 6 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 274 - Collision Rate for Keyset 'City64-MultiCollision' - seed 7 # umash64
+ok 275 - Collision Rate for Keyset 'City64-MultiCollision' - seed 7 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 275 - Collision Rate for Keyset 'City64-MultiCollision' - seed 8 # umash64
+ok 276 - Collision Rate for Keyset 'City64-MultiCollision' - seed 8 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 276 - Collision Rate for Keyset 'City64-MultiCollision' - seed 9 # umash64
+ok 277 - Collision Rate for Keyset 'City64-MultiCollision' - seed 9 # umash64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 277 - Collision Rate for Keyset 'City64-MultiCollision' - seed 10 # umash64
+ok 278 - Collision Rate for Keyset 'City64-MultiCollision' - seed 10 # umash64
 ### Keyset 'Combination Lowbits' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 278 - Collision Rate for Keyset 'Combination Lowbits'
-ok 279 - Distribution Bias Check for Keyset 'Combination Lowbits'
-ok 280 - Keyset 'Combination Lowbits' # umash64
+ok 279 - Collision Rate for Keyset 'Combination Lowbits'
+ok 280 - Distribution Bias Check for Keyset 'Combination Lowbits'
+ok 281 - Keyset 'Combination Lowbits' # umash64
 ### Keyset 'Combination Highbits' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 281 - Collision Rate for Keyset 'Combination Highbits'
-ok 282 - Distribution Bias Check for Keyset 'Combination Highbits'
-ok 283 - Keyset 'Combination Highbits' # umash64
+ok 282 - Collision Rate for Keyset 'Combination Highbits'
+ok 283 - Distribution Bias Check for Keyset 'Combination Highbits'
+ok 284 - Keyset 'Combination Highbits' # umash64
 ### Keyset 'Combination Highbits2' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 284 - Collision Rate for Keyset 'Combination Highbits2'
-ok 285 - Distribution Bias Check for Keyset 'Combination Highbits2'
-ok 286 - Keyset 'Combination Highbits2' # umash64
+ok 285 - Collision Rate for Keyset 'Combination Highbits2'
+ok 286 - Distribution Bias Check for Keyset 'Combination Highbits2'
+ok 287 - Keyset 'Combination Highbits2' # umash64
 ### Keyset 'Combination HiBit-Null' Tests ###
 # Keyset 'Combination' - up to 20 blocks from a set of 2 - 2097150 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 287 - Collision Rate for Keyset 'Combination HiBit-Null'
-ok 288 - Distribution Bias Check for Keyset 'Combination HiBit-Null'
-ok 289 - Keyset 'Combination HiBit-Null' # umash64
+ok 288 - Collision Rate for Keyset 'Combination HiBit-Null'
+ok 289 - Distribution Bias Check for Keyset 'Combination HiBit-Null'
+ok 290 - Keyset 'Combination HiBit-Null' # umash64
 ### Keyset 'Combination LowBit-Null' Tests ###
 # Keyset 'Combination' - up to 20 blocks from a set of 2 - 2097150 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 290 - Collision Rate for Keyset 'Combination LowBit-Null'
-ok 291 - Distribution Bias Check for Keyset 'Combination LowBit-Null'
-ok 292 - Keyset 'Combination LowBit-Null' # umash64
+ok 291 - Collision Rate for Keyset 'Combination LowBit-Null'
+ok 292 - Distribution Bias Check for Keyset 'Combination LowBit-Null'
+ok 293 - Keyset 'Combination LowBit-Null' # umash64
 ### Keyset 'Combination Hi-Lo' Tests ###
 # Keyset 'Combination' - up to 6 blocks from a set of 15 - 12204240 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 293 - Collision Rate for Keyset 'Combination Hi-Lo'
-ok 294 - Distribution Bias Check for Keyset 'Combination Hi-Lo'
-ok 295 - Keyset 'Combination Hi-Lo' # umash64
+ok 294 - Collision Rate for Keyset 'Combination Hi-Lo'
+ok 295 - Distribution Bias Check for Keyset 'Combination Hi-Lo'
+ok 296 - Keyset 'Combination Hi-Lo' # umash64
 ### Keyset 'Window' Tests ###
 # Keyset 'Windowed' - 128-bit key,  20-bit window - 128 tests, 1048576 keys per test
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 296 - Collision Rate for Window at   0
-ok 297 - Distribution Bias Check for Window at   0
+ok 297 - Collision Rate for Window at   0
+ok 298 - Distribution Bias Check for Window at   0
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 298 - Collision Rate for Window at   1
-ok 299 - Distribution Bias Check for Window at   1
+ok 299 - Collision Rate for Window at   1
+ok 300 - Distribution Bias Check for Window at   1
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 300 - Collision Rate for Window at   2
-ok 301 - Distribution Bias Check for Window at   2
+ok 301 - Collision Rate for Window at   2
+ok 302 - Distribution Bias Check for Window at   2
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 302 - Collision Rate for Window at   3
-ok 303 - Distribution Bias Check for Window at   3
+ok 303 - Collision Rate for Window at   3
+ok 304 - Distribution Bias Check for Window at   3
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 304 - Collision Rate for Window at   4
-ok 305 - Distribution Bias Check for Window at   4
+ok 305 - Collision Rate for Window at   4
+ok 306 - Distribution Bias Check for Window at   4
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 306 - Collision Rate for Window at   5
-ok 307 - Distribution Bias Check for Window at   5
+ok 307 - Collision Rate for Window at   5
+ok 308 - Distribution Bias Check for Window at   5
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 308 - Collision Rate for Window at   6
-ok 309 - Distribution Bias Check for Window at   6
+ok 309 - Collision Rate for Window at   6
+ok 310 - Distribution Bias Check for Window at   6
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 310 - Collision Rate for Window at   7
-ok 311 - Distribution Bias Check for Window at   7
+ok 311 - Collision Rate for Window at   7
+ok 312 - Distribution Bias Check for Window at   7
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 312 - Collision Rate for Window at   8
-ok 313 - Distribution Bias Check for Window at   8
+ok 313 - Collision Rate for Window at   8
+ok 314 - Distribution Bias Check for Window at   8
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 314 - Collision Rate for Window at   9
-ok 315 - Distribution Bias Check for Window at   9
+ok 315 - Collision Rate for Window at   9
+ok 316 - Distribution Bias Check for Window at   9
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 316 - Collision Rate for Window at  10
-ok 317 - Distribution Bias Check for Window at  10
+ok 317 - Collision Rate for Window at  10
+ok 318 - Distribution Bias Check for Window at  10
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 318 - Collision Rate for Window at  11
-ok 319 - Distribution Bias Check for Window at  11
+ok 319 - Collision Rate for Window at  11
+ok 320 - Distribution Bias Check for Window at  11
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 320 - Collision Rate for Window at  12
-ok 321 - Distribution Bias Check for Window at  12
+ok 321 - Collision Rate for Window at  12
+ok 322 - Distribution Bias Check for Window at  12
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 322 - Collision Rate for Window at  13
-ok 323 - Distribution Bias Check for Window at  13
+ok 323 - Collision Rate for Window at  13
+ok 324 - Distribution Bias Check for Window at  13
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 324 - Collision Rate for Window at  14
-ok 325 - Distribution Bias Check for Window at  14
+ok 325 - Collision Rate for Window at  14
+ok 326 - Distribution Bias Check for Window at  14
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 326 - Collision Rate for Window at  15
-ok 327 - Distribution Bias Check for Window at  15
+ok 327 - Collision Rate for Window at  15
+ok 328 - Distribution Bias Check for Window at  15
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 328 - Collision Rate for Window at  16
-ok 329 - Distribution Bias Check for Window at  16
+ok 329 - Collision Rate for Window at  16
+ok 330 - Distribution Bias Check for Window at  16
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 330 - Collision Rate for Window at  17
-ok 331 - Distribution Bias Check for Window at  17
+ok 331 - Collision Rate for Window at  17
+ok 332 - Distribution Bias Check for Window at  17
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 332 - Collision Rate for Window at  18
-ok 333 - Distribution Bias Check for Window at  18
+ok 333 - Collision Rate for Window at  18
+ok 334 - Distribution Bias Check for Window at  18
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 334 - Collision Rate for Window at  19
-ok 335 - Distribution Bias Check for Window at  19
+ok 335 - Collision Rate for Window at  19
+ok 336 - Distribution Bias Check for Window at  19
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 336 - Collision Rate for Window at  20
-ok 337 - Distribution Bias Check for Window at  20
+ok 337 - Collision Rate for Window at  20
+ok 338 - Distribution Bias Check for Window at  20
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 338 - Collision Rate for Window at  21
-ok 339 - Distribution Bias Check for Window at  21
+ok 339 - Collision Rate for Window at  21
+ok 340 - Distribution Bias Check for Window at  21
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 340 - Collision Rate for Window at  22
-ok 341 - Distribution Bias Check for Window at  22
+ok 341 - Collision Rate for Window at  22
+ok 342 - Distribution Bias Check for Window at  22
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 342 - Collision Rate for Window at  23
-ok 343 - Distribution Bias Check for Window at  23
+ok 343 - Collision Rate for Window at  23
+ok 344 - Distribution Bias Check for Window at  23
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 344 - Collision Rate for Window at  24
-ok 345 - Distribution Bias Check for Window at  24
+ok 345 - Collision Rate for Window at  24
+ok 346 - Distribution Bias Check for Window at  24
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 346 - Collision Rate for Window at  25
-ok 347 - Distribution Bias Check for Window at  25
+ok 347 - Collision Rate for Window at  25
+ok 348 - Distribution Bias Check for Window at  25
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 348 - Collision Rate for Window at  26
-ok 349 - Distribution Bias Check for Window at  26
+ok 349 - Collision Rate for Window at  26
+ok 350 - Distribution Bias Check for Window at  26
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 350 - Collision Rate for Window at  27
-ok 351 - Distribution Bias Check for Window at  27
+ok 351 - Collision Rate for Window at  27
+ok 352 - Distribution Bias Check for Window at  27
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 352 - Collision Rate for Window at  28
-ok 353 - Distribution Bias Check for Window at  28
+ok 353 - Collision Rate for Window at  28
+ok 354 - Distribution Bias Check for Window at  28
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 354 - Collision Rate for Window at  29
-ok 355 - Distribution Bias Check for Window at  29
+ok 355 - Collision Rate for Window at  29
+ok 356 - Distribution Bias Check for Window at  29
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 356 - Collision Rate for Window at  30
-ok 357 - Distribution Bias Check for Window at  30
+ok 357 - Collision Rate for Window at  30
+ok 358 - Distribution Bias Check for Window at  30
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 358 - Collision Rate for Window at  31
-ok 359 - Distribution Bias Check for Window at  31
+ok 359 - Collision Rate for Window at  31
+ok 360 - Distribution Bias Check for Window at  31
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 360 - Collision Rate for Window at  32
-ok 361 - Distribution Bias Check for Window at  32
+ok 361 - Collision Rate for Window at  32
+ok 362 - Distribution Bias Check for Window at  32
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 362 - Collision Rate for Window at  33
-ok 363 - Distribution Bias Check for Window at  33
+ok 363 - Collision Rate for Window at  33
+ok 364 - Distribution Bias Check for Window at  33
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 364 - Collision Rate for Window at  34
-ok 365 - Distribution Bias Check for Window at  34
+ok 365 - Collision Rate for Window at  34
+ok 366 - Distribution Bias Check for Window at  34
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 366 - Collision Rate for Window at  35
-ok 367 - Distribution Bias Check for Window at  35
+ok 367 - Collision Rate for Window at  35
+ok 368 - Distribution Bias Check for Window at  35
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 368 - Collision Rate for Window at  36
-ok 369 - Distribution Bias Check for Window at  36
+ok 369 - Collision Rate for Window at  36
+ok 370 - Distribution Bias Check for Window at  36
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 370 - Collision Rate for Window at  37
-ok 371 - Distribution Bias Check for Window at  37
+ok 371 - Collision Rate for Window at  37
+ok 372 - Distribution Bias Check for Window at  37
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 372 - Collision Rate for Window at  38
-ok 373 - Distribution Bias Check for Window at  38
+ok 373 - Collision Rate for Window at  38
+ok 374 - Distribution Bias Check for Window at  38
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 374 - Collision Rate for Window at  39
-ok 375 - Distribution Bias Check for Window at  39
+ok 375 - Collision Rate for Window at  39
+ok 376 - Distribution Bias Check for Window at  39
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 376 - Collision Rate for Window at  40
-ok 377 - Distribution Bias Check for Window at  40
+ok 377 - Collision Rate for Window at  40
+ok 378 - Distribution Bias Check for Window at  40
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 378 - Collision Rate for Window at  41
-ok 379 - Distribution Bias Check for Window at  41
+ok 379 - Collision Rate for Window at  41
+ok 380 - Distribution Bias Check for Window at  41
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 380 - Collision Rate for Window at  42
-ok 381 - Distribution Bias Check for Window at  42
+ok 381 - Collision Rate for Window at  42
+ok 382 - Distribution Bias Check for Window at  42
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 382 - Collision Rate for Window at  43
-ok 383 - Distribution Bias Check for Window at  43
+ok 383 - Collision Rate for Window at  43
+ok 384 - Distribution Bias Check for Window at  43
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 384 - Collision Rate for Window at  44
-ok 385 - Distribution Bias Check for Window at  44
+ok 385 - Collision Rate for Window at  44
+ok 386 - Distribution Bias Check for Window at  44
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 386 - Collision Rate for Window at  45
-ok 387 - Distribution Bias Check for Window at  45
+ok 387 - Collision Rate for Window at  45
+ok 388 - Distribution Bias Check for Window at  45
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 388 - Collision Rate for Window at  46
-ok 389 - Distribution Bias Check for Window at  46
+ok 389 - Collision Rate for Window at  46
+ok 390 - Distribution Bias Check for Window at  46
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 390 - Collision Rate for Window at  47
-ok 391 - Distribution Bias Check for Window at  47
+ok 391 - Collision Rate for Window at  47
+ok 392 - Distribution Bias Check for Window at  47
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 392 - Collision Rate for Window at  48
-ok 393 - Distribution Bias Check for Window at  48
+ok 393 - Collision Rate for Window at  48
+ok 394 - Distribution Bias Check for Window at  48
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 394 - Collision Rate for Window at  49
-ok 395 - Distribution Bias Check for Window at  49
+ok 395 - Collision Rate for Window at  49
+ok 396 - Distribution Bias Check for Window at  49
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 396 - Collision Rate for Window at  50
-ok 397 - Distribution Bias Check for Window at  50
+ok 397 - Collision Rate for Window at  50
+ok 398 - Distribution Bias Check for Window at  50
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 398 - Collision Rate for Window at  51
-ok 399 - Distribution Bias Check for Window at  51
+ok 399 - Collision Rate for Window at  51
+ok 400 - Distribution Bias Check for Window at  51
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 400 - Collision Rate for Window at  52
-ok 401 - Distribution Bias Check for Window at  52
+ok 401 - Collision Rate for Window at  52
+ok 402 - Distribution Bias Check for Window at  52
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 402 - Collision Rate for Window at  53
-ok 403 - Distribution Bias Check for Window at  53
+ok 403 - Collision Rate for Window at  53
+ok 404 - Distribution Bias Check for Window at  53
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 404 - Collision Rate for Window at  54
-ok 405 - Distribution Bias Check for Window at  54
+ok 405 - Collision Rate for Window at  54
+ok 406 - Distribution Bias Check for Window at  54
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 406 - Collision Rate for Window at  55
-ok 407 - Distribution Bias Check for Window at  55
+ok 407 - Collision Rate for Window at  55
+ok 408 - Distribution Bias Check for Window at  55
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 408 - Collision Rate for Window at  56
-ok 409 - Distribution Bias Check for Window at  56
+ok 409 - Collision Rate for Window at  56
+ok 410 - Distribution Bias Check for Window at  56
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 410 - Collision Rate for Window at  57
-ok 411 - Distribution Bias Check for Window at  57
+ok 411 - Collision Rate for Window at  57
+ok 412 - Distribution Bias Check for Window at  57
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 412 - Collision Rate for Window at  58
-ok 413 - Distribution Bias Check for Window at  58
+ok 413 - Collision Rate for Window at  58
+ok 414 - Distribution Bias Check for Window at  58
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 414 - Collision Rate for Window at  59
-ok 415 - Distribution Bias Check for Window at  59
+ok 415 - Collision Rate for Window at  59
+ok 416 - Distribution Bias Check for Window at  59
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 416 - Collision Rate for Window at  60
-ok 417 - Distribution Bias Check for Window at  60
+ok 417 - Collision Rate for Window at  60
+ok 418 - Distribution Bias Check for Window at  60
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 418 - Collision Rate for Window at  61
-ok 419 - Distribution Bias Check for Window at  61
+ok 419 - Collision Rate for Window at  61
+ok 420 - Distribution Bias Check for Window at  61
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 420 - Collision Rate for Window at  62
-ok 421 - Distribution Bias Check for Window at  62
+ok 421 - Collision Rate for Window at  62
+ok 422 - Distribution Bias Check for Window at  62
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 422 - Collision Rate for Window at  63
-ok 423 - Distribution Bias Check for Window at  63
+ok 423 - Collision Rate for Window at  63
+ok 424 - Distribution Bias Check for Window at  63
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 424 - Collision Rate for Window at  64
-ok 425 - Distribution Bias Check for Window at  64
+ok 425 - Collision Rate for Window at  64
+ok 426 - Distribution Bias Check for Window at  64
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 426 - Collision Rate for Window at  65
-ok 427 - Distribution Bias Check for Window at  65
+ok 427 - Collision Rate for Window at  65
+ok 428 - Distribution Bias Check for Window at  65
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 428 - Collision Rate for Window at  66
-ok 429 - Distribution Bias Check for Window at  66
+ok 429 - Collision Rate for Window at  66
+ok 430 - Distribution Bias Check for Window at  66
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 430 - Collision Rate for Window at  67
-ok 431 - Distribution Bias Check for Window at  67
+ok 431 - Collision Rate for Window at  67
+ok 432 - Distribution Bias Check for Window at  67
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 432 - Collision Rate for Window at  68
-ok 433 - Distribution Bias Check for Window at  68
+ok 433 - Collision Rate for Window at  68
+ok 434 - Distribution Bias Check for Window at  68
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 434 - Collision Rate for Window at  69
-ok 435 - Distribution Bias Check for Window at  69
+ok 435 - Collision Rate for Window at  69
+ok 436 - Distribution Bias Check for Window at  69
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 436 - Collision Rate for Window at  70
-ok 437 - Distribution Bias Check for Window at  70
+ok 437 - Collision Rate for Window at  70
+ok 438 - Distribution Bias Check for Window at  70
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 438 - Collision Rate for Window at  71
-ok 439 - Distribution Bias Check for Window at  71
+ok 439 - Collision Rate for Window at  71
+ok 440 - Distribution Bias Check for Window at  71
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 440 - Collision Rate for Window at  72
-ok 441 - Distribution Bias Check for Window at  72
+ok 441 - Collision Rate for Window at  72
+ok 442 - Distribution Bias Check for Window at  72
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 442 - Collision Rate for Window at  73
-ok 443 - Distribution Bias Check for Window at  73
+ok 443 - Collision Rate for Window at  73
+ok 444 - Distribution Bias Check for Window at  73
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 444 - Collision Rate for Window at  74
-ok 445 - Distribution Bias Check for Window at  74
+ok 445 - Collision Rate for Window at  74
+ok 446 - Distribution Bias Check for Window at  74
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 446 - Collision Rate for Window at  75
-ok 447 - Distribution Bias Check for Window at  75
+ok 447 - Collision Rate for Window at  75
+ok 448 - Distribution Bias Check for Window at  75
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 448 - Collision Rate for Window at  76
-ok 449 - Distribution Bias Check for Window at  76
+ok 449 - Collision Rate for Window at  76
+ok 450 - Distribution Bias Check for Window at  76
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 450 - Collision Rate for Window at  77
-ok 451 - Distribution Bias Check for Window at  77
+ok 451 - Collision Rate for Window at  77
+ok 452 - Distribution Bias Check for Window at  77
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 452 - Collision Rate for Window at  78
-ok 453 - Distribution Bias Check for Window at  78
+ok 453 - Collision Rate for Window at  78
+ok 454 - Distribution Bias Check for Window at  78
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 454 - Collision Rate for Window at  79
-ok 455 - Distribution Bias Check for Window at  79
+ok 455 - Collision Rate for Window at  79
+ok 456 - Distribution Bias Check for Window at  79
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 456 - Collision Rate for Window at  80
-ok 457 - Distribution Bias Check for Window at  80
+ok 457 - Collision Rate for Window at  80
+ok 458 - Distribution Bias Check for Window at  80
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 458 - Collision Rate for Window at  81
-ok 459 - Distribution Bias Check for Window at  81
+ok 459 - Collision Rate for Window at  81
+ok 460 - Distribution Bias Check for Window at  81
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 460 - Collision Rate for Window at  82
-ok 461 - Distribution Bias Check for Window at  82
+ok 461 - Collision Rate for Window at  82
+ok 462 - Distribution Bias Check for Window at  82
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 462 - Collision Rate for Window at  83
-ok 463 - Distribution Bias Check for Window at  83
+ok 463 - Collision Rate for Window at  83
+ok 464 - Distribution Bias Check for Window at  83
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 464 - Collision Rate for Window at  84
-ok 465 - Distribution Bias Check for Window at  84
+ok 465 - Collision Rate for Window at  84
+ok 466 - Distribution Bias Check for Window at  84
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 466 - Collision Rate for Window at  85
-ok 467 - Distribution Bias Check for Window at  85
+ok 467 - Collision Rate for Window at  85
+ok 468 - Distribution Bias Check for Window at  85
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 468 - Collision Rate for Window at  86
-ok 469 - Distribution Bias Check for Window at  86
+ok 469 - Collision Rate for Window at  86
+ok 470 - Distribution Bias Check for Window at  86
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 470 - Collision Rate for Window at  87
-ok 471 - Distribution Bias Check for Window at  87
+ok 471 - Collision Rate for Window at  87
+ok 472 - Distribution Bias Check for Window at  87
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 472 - Collision Rate for Window at  88
-ok 473 - Distribution Bias Check for Window at  88
+ok 473 - Collision Rate for Window at  88
+ok 474 - Distribution Bias Check for Window at  88
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 474 - Collision Rate for Window at  89
-ok 475 - Distribution Bias Check for Window at  89
+ok 475 - Collision Rate for Window at  89
+ok 476 - Distribution Bias Check for Window at  89
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 476 - Collision Rate for Window at  90
-ok 477 - Distribution Bias Check for Window at  90
+ok 477 - Collision Rate for Window at  90
+ok 478 - Distribution Bias Check for Window at  90
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 478 - Collision Rate for Window at  91
-ok 479 - Distribution Bias Check for Window at  91
+ok 479 - Collision Rate for Window at  91
+ok 480 - Distribution Bias Check for Window at  91
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 480 - Collision Rate for Window at  92
-ok 481 - Distribution Bias Check for Window at  92
+ok 481 - Collision Rate for Window at  92
+ok 482 - Distribution Bias Check for Window at  92
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 482 - Collision Rate for Window at  93
-ok 483 - Distribution Bias Check for Window at  93
+ok 483 - Collision Rate for Window at  93
+ok 484 - Distribution Bias Check for Window at  93
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 484 - Collision Rate for Window at  94
-ok 485 - Distribution Bias Check for Window at  94
+ok 485 - Collision Rate for Window at  94
+ok 486 - Distribution Bias Check for Window at  94
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 486 - Collision Rate for Window at  95
-ok 487 - Distribution Bias Check for Window at  95
+ok 487 - Collision Rate for Window at  95
+ok 488 - Distribution Bias Check for Window at  95
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 488 - Collision Rate for Window at  96
-ok 489 - Distribution Bias Check for Window at  96
+ok 489 - Collision Rate for Window at  96
+ok 490 - Distribution Bias Check for Window at  96
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 490 - Collision Rate for Window at  97
-ok 491 - Distribution Bias Check for Window at  97
+ok 491 - Collision Rate for Window at  97
+ok 492 - Distribution Bias Check for Window at  97
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 492 - Collision Rate for Window at  98
-ok 493 - Distribution Bias Check for Window at  98
+ok 493 - Collision Rate for Window at  98
+ok 494 - Distribution Bias Check for Window at  98
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 494 - Collision Rate for Window at  99
-ok 495 - Distribution Bias Check for Window at  99
+ok 495 - Collision Rate for Window at  99
+ok 496 - Distribution Bias Check for Window at  99
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 496 - Collision Rate for Window at 100
-ok 497 - Distribution Bias Check for Window at 100
+ok 497 - Collision Rate for Window at 100
+ok 498 - Distribution Bias Check for Window at 100
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 498 - Collision Rate for Window at 101
-ok 499 - Distribution Bias Check for Window at 101
+ok 499 - Collision Rate for Window at 101
+ok 500 - Distribution Bias Check for Window at 101
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 500 - Collision Rate for Window at 102
-ok 501 - Distribution Bias Check for Window at 102
+ok 501 - Collision Rate for Window at 102
+ok 502 - Distribution Bias Check for Window at 102
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 502 - Collision Rate for Window at 103
-ok 503 - Distribution Bias Check for Window at 103
+ok 503 - Collision Rate for Window at 103
+ok 504 - Distribution Bias Check for Window at 103
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 504 - Collision Rate for Window at 104
-ok 505 - Distribution Bias Check for Window at 104
+ok 505 - Collision Rate for Window at 104
+ok 506 - Distribution Bias Check for Window at 104
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 506 - Collision Rate for Window at 105
-ok 507 - Distribution Bias Check for Window at 105
+ok 507 - Collision Rate for Window at 105
+ok 508 - Distribution Bias Check for Window at 105
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 508 - Collision Rate for Window at 106
-ok 509 - Distribution Bias Check for Window at 106
+ok 509 - Collision Rate for Window at 106
+ok 510 - Distribution Bias Check for Window at 106
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 510 - Collision Rate for Window at 107
-ok 511 - Distribution Bias Check for Window at 107
+ok 511 - Collision Rate for Window at 107
+ok 512 - Distribution Bias Check for Window at 107
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 512 - Collision Rate for Window at 108
-ok 513 - Distribution Bias Check for Window at 108
+ok 513 - Collision Rate for Window at 108
+ok 514 - Distribution Bias Check for Window at 108
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 514 - Collision Rate for Window at 109
-ok 515 - Distribution Bias Check for Window at 109
+ok 515 - Collision Rate for Window at 109
+ok 516 - Distribution Bias Check for Window at 109
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 516 - Collision Rate for Window at 110
-ok 517 - Distribution Bias Check for Window at 110
+ok 517 - Collision Rate for Window at 110
+ok 518 - Distribution Bias Check for Window at 110
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 518 - Collision Rate for Window at 111
-ok 519 - Distribution Bias Check for Window at 111
+ok 519 - Collision Rate for Window at 111
+ok 520 - Distribution Bias Check for Window at 111
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 520 - Collision Rate for Window at 112
-ok 521 - Distribution Bias Check for Window at 112
+ok 521 - Collision Rate for Window at 112
+ok 522 - Distribution Bias Check for Window at 112
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 522 - Collision Rate for Window at 113
-ok 523 - Distribution Bias Check for Window at 113
+ok 523 - Collision Rate for Window at 113
+ok 524 - Distribution Bias Check for Window at 113
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 524 - Collision Rate for Window at 114
-ok 525 - Distribution Bias Check for Window at 114
+ok 525 - Collision Rate for Window at 114
+ok 526 - Distribution Bias Check for Window at 114
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 526 - Collision Rate for Window at 115
-ok 527 - Distribution Bias Check for Window at 115
+ok 527 - Collision Rate for Window at 115
+ok 528 - Distribution Bias Check for Window at 115
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 528 - Collision Rate for Window at 116
-ok 529 - Distribution Bias Check for Window at 116
+ok 529 - Collision Rate for Window at 116
+ok 530 - Distribution Bias Check for Window at 116
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 530 - Collision Rate for Window at 117
-ok 531 - Distribution Bias Check for Window at 117
+ok 531 - Collision Rate for Window at 117
+ok 532 - Distribution Bias Check for Window at 117
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 532 - Collision Rate for Window at 118
-ok 533 - Distribution Bias Check for Window at 118
+ok 533 - Collision Rate for Window at 118
+ok 534 - Distribution Bias Check for Window at 118
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 534 - Collision Rate for Window at 119
-ok 535 - Distribution Bias Check for Window at 119
+ok 535 - Collision Rate for Window at 119
+ok 536 - Distribution Bias Check for Window at 119
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 536 - Collision Rate for Window at 120
-ok 537 - Distribution Bias Check for Window at 120
+ok 537 - Collision Rate for Window at 120
+ok 538 - Distribution Bias Check for Window at 120
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 538 - Collision Rate for Window at 121
-ok 539 - Distribution Bias Check for Window at 121
+ok 539 - Collision Rate for Window at 121
+ok 540 - Distribution Bias Check for Window at 121
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 540 - Collision Rate for Window at 122
-ok 541 - Distribution Bias Check for Window at 122
+ok 541 - Collision Rate for Window at 122
+ok 542 - Distribution Bias Check for Window at 122
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 542 - Collision Rate for Window at 123
-ok 543 - Distribution Bias Check for Window at 123
+ok 543 - Collision Rate for Window at 123
+ok 544 - Distribution Bias Check for Window at 123
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 544 - Collision Rate for Window at 124
-ok 545 - Distribution Bias Check for Window at 124
+ok 545 - Collision Rate for Window at 124
+ok 546 - Distribution Bias Check for Window at 124
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 546 - Collision Rate for Window at 125
-ok 547 - Distribution Bias Check for Window at 125
+ok 547 - Collision Rate for Window at 125
+ok 548 - Distribution Bias Check for Window at 125
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 548 - Collision Rate for Window at 126
-ok 549 - Distribution Bias Check for Window at 126
+ok 549 - Collision Rate for Window at 126
+ok 550 - Distribution Bias Check for Window at 126
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 550 - Collision Rate for Window at 127
-ok 551 - Distribution Bias Check for Window at 127
+ok 551 - Collision Rate for Window at 127
+ok 552 - Distribution Bias Check for Window at 127
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 552 - Collision Rate for Window at 128
-ok 553 - Distribution Bias Check for Window at 128
-ok 554 - Keyset 'Window' # umash64
+ok 553 - Collision Rate for Window at 128
+ok 554 - Distribution Bias Check for Window at 128
+ok 555 - Keyset 'Window' # umash64
 ### Keyset 'Text' Tests ###
 # Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 555 - Collision Rate for Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
-ok 556 - Distribution Bias Check for Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
+ok 556 - Collision Rate for Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
+ok 557 - Distribution Bias Check for Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
 # Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 557 - Collision Rate for Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
-ok 558 - Distribution Bias Check for Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
+ok 558 - Collision Rate for Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
+ok 559 - Distribution Bias Check for Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
 # Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 559 - Collision Rate for Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
-ok 560 - Distribution Bias Check for Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
-ok 561 - Keyset 'Text' # umash64
+ok 560 - Collision Rate for Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
+ok 561 - Distribution Bias Check for Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
+ok 562 - Keyset 'Text' # umash64
 ### Keyset 'Zeroes' Tests ###
 # Keyset 'Zeroes' - 262144 keys, zero seed
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 562 - Collision Rate for Keyset 'Zeroes' - 262144 keys, zero seed
-ok 563 - Distribution Bias Check for Keyset 'Zeroes' - 262144 keys, zero seed
+ok 563 - Collision Rate for Keyset 'Zeroes' - 262144 keys, zero seed
+ok 564 - Distribution Bias Check for Keyset 'Zeroes' - 262144 keys, zero seed
 # Keyset 'Zeroes' - 262144 keys, nonzero seed
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 564 - Collision Rate for Keyset 'Zeroes' - 262144 keys, nonzero seed
-ok 565 - Distribution Bias Check for Keyset 'Zeroes' - 262144 keys, nonzero seed
-ok 566 - Keyset 'Zeroes' # umash64
+ok 565 - Collision Rate for Keyset 'Zeroes' - 262144 keys, nonzero seed
+ok 566 - Distribution Bias Check for Keyset 'Zeroes' - 262144 keys, nonzero seed
+ok 567 - Keyset 'Zeroes' # umash64
 ### Keyset 'Seed' Tests ###
 # Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 567 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
-ok 568 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
+ok 568 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
+ok 569 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
 # Keyset 'Seed' - 2000000 seeds, Key ""
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 569 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key ""
-ok 570 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key ""
+ok 570 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key ""
+ok 571 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key ""
 # Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 571 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
-ok 572 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
+ok 572 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
+ok 573 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
 # Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 573 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
-ok 574 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
-ok 575 - Keyset 'Seed' # umash64
+ok 574 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
+ok 575 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
+ok 576 - Keyset 'Seed' # umash64
 ### Keyset 'Effs' Tests ###
 # Keyset 'Effs' - 262144 keys, zero seed
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 576 - Collision Rate for Keyset 'Effs' - 262144 keys, zero seed
-ok 577 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, zero seed
+ok 577 - Collision Rate for Keyset 'Effs' - 262144 keys, zero seed
+ok 578 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, zero seed
 # Keyset 'Effs' - 262144 keys, nonzero seed
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 578 - Collision Rate for Keyset 'Effs' - 262144 keys, nonzero seed
-ok 579 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, nonzero seed
-ok 580 - Keyset 'Effs' # umash64
+ok 579 - Collision Rate for Keyset 'Effs' - 262144 keys, nonzero seed
+ok 580 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, nonzero seed
+ok 581 - Keyset 'Effs' # umash64
 ### Keyset 'Words' Tests ###
-# Hashed 704811 keys from 234937 words from file '/usr/share/dict/words'
+# Hashed 501909 keys from 167303 words from file '/usr/share/dict/words'
 # Testing collisions   - Expected     0.00, actual        0 ( 0.00x) - passed
-ok 581 - Collision Rate for Keyset 'Words'
-ok 582 - Distribution Bias Check for Keyset 'Words'
-ok 583 - all tests passed # umash64
-1..583
-# All Tests Passed. umash64 passed all 583 tests run.
-# Testing took 3599.061019 seconds
-# 
+ok 582 - Collision Rate for Keyset 'Words'
+ok 583 - Distribution Bias Check for Keyset 'Words'
+ok 584 - all tests passed # umash64
+1..584
+# All Tests Passed. umash64 passed all 584 tests run.
+# Testing took 6550.395287 seconds
+# This is SMHasher version v1.3-demerphq-43-g0762887-dirty - built on Sep 19 2020.

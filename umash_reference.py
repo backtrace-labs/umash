@@ -595,18 +595,29 @@ def poly_reduce(multiplier, input_size, compressed_values):
 ##
 ## This predictability does not impact our collision bounds (they
 ## already assume the hash outputs are modulo $2^{61} - 1$), but could
-## create clumping in data structures.  We address that with a
-## fragment of SplitMix64: we want to shift right to bring more
-## entropy in the low 3 bits, and multiply to mix these low bits with
-## the rest of the result.  That's enough to satisfy SMHasher's
-## avalanching and bias tests.
-
+## create clumping in data structures.  We address that with an
+## invertible
+## [xor-rotate](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
+## transformation.  Rotating before `xor` mixes both the low and high
+## bits around, and `xor`ing a pair of bit-rotated values guarantees
+## invertibility (`xor`ing a single rotate always maps both 0 and -1
+## to 0).
+##
+## The pair of rotation constants in the finalizer, 8 and 33, was
+## found with an exhaustive search: they're good enough for SMHasher.
+## In theory, this is a bad finalizer, for all constants.  The rotation
+## counts are likely tied to the `(mod 2**64 - 8)` polynomial hash.
+def rotl(x, count):
+    """Rotates the 64-bit value `x` to the left by `count` bits."""
+    ret = 0
+    for i in range(64):
+        bit = (x >> i) & 1
+        ret |= bit << ((i + count) % 64)
+    return ret
 
 def finalize(x):
     """Invertibly mixes the bits in x."""
-    x ^= x >> 27  # This is invertible (shift != 0).
-    x = (x * 0x94D049BB133111EB) % W  # And so is that (multiplier is odd)
-    return x
+    return x ^ rotl(x, 8) ^ rotl(x, 33)
 
 
 ## # Putting it all together

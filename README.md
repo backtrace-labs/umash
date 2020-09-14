@@ -137,13 +137,10 @@ string hash).  There are plenty of lower hanging fruits.
    version of the general case, but does not actually share any
    machine code; can we improve the latency and maintain the collision
    bounds by replacing it with something completely different?
-3. It’s already nice that we can get away with a single round of
-   `xor-shift` / multiply in the finaliser, but can we shave even more
-   latency there?
-4. We only looked at x86-64 implementations; we will consider simple
+3. We only looked at x86-64 implementations; we will consider simple
    changes that improve performance on x86-64, or on other platforms
    as long they don't penalise x86-64.
-5. We currently only use incremental and one-shot hashing
+4. We currently only use incremental and one-shot hashing
    interfaces. If someone needs parallel hashing, we can collaborate
    to find out what that interface could look like.
 
