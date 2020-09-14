@@ -578,13 +578,21 @@ umash_fp_short(const uint64_t *params, uint64_t seed, const void *data, size_t n
 	return ret;
 }
 
+/**
+ * Rotates `x` left by `n` bits.
+ */
+static inline uint64_t
+rotl64(uint64_t x, int n)
+{
+
+	return (x << n) | (x >> (64 - n));
+}
+
 TEST_DEF inline uint64_t
 finalize(uint64_t x)
 {
 
-	x ^= x >> 27;
-	x *= 0x94d049bb133111ebUL;
-	return x;
+	return (x ^ rotl64(x, 8)) ^ rotl64(x, 33);
 }
 
 TEST_DEF uint64_t
