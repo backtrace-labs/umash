@@ -244,11 +244,16 @@ POLL_MIN_DELAY = 0.01
 POLL_MAX_DELAY = 1.0
 
 
-def _get_pool():
+def ensure_pool(pool_size=POOL_SIZE):
+    """Returns the global process pool, after creating it if necessary.
+
+    If a new pool must be created, it will have `pool_size` worker
+    processes.
+    """
     global POOL
     with POOL_LOCK:
         if POOL is None:
-            POOL = Pool(POOL_SIZE)
+            POOL = Pool(pool_size)
         return POOL
 
 
@@ -271,7 +276,7 @@ def _generate_in_parallel(generator_fn, generator_args_fn, stop_event=None):
 
     begin = time.monotonic()
     batch_size = INITIAL_BATCH_SIZE
-    pool = _get_pool()
+    pool = ensure_pool()
 
     def backoff(last_change):
         elapsed = time.monotonic() - last_change

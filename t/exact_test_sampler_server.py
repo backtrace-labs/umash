@@ -9,7 +9,7 @@ import logging
 import grpc
 import os
 
-from exact_test_sampler import ExactTestSampler
+from exact_test_sampler import ExactTestSampler, ensure_pool
 import exact_test_sampler_pb2_grpc as sampler_grpc
 
 
@@ -52,6 +52,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     logging.basicConfig()
+
+    # Make sure to spin up our worker pools before the gRPC server:
+    # while we don't use gRPC in the workers, forking after creating
+    # a server seems to be #unsupported:
+    # https://github.com/grpc/grpc/issues/16001#issuecomment-433794991
+    ensure_pool()
     server, actual_port = setup_server(args.port)
     print("ExactTestSampler listening on localhost:%i" % actual_port)
     server.start()
