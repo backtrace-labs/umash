@@ -13,8 +13,16 @@ from exact_test_sampler import ExactTestSampler
 import exact_test_sampler_pb2_grpc as sampler_grpc
 
 
+# We let the number of concurrent requests scale with the cpu count,
+# up to MAX_CONCURRENT_REQUESTS: at some point, it stops making sense
+# to timeslice a machine.  This also avoids spinning up too many
+# Python threads when there's a lot of cores (e.g., on a 256-thread
+# Xeon Phi).
+MAX_CONCURRENT_REQUESTS = 32
+
+
 def setup_server(port=None):
-    num_requests = 2 * os.cpu_count()
+    num_requests = min(2 * os.cpu_count(), MAX_CONCURRENT_REQUESTS)
     server = grpc.server(
         concurrent.futures.ThreadPoolExecutor(max_workers=2 * num_requests),
         maximum_concurrent_rpcs=num_requests,
