@@ -53,8 +53,8 @@ results = umash_bench.compare_short_inputs(current=TEST,
 
 TEST, BASELINE = results.keys()  # Convert to the actual keys: HEAD etc. are normalised to SHAs
 
-# Regroup the size classes in `results`: we want 0-3, 4, 5-7, 8. We focus on 0-3 bytes individually in
-# bench_tiny_inputs, and 5-7 bytes all use the same code path and similar unaligned overlapping loads.
+# Regroup the size classes in `results`: we want 0-7, 8, 9-15, 16. We focus on 0-8 bytes individually in
+# bench_short_inputs, and 9-15 bytes all use the same code path and similar unaligned overlapping loads.
 
 regrouped_keys = ["0-7", 8, "9-15", 16]
 
