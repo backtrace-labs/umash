@@ -5,7 +5,7 @@ ok 1 - Found Hash # umash32_hi
 ### seedbits: 64 statebits: 2560 hashbits: 32
 ###################################################################
 ok 2 - Verification code # umash32_hi
-# umash32_hi           - Verification value 0xFA8E4264 : Passed.
+# umash32_hi           - Verification value 0x8C72DB99 : Passed.
 ### Sanity Tests ###
 # Sanity check simple key bit flips and consistency - hashbytes=4..........
 ok 3 - SanityTest # umash32_hi
@@ -14,85 +14,85 @@ ok 4 - Appended Zeroes Test # umash32_hi
 ok 5 - Sanity Test # umash32_hi
 ### Speed Tests ###
 ## Bulk speed test - 262144-byte keys
-# Alignment  7 -  8.756 bytes/cycle - 25051.11 MiB/sec @ 3 ghz
-# Alignment  6 -  9.152 bytes/cycle - 26184.94 MiB/sec @ 3 ghz
-# Alignment  5 -  8.012 bytes/cycle - 22921.31 MiB/sec @ 3 ghz
-# Alignment  4 -  9.754 bytes/cycle - 27905.14 MiB/sec @ 3 ghz
-# Alignment  3 -  9.442 bytes/cycle - 27014.73 MiB/sec @ 3 ghz
-# Alignment  2 -  9.167 bytes/cycle - 26227.07 MiB/sec @ 3 ghz
-# Alignment  1 -  9.208 bytes/cycle - 26343.15 MiB/sec @ 3 ghz
-# Alignment  0 -  9.502 bytes/cycle - 27185.59 MiB/sec @ 3 ghz
-# Average      -  9.124 bytes/cycle - 26104.13 MiB/sec @ 3 ghz
+# Alignment  7 -  7.233 bytes/cycle - 20694.72 MiB/sec @ 3 ghz
+# Alignment  6 -  7.201 bytes/cycle - 20601.78 MiB/sec @ 3 ghz
+# Alignment  5 -  7.206 bytes/cycle - 20617.46 MiB/sec @ 3 ghz
+# Alignment  4 -  7.695 bytes/cycle - 22015.64 MiB/sec @ 3 ghz
+# Alignment  3 -  6.835 bytes/cycle - 19554.97 MiB/sec @ 3 ghz
+# Alignment  2 -  7.072 bytes/cycle - 20231.97 MiB/sec @ 3 ghz
+# Alignment  1 -  6.971 bytes/cycle - 19944.44 MiB/sec @ 3 ghz
+# Alignment  0 -  6.960 bytes/cycle - 19912.58 MiB/sec @ 3 ghz
+# Average      -  7.147 bytes/cycle - 20446.69 MiB/sec @ 3 ghz
 ## KeySpeed tests
-# umash32_hi                0 byte keys       17.000 c/h
-# umash32_hi                1 byte keys       19.796 c/h       19.796 c/b        0.051 b/c
-# umash32_hi                2 byte keys       19.520 c/h        9.760 c/b        0.102 b/c
-# umash32_hi                3 byte keys       20.492 c/h        6.831 c/b        0.146 b/c
-# umash32_hi                4 byte keys       16.000 c/h        4.000 c/b        0.250 b/c
-# umash32_hi                5 byte keys       22.863 c/h        4.573 c/b        0.219 b/c
-# umash32_hi                6 byte keys       25.121 c/h        4.187 c/b        0.239 b/c
-# umash32_hi                7 byte keys       25.788 c/h        3.684 c/b        0.271 b/c
-# umash32_hi                8 byte keys       24.522 c/h        3.065 c/b        0.326 b/c
-# umash32_hi                9 byte keys       36.605 c/h        4.067 c/b        0.246 b/c
-# umash32_hi               10 byte keys       35.000 c/h        3.500 c/b        0.286 b/c
-# umash32_hi               11 byte keys       35.000 c/h        3.182 c/b        0.314 b/c
-# umash32_hi               12 byte keys       35.661 c/h        2.972 c/b        0.337 b/c
-# umash32_hi               13 byte keys       34.000 c/h        2.615 c/b        0.382 b/c
-# umash32_hi               14 byte keys       35.162 c/h        2.512 c/b        0.398 b/c
-# umash32_hi               15 byte keys       35.522 c/h        2.368 c/b        0.422 b/c
-# umash32_hi               16 byte keys       35.639 c/h        2.227 c/b        0.449 b/c
-# umash32_hi               17 byte keys       44.449 c/h        2.615 c/b        0.382 b/c
-# umash32_hi               18 byte keys       49.842 c/h        2.769 c/b        0.361 b/c
-# umash32_hi               19 byte keys       51.432 c/h        2.707 c/b        0.369 b/c
-# umash32_hi               20 byte keys       48.417 c/h        2.421 c/b        0.413 b/c
-# umash32_hi               21 byte keys       47.820 c/h        2.277 c/b        0.439 b/c
-# umash32_hi               22 byte keys       47.636 c/h        2.165 c/b        0.462 b/c
-# umash32_hi               23 byte keys       50.007 c/h        2.174 c/b        0.460 b/c
-# umash32_hi               24 byte keys       50.073 c/h        2.086 c/b        0.479 b/c
-# umash32_hi               25 byte keys       48.811 c/h        1.952 c/b        0.512 b/c
-# umash32_hi               26 byte keys       49.149 c/h        1.890 c/b        0.529 b/c
-# umash32_hi               27 byte keys       50.089 c/h        1.855 c/b        0.539 b/c
-# umash32_hi               28 byte keys       51.805 c/h        1.850 c/b        0.540 b/c
-# umash32_hi               29 byte keys       51.904 c/h        1.790 c/b        0.559 b/c
-# umash32_hi               30 byte keys       49.498 c/h        1.650 c/b        0.606 b/c
-# umash32_hi               31 byte keys       48.866 c/h        1.576 c/b        0.634 b/c
-#                          Average < 32       37.922 c/h        2.447 c/b        0.409 b/c
-# umash32_hi               32 byte keys       49.149 c/h        1.536 c/b        0.651 b/c
-# umash32_hi               36 byte keys       50.215 c/h        1.395 c/b        0.717 b/c
-# umash32_hi               40 byte keys       47.246 c/h        1.181 c/b        0.847 b/c
-# umash32_hi               44 byte keys       46.857 c/h        1.065 c/b        0.939 b/c
-# umash32_hi               48 byte keys       41.000 c/h        0.854 c/b        1.171 b/c
-# umash32_hi               52 byte keys       52.406 c/h        1.008 c/b        0.992 b/c
-# umash32_hi               56 byte keys       54.196 c/h        0.968 c/b        1.033 b/c
-# umash32_hi               60 byte keys       45.043 c/h        0.751 c/b        1.332 b/c
-# umash32_hi               64 byte keys       50.453 c/h        0.788 c/b        1.269 b/c
-# umash32_hi               68 byte keys       50.980 c/h        0.750 c/b        1.334 b/c
-# umash32_hi               72 byte keys       47.498 c/h        0.660 c/b        1.516 b/c
-# umash32_hi               76 byte keys       45.503 c/h        0.599 c/b        1.670 b/c
-# umash32_hi               80 byte keys       50.030 c/h        0.625 c/b        1.599 b/c
-# umash32_hi               84 byte keys       52.671 c/h        0.627 c/b        1.595 b/c
-# umash32_hi               88 byte keys       60.753 c/h        0.690 c/b        1.448 b/c
-# umash32_hi               92 byte keys       59.029 c/h        0.642 c/b        1.559 b/c
-# umash32_hi               96 byte keys       64.810 c/h        0.675 c/b        1.481 b/c
-# umash32_hi              100 byte keys       68.442 c/h        0.684 c/b        1.461 b/c
-# umash32_hi              104 byte keys       67.551 c/h        0.650 c/b        1.540 b/c
-# umash32_hi              108 byte keys       67.246 c/h        0.623 c/b        1.606 b/c
-# umash32_hi              112 byte keys       60.753 c/h        0.542 c/b        1.844 b/c
-# umash32_hi              116 byte keys       63.292 c/h        0.546 c/b        1.833 b/c
-# umash32_hi              120 byte keys       45.999 c/h        0.383 c/b        2.609 b/c
-# umash32_hi              124 byte keys       49.159 c/h        0.396 c/b        2.522 b/c
-#                         Average < 128       44.710 c/h        1.057 c/b        0.946 b/c
-# umash32_hi              128 byte keys       46.000 c/h        0.359 c/b        2.783 b/c
-# umash32_hi              256 byte keys       59.913 c/h        0.234 c/b        4.273 b/c
-# umash32_hi              512 byte keys      131.326 c/h        0.256 c/b        3.899 b/c
-# umash32_hi             1024 byte keys      240.522 c/h        0.235 c/b        4.257 b/c
-# umash32_hi             2048 byte keys      446.089 c/h        0.218 c/b        4.591 b/c
-# umash32_hi             4096 byte keys      643.195 c/h        0.157 c/b        6.368 b/c
-# umash32_hi             8192 byte keys     1325.262 c/h        0.162 c/b        6.181 b/c
-# umash32_hi            16384 byte keys     2499.207 c/h        0.153 c/b        6.556 b/c
-# umash32_hi            32768 byte keys     4130.723 c/h        0.126 c/b        7.933 b/c
-# umash32_hi            65536 byte keys    10230.420 c/h        0.156 c/b        6.406 b/c
-#                       Overall Average      337.219 c/h        0.167 c/b        5.990 b/c
+# umash32_hi                0 byte keys       29.947 c/h
+# umash32_hi                1 byte keys       25.499 c/h       25.499 c/b        0.039 b/c
+# umash32_hi                2 byte keys       26.320 c/h       13.160 c/b        0.076 b/c
+# umash32_hi                3 byte keys       18.000 c/h        6.000 c/b        0.167 b/c
+# umash32_hi                4 byte keys       21.752 c/h        5.438 c/b        0.184 b/c
+# umash32_hi                5 byte keys       24.000 c/h        4.800 c/b        0.208 b/c
+# umash32_hi                6 byte keys       23.721 c/h        3.954 c/b        0.253 b/c
+# umash32_hi                7 byte keys       23.000 c/h        3.286 c/b        0.304 b/c
+# umash32_hi                8 byte keys       24.448 c/h        3.056 c/b        0.327 b/c
+# umash32_hi                9 byte keys       31.506 c/h        3.501 c/b        0.286 b/c
+# umash32_hi               10 byte keys       37.543 c/h        3.754 c/b        0.266 b/c
+# umash32_hi               11 byte keys       36.119 c/h        3.284 c/b        0.305 b/c
+# umash32_hi               12 byte keys       32.739 c/h        2.728 c/b        0.367 b/c
+# umash32_hi               13 byte keys       31.668 c/h        2.436 c/b        0.411 b/c
+# umash32_hi               14 byte keys       37.293 c/h        2.664 c/b        0.375 b/c
+# umash32_hi               15 byte keys       35.101 c/h        2.340 c/b        0.427 b/c
+# umash32_hi               16 byte keys       33.057 c/h        2.066 c/b        0.484 b/c
+# umash32_hi               17 byte keys       42.434 c/h        2.496 c/b        0.401 b/c
+# umash32_hi               18 byte keys       44.520 c/h        2.473 c/b        0.404 b/c
+# umash32_hi               19 byte keys       43.574 c/h        2.293 c/b        0.436 b/c
+# umash32_hi               20 byte keys       39.895 c/h        1.995 c/b        0.501 b/c
+# umash32_hi               21 byte keys       39.692 c/h        1.890 c/b        0.529 b/c
+# umash32_hi               22 byte keys       42.608 c/h        1.937 c/b        0.516 b/c
+# umash32_hi               23 byte keys       47.675 c/h        2.073 c/b        0.482 b/c
+# umash32_hi               24 byte keys       47.632 c/h        1.985 c/b        0.504 b/c
+# umash32_hi               25 byte keys       45.429 c/h        1.817 c/b        0.550 b/c
+# umash32_hi               26 byte keys       49.405 c/h        1.900 c/b        0.526 b/c
+# umash32_hi               27 byte keys       47.934 c/h        1.775 c/b        0.563 b/c
+# umash32_hi               28 byte keys       41.830 c/h        1.494 c/b        0.669 b/c
+# umash32_hi               29 byte keys       45.035 c/h        1.553 c/b        0.644 b/c
+# umash32_hi               30 byte keys       49.849 c/h        1.662 c/b        0.602 b/c
+# umash32_hi               31 byte keys       49.886 c/h        1.609 c/b        0.621 b/c
+#                          Average < 32       36.535 c/h        2.357 c/b        0.424 b/c
+# umash32_hi               32 byte keys       49.806 c/h        1.556 c/b        0.642 b/c
+# umash32_hi               36 byte keys       51.807 c/h        1.439 c/b        0.695 b/c
+# umash32_hi               40 byte keys       50.087 c/h        1.252 c/b        0.799 b/c
+# umash32_hi               44 byte keys       52.117 c/h        1.184 c/b        0.844 b/c
+# umash32_hi               48 byte keys       48.015 c/h        1.000 c/b        1.000 b/c
+# umash32_hi               52 byte keys       51.706 c/h        0.994 c/b        1.006 b/c
+# umash32_hi               56 byte keys       49.331 c/h        0.881 c/b        1.135 b/c
+# umash32_hi               60 byte keys       52.018 c/h        0.867 c/b        1.153 b/c
+# umash32_hi               64 byte keys       51.080 c/h        0.798 c/b        1.253 b/c
+# umash32_hi               68 byte keys       49.381 c/h        0.726 c/b        1.377 b/c
+# umash32_hi               72 byte keys       52.271 c/h        0.726 c/b        1.377 b/c
+# umash32_hi               76 byte keys       45.491 c/h        0.599 c/b        1.671 b/c
+# umash32_hi               80 byte keys       53.020 c/h        0.663 c/b        1.509 b/c
+# umash32_hi               84 byte keys       58.399 c/h        0.695 c/b        1.438 b/c
+# umash32_hi               88 byte keys       58.272 c/h        0.662 c/b        1.510 b/c
+# umash32_hi               92 byte keys       58.384 c/h        0.635 c/b        1.576 b/c
+# umash32_hi               96 byte keys       57.510 c/h        0.599 c/b        1.669 b/c
+# umash32_hi              100 byte keys       59.372 c/h        0.594 c/b        1.684 b/c
+# umash32_hi              104 byte keys       61.635 c/h        0.593 c/b        1.687 b/c
+# umash32_hi              108 byte keys       51.691 c/h        0.479 c/b        2.089 b/c
+# umash32_hi              112 byte keys       56.187 c/h        0.502 c/b        1.993 b/c
+# umash32_hi              116 byte keys       59.580 c/h        0.514 c/b        1.947 b/c
+# umash32_hi              120 byte keys       61.517 c/h        0.513 c/b        1.951 b/c
+# umash32_hi              124 byte keys       54.570 c/h        0.440 c/b        2.272 b/c
+#                         Average < 128       43.971 c/h        1.040 c/b        0.962 b/c
+# umash32_hi              128 byte keys       43.920 c/h        0.343 c/b        2.914 b/c
+# umash32_hi              256 byte keys      105.848 c/h        0.413 c/b        2.419 b/c
+# umash32_hi              512 byte keys      173.204 c/h        0.338 c/b        2.956 b/c
+# umash32_hi             1024 byte keys      226.860 c/h        0.222 c/b        4.514 b/c
+# umash32_hi             2048 byte keys      446.609 c/h        0.218 c/b        4.586 b/c
+# umash32_hi             4096 byte keys      752.511 c/h        0.184 c/b        5.443 b/c
+# umash32_hi             8192 byte keys     1210.079 c/h        0.148 c/b        6.770 b/c
+# umash32_hi            16384 byte keys     2309.074 c/h        0.141 c/b        7.095 b/c
+# umash32_hi            32768 byte keys     4528.430 c/h        0.138 c/b        7.236 b/c
+# umash32_hi            65536 byte keys     9283.904 c/h        0.142 c/b        7.059 b/c
+#                       Overall Average      326.406 c/h        0.162 c/b        6.188 b/c
 ok 6 - Speed (always passes) # umash32_hi
 ### Differential Tests ###
 # Testing 8303632 up-to-5-bit differentials in 64-bit keys -> 32 bit hashes.
@@ -2568,21 +2568,21 @@ ok 152 - Strict Avalanche Criteria - 48 bit/6 byte keys # umash32_hi
 ok 153 - Strict Avalanche Criteria - 56 bit/7 byte keys # umash32_hi
 # Testing  64-bit keys.......... ok.     # worst-bit:   0.609% error-ratio: 9.857275e-01
 ok 154 - Strict Avalanche Criteria - 64 bit/8 byte keys # umash32_hi
-# Testing  72-bit keys.......... ok.     # worst-bit:   0.644% error-ratio: 1.012735e+00
+# Testing  72-bit keys.......... ok.     # worst-bit:   0.582% error-ratio: 1.033480e+00
 ok 155 - Strict Avalanche Criteria - 72 bit/9 byte keys # umash32_hi
-# Testing  80-bit keys.......... ok.     # worst-bit:   0.640% error-ratio: 9.623798e-01
+# Testing  80-bit keys.......... ok.     # worst-bit:   0.576% error-ratio: 1.028612e+00
 ok 156 - Strict Avalanche Criteria - 80 bit/10 byte keys # umash32_hi
-# Testing  88-bit keys.......... ok.     # worst-bit:   0.629% error-ratio: 1.034698e+00
+# Testing  88-bit keys.......... ok.     # worst-bit:   0.650% error-ratio: 1.003218e+00
 ok 157 - Strict Avalanche Criteria - 88 bit/11 byte keys # umash32_hi
-# Testing  96-bit keys.......... ok.     # worst-bit:   0.614% error-ratio: 1.003801e+00
+# Testing  96-bit keys.......... ok.     # worst-bit:   0.580% error-ratio: 1.000685e+00
 ok 158 - Strict Avalanche Criteria - 96 bit/12 byte keys # umash32_hi
-# Testing 104-bit keys.......... ok.     # worst-bit:   0.666% error-ratio: 9.700258e-01
+# Testing 104-bit keys.......... ok.     # worst-bit:   0.626% error-ratio: 1.001052e+00
 ok 159 - Strict Avalanche Criteria - 104 bit/13 byte keys # umash32_hi
-# Testing 112-bit keys.......... ok.     # worst-bit:   0.700% error-ratio: 9.796567e-01
+# Testing 112-bit keys.......... ok.     # worst-bit:   0.615% error-ratio: 9.951563e-01
 ok 160 - Strict Avalanche Criteria - 112 bit/14 byte keys # umash32_hi
-# Testing 120-bit keys.......... ok.     # worst-bit:   0.584% error-ratio: 9.820192e-01
+# Testing 120-bit keys.......... ok.     # worst-bit:   0.624% error-ratio: 1.007401e+00
 ok 161 - Strict Avalanche Criteria - 120 bit/15 byte keys # umash32_hi
-# Testing 128-bit keys.......... ok.     # worst-bit:   0.557% error-ratio: 9.755675e-01
+# Testing 128-bit keys.......... ok.     # worst-bit:   0.607% error-ratio: 1.017534e+00
 ok 162 - Strict Avalanche Criteria - 128 bit/16 byte keys # umash32_hi
 # Testing 136-bit keys.......... ok.     # worst-bit:   0.589% error-ratio: 1.005546e+00
 ok 163 - Strict Avalanche Criteria - 136 bit/17 byte keys # umash32_hi
@@ -3133,7 +3133,7 @@ ok 172 - Strict Avalanche Criteria - 2048 bit/256 byte keys # umash32_hi
 ----------------------------------------------------------------------------------------------------
 ( 30, 31) - ........................................................................................
 ----------------------------------------------------------------------------------------------------
-# Max bias 0.005302 - ( 39 :   0, 15)
+# Max bias 0.005470 - ( 51 :  10, 21)
 ok 173 - Bit Independence Criteria (BicTest3) # umash32_hi
 ### Keyset 'Cyclic' Tests ###
 # Keyset 'Cyclic' - 8 cycles of 4 bytes - 10000000 keys
@@ -3164,13 +3164,13 @@ ok 186 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-4-byte keys, 6525
 # Testing collisions   - Expected  3484.56, actual     3460 ( 0.99x) - passed
 ok 187 - Collision Rate for Keyset 'TwoBytes' - up-to-8-byte keys, 5471025 total keys
 ok 188 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-8-byte keys, 5471025 total keys
-# Testing collisions   - Expected 40347.77, actual    40486 ( 1.00x) - passed
+# Testing collisions   - Expected 40347.77, actual    40144 ( 0.99x) - passed
 ok 189 - Collision Rate for Keyset 'TwoBytes' - up-to-12-byte keys, 18616785 total keys
 ok 190 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-12-byte keys, 18616785 total keys
-# Testing collisions   - Expected 227963.15, actual   227869 ( 1.00x) - passed
+# Testing collisions   - Expected 227963.15, actual   226815 ( 0.99x) - passed
 ok 191 - Collision Rate for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
 ok 192 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
-# Testing collisions   - Expected 871784.70, actual   866398 ( 0.99x) - passed
+# Testing collisions   - Expected 871784.70, actual   865870 ( 0.99x) - passed
 ok 193 - Collision Rate for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
 ok 194 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
 ok 195 - Keyset 'TwoBytes' # umash32_hi
@@ -3216,7 +3216,7 @@ ok 213 - Distribution Bias Check for Keyset 'Sparse' - 56-bit keys with up to 5 
 ok 214 - Collision Rate for Keyset 'Sparse' - 64-bit keys with up to 5 bits set
 ok 215 - Distribution Bias Check for Keyset 'Sparse' - 64-bit keys with up to 5 bits set
 # Keyset 'Sparse' - 96-bit keys with up to 4 bits set - 3469497 keys
-# Testing collisions   - Expected  1401.34, actual     1378 ( 0.98x) - passed
+# Testing collisions   - Expected  1401.34, actual     1333 ( 0.95x) - passed
 ok 216 - Collision Rate for Keyset 'Sparse' - 96-bit keys with up to 4 bits set
 ok 217 - Distribution Bias Check for Keyset 'Sparse' - 96-bit keys with up to 4 bits set
 ok 218 - Keyset 'Sparse' # umash32_hi
@@ -3353,19 +3353,19 @@ ok 277 - Collision Rate for Keyset 'City64-MultiCollision' - seed 9 # umash32_hi
 ok 278 - Collision Rate for Keyset 'City64-MultiCollision' - seed 10 # umash32_hi
 ### Keyset 'Combination Lowbits' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
-# Testing collisions   - Expected 42799.01, actual    42766 ( 1.00x) - passed
+# Testing collisions   - Expected 42799.01, actual    42762 ( 1.00x) - passed
 ok 279 - Collision Rate for Keyset 'Combination Lowbits'
 ok 280 - Distribution Bias Check for Keyset 'Combination Lowbits'
 ok 281 - Keyset 'Combination Lowbits' # umash32_hi
 ### Keyset 'Combination Highbits' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
-# Testing collisions   - Expected 42799.01, actual    42829 ( 1.00x) - passed
+# Testing collisions   - Expected 42799.01, actual    42825 ( 1.00x) - passed
 ok 282 - Collision Rate for Keyset 'Combination Highbits'
 ok 283 - Distribution Bias Check for Keyset 'Combination Highbits'
 ok 284 - Keyset 'Combination Highbits' # umash32_hi
 ### Keyset 'Combination Highbits2' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
-# Testing collisions   - Expected 42799.01, actual    42983 ( 1.00x) - passed
+# Testing collisions   - Expected 42799.01, actual    42975 ( 1.00x) - passed
 ok 285 - Collision Rate for Keyset 'Combination Highbits2'
 ok 286 - Distribution Bias Check for Keyset 'Combination Highbits2'
 ok 287 - Keyset 'Combination Highbits2' # umash32_hi
@@ -3383,7 +3383,7 @@ ok 292 - Distribution Bias Check for Keyset 'Combination LowBit-Null'
 ok 293 - Keyset 'Combination LowBit-Null' # umash32_hi
 ### Keyset 'Combination Hi-Lo' Tests ###
 # Keyset 'Combination' - up to 6 blocks from a set of 15 - 12204240 keys
-# Testing collisions   - Expected 17339.30, actual    17432 ( 1.01x) - passed
+# Testing collisions   - Expected 17339.30, actual    17410 ( 1.00x) - passed
 ok 294 - Collision Rate for Keyset 'Combination Hi-Lo'
 ok 295 - Distribution Bias Check for Keyset 'Combination Hi-Lo'
 ok 296 - Keyset 'Combination Hi-Lo' # umash32_hi
@@ -3587,15 +3587,15 @@ ok 426 - Distribution Bias Check for Window at  64
 ok 427 - Keyset 'Window' # umash32_hi
 ### Keyset 'Text' Tests ###
 # Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
-# Testing collisions   - Expected 25418.13, actual    25698 ( 1.01x) - passed
+# Testing collisions   - Expected 25418.13, actual    25474 ( 1.00x) - passed
 ok 428 - Collision Rate for Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
 ok 429 - Distribution Bias Check for Keyset 'Text' - keys of form "Foo[XXXX]Bar" - 14776336 keys
 # Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
-# Testing collisions   - Expected 25418.13, actual    25282 ( 0.99x) - passed
+# Testing collisions   - Expected 25418.13, actual    25474 ( 1.00x) - passed
 ok 430 - Collision Rate for Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
 ok 431 - Distribution Bias Check for Keyset 'Text' - keys of form "FooBar[XXXX]" - 14776336 keys
 # Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
-# Testing collisions   - Expected 25418.13, actual    25275 ( 0.99x) - passed
+# Testing collisions   - Expected 25418.13, actual    25251 ( 0.99x) - passed
 ok 432 - Collision Rate for Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
 ok 433 - Distribution Bias Check for Keyset 'Text' - keys of form "[XXXX]FooBar" - 14776336 keys
 ok 434 - Keyset 'Text' # umash32_hi
@@ -3639,11 +3639,11 @@ ok 452 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, nonzero seed
 ok 453 - Keyset 'Effs' # umash32_hi
 ### Keyset 'Words' Tests ###
 # Hashed 501909 keys from 167303 words from file '/usr/share/dict/words'
-# Testing collisions   - Expected    29.33, actual       30 ( 1.02x) - passed
+# Testing collisions   - Expected    29.33, actual       26 ( 0.89x) - passed
 ok 454 - Collision Rate for Keyset 'Words'
 ok 455 - Distribution Bias Check for Keyset 'Words'
 ok 456 - all tests passed # umash32_hi
 1..456
 # All Tests Passed. umash32_hi passed all 456 tests run.
-# Testing took 5171.070807 seconds
-# This is SMHasher version v1.3-demerphq-43-g0762887-dirty - built on Sep 19 2020.
+# Testing took 4349.520899 seconds
+# This is SMHasher version v1.3-demerphq-43-g0762887-dirty - built on Sep 22 2020.

@@ -1,5 +1,5 @@
 """
-Test suite for the general (16 bytes or longer) input case.
+Test suite for the general (17 bytes or longer) input case.
 """
 from hypothesis import given, note
 import hypothesis.strategies as st
@@ -28,7 +28,7 @@ def repeats(min_size):
     key=st.lists(
         U64S, min_size=C.UMASH_PH_PARAM_COUNT, max_size=C.UMASH_PH_PARAM_COUNT
     ),
-    data=st.binary(min_size=16) | repeats(16),
+    data=st.binary(min_size=17) | repeats(17),
 )
 def test_umash_long(seed, multiplier, key, data):
     """Compare umash_long with the reference."""

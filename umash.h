@@ -142,6 +142,10 @@ struct umash_sink {
 	/*
 	 * We write new bytes to the second half, and keep the previous
 	 * 16 byte chunk in the first half.
+	 *
+	 * We may temporarily have a full 16-byte buffer in the second half:
+	 * we must know if the first 16 byte chunk is the first of many, or
+	 * the whole input.
 	 */
 	char buf[2 * 16];
 
