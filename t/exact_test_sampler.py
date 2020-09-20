@@ -244,6 +244,10 @@ POLL_MIN_DELAY = 0.01
 POLL_MAX_DELAY = 1.0
 
 
+def _init_worker():
+    os.nice(20)
+
+
 def ensure_pool(pool_size=POOL_SIZE):
     """Returns the global process pool, after creating it if necessary.
 
@@ -253,7 +257,7 @@ def ensure_pool(pool_size=POOL_SIZE):
     global POOL
     with POOL_LOCK:
         if POOL is None:
-            POOL = Pool(pool_size)
+            POOL = Pool(pool_size, _init_worker, initargs=(), maxtasksperchild=100)
         return POOL
 
 
