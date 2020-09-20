@@ -432,10 +432,6 @@ def umash_short(key, seed, buf):
 ## it to polynomial hashing. Since only the last block may span fewer
 ## than 256 bytes, this is equivalent to `xor`ing $|\mathbf{M}_i|\bmod 256,$
 ## a block's size modulo the maximum block size, to each block's `PH` output.
-##
-## Note that the midsized input (9-15 bytes) code path can also be
-## used for 16-byte inputs without impacting the result; this property
-## can simplify the fast path in real implementations.
 
 
 def chunk_bytes(buf):
@@ -491,6 +487,12 @@ def blockify_chunks(chunks):
 ## bytes) with the `PH` function defined by the `key`. This yields a
 ## stream of 128-bit `PH` outputs.
 ##
+## As a special case, we shuffle inputs of 9 to 16 bytes with a
+## function from the [lower-latency `NH` family](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12).
+## Although it doesn't seem that useful to compress 16 bytes to 16
+## bytes, `NH`'s output offers guarantees very similar to that of
+## `PH`.
+##
 ## We propagate a `seed` argument all the way to the individual `PH`
 ## calls. We use that `seed` to elicit different hash values, with
 ## no guarantee of collision avoidance. Callers that need
@@ -507,6 +509,9 @@ def blockify_chunks(chunks):
 ## the two streams of blocks are identical due to extension, the size
 ## of the last block differs, and the resulting compressed values
 ## definitely differ.
+##
+## Similarly, in the `NH` medium input case, we add the block size
+## modulo 256 to the high half of the `NH` result.
 
 
 def ph_compress_one_block(key, seed, block, block_size):
@@ -524,11 +529,35 @@ def ph_compress_one_block(key, seed, block, block_size):
     return acc ^ increment
 
 
+def nh_compress_one_medium_block(key, seed, block, block_size):
+    """Applies the `NH` hash to shuffle a block of 16 bytes."""
+    assert(block_size <= 16)
+    increment = block_size % (CHUNK_SIZE * BLOCK_SIZE)
+    # Seed and block size go in the high half to avoid carries.
+    acc = ((seed + increment) % W) * W
+    for i, chunk in enumerate(block):
+        ka = key[2 * i]
+        kb = key[2 * i + 1]
+        xa, xb = struct.unpack("<QQ", chunk)
+        xa = (xa + ka) % W
+        xb = (xb + kb) % W
+        acc += xa * xb
+    # Mix the low half into the high bits
+    acc ^= (acc % W) * W
+    acc %= W ** 2
+    return acc
+
+
 def ph_compress(key, seed, blocks):
     """Applies the `PH` compression function to each block; generates
     a stream of compressed values"""
+    first_block = True
     for block, block_size in blocks:
-        yield ph_compress_one_block(key, seed, block, block_size)
+        if first_block and block_size <= 16:
+            yield nh_compress_one_medium_block(key, seed, block, block_size)
+        else:
+            yield ph_compress_one_block(key, seed, block, block_size)
+        first_block = False
 
 
 ## `PH` is a fast compression function. However, it doesn't scale to

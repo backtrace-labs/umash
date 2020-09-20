@@ -66,16 +66,16 @@ index 7d887a1..aa6ba35 100644
 +
 +  { "umash128", "umash 128",
 +    64, 8 * sizeof(struct umash_params), 128,
-+    0x7AEAB469, umash_state_from_seed, umash128_with_state },
++    0x5D435ED1, umash_state_from_seed, umash128_with_state },
 +  { "umash64", "umash 64",
 +    64, 8 * sizeof(struct umash_params), 64,
-+    0x78350DAF, umash_state_from_seed, umash_with_state },
++    0x286B34EC, umash_state_from_seed, umash_with_state },
 +  { "umash32", "umash 32",
 +    64, 8 * sizeof(struct umash_params), 32,
-+    0x03DA9E97, umash_state_from_seed, umash32_with_state },
++    0x3612CECF, umash_state_from_seed, umash32_with_state },
 +  { "umash32_hi", "umash 32 hi",
 +    64, 8 * sizeof(struct umash_params), 32,
-+    0xFA8E4264, umash_state_from_seed, umash32_hi_with_state },
++    0x8C72DB99, umash_state_from_seed, umash32_hi_with_state },
  };
  int g_hashes_sizeof= sizeof(g_hashes);
  

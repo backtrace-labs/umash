@@ -600,22 +600,22 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t 
     const void *data, size_t n_bytes)
 {
 	union {
-		__m128i vec;
+		__uint128_t h;
 		uint64_t u64[2];
-	} acc = { .vec = _mm_cvtsi64_si128(seed ^ n_bytes) };
+	} acc = { .h = (__uint128_t)(seed + n_bytes) << 64 };
 
 	{
 		uint64_t x, y;
 
 		memcpy(&x, data, sizeof(x));
 		memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
-		x ^= ph[0];
-		y ^= ph[1];
+		x += ph[0];
+		y += ph[1];
 
-		acc.vec ^=
-		    _mm_clmulepi64_si128(_mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+		acc.h += (__uint128_t)x * y;
 	}
 
+	acc.u64[1] ^= acc.u64[0];
 	return finalize(horner_double_update(
 	    /*acc=*/0, multipliers[0], multipliers[1], acc.u64[0], acc.u64[1]));
 }
@@ -624,31 +624,28 @@ static struct umash_fp
 umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
     uint64_t seed, const void *data, size_t n_bytes)
 {
-	const __m128i offset = _mm_cvtsi64_si128(seed ^ n_bytes);
-	__m128i expanded;
+	const uint64_t offset = seed + n_bytes;
+	uint64_t x, y;
 	struct umash_fp ret;
 
 	/* Expand the 9-16 bytes to 16. */
-	{
-		uint64_t x, y;
-
-		memcpy(&x, data, sizeof(x));
-		memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
-		expanded = _mm_set_epi64x(y, x);
-	}
+	memcpy(&x, data, sizeof(x));
+	memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
 
 #define HASH(i, shift)                                                                \
 	do {                                                                          \
 		union {                                                               \
-			__m128i vec;                                                  \
+			__uint128_t h;                                                \
 			uint64_t u64[2];                                              \
 		} hash;                                                               \
+		uint64_t a, b;                                                        \
                                                                                       \
-		memcpy(&hash.vec, &ph[shift], sizeof(hash));                          \
-		hash.vec ^= expanded;                                                 \
-		hash.vec = _mm_clmulepi64_si128(hash.vec, hash.vec, 1);               \
-		hash.vec ^= offset;                                                   \
+		hash.h = (__uint128_t)offset << 64;                                   \
+		a = x + ph[shift];                                                    \
+		b = y + ph[shift + 1];                                                \
+		hash.h += (__uint128_t)a * b;                                         \
                                                                                       \
+		hash.u64[1] ^= hash.u64[0];                                           \
 		ret.hash[i] = finalize(horner_double_update(/*acc=*/0,                \
 		    multipliers[i][0], multipliers[i][1], hash.u64[0], hash.u64[1])); \
 	} while (0)
@@ -951,6 +948,16 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	data = (const char *)data + remaining;
 	n_bytes -= remaining;
 	sink->bufsz = INCREMENTAL_GRANULARITY;
+
+	/*
+	 * We don't know if we saw the first INCREMENTAL_GRANULARITY
+	 * bytes, or the *only* INCREMENTAL_GRANULARITY bytes.  If
+	 * it's the latter, we'll have to use the medium input code
+	 * path.
+	 */
+	if (UNLIKELY(n_bytes == 0 && sink->large_umash == false))
+		return;
+
 	sink_consume_buf(sink, sink->buf + buf_begin);
 
 	while (n_bytes >= INCREMENTAL_GRANULARITY) {
