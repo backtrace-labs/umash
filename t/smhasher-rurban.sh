@@ -12,8 +12,11 @@ TESTS=${2:-All}
 
 for suffix in 128 64 32 32_hi;
 do
-    $1 --test=$TESTS "umash${suffix}" | \
-        tee "$BASE/../smhasher/umash${suffix}.log";
+    parallel --semaphore --id umash-smhasher -j -1 --fg \
+             $1 --test=$TESTS "umash${suffix}" | \
+        tee "$BASE/../smhasher/umash${suffix}.log" &
 done
+
+wait
 
 grep -nHie 'fail' "$BASE/../smhasher/"umash*.log
