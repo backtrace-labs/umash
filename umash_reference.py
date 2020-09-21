@@ -410,6 +410,12 @@ def umash_short(key, seed, buf):
 ## polynomial hash. Passing the original byte size down to the
 ## polynomial hash lets us defend against extension attacks.
 ##
+## Inputs of 9 to 16 bytes are shuffled with a single round of the
+## [`NH` compression function](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12):
+## high throughput is harder to achieve with `NH`, but latency for
+## its integer multiplications tends to be lower than for `PH`'s
+## carry-less multiplications.
+##
 ## Longer inputs are turned into a stream of 16-byte chunks by letting
 ## the last chunk contain redundant data if it would be short, and
 ## passing blocks of up to 16 chunks to `PH`. The last block can
@@ -489,25 +495,40 @@ def blockify_chunks(chunks):
 ## calls. We use that `seed` to elicit different hash values, with
 ## no guarantee of collision avoidance. Callers that need
 ## collision probability bounds should generate fresh keys.
+##
+## We protect against extension attacks by `xor`ing each block's
+## `PH` value with that block's byte size modulo 256 (the maximum byte size),
+## [like VHASH does](http://krovetz.net/csus/papers/vmac.pdf#page=12),
+## but in $\mathrm{GR}(2^{128}).$ When two streams of blocks differ,
+## the `xor` does not affect the collision probability:
+## [the `PH` bound](https://arxiv.org/pdf/1503.03465.pdf#page=6)
+## already evaluates the probability that the `xor` of two compressed
+## values matches any specific value (almost-XOR-universality). When
+## the two streams of blocks are identical due to extension, the size
+## of the last block differs, and the resulting compressed values
+## definitely differ.
 
 
-def ph_compress_one_block(key, seed, block):
+def ph_compress_one_block(key, seed, block, block_size):
     """Applies the `PH` hash to compress a block of up to 256 bytes."""
     # Seed goes to the low half to avoid shuffling in SIMD implementations
     acc = seed % W
+    # Only the last block may be partial; every other block will
+    # always find `increment == 0`.
+    increment = block_size % (CHUNK_SIZE * BLOCK_SIZE)
     for i, chunk in enumerate(block):
         ka = key[2 * i]
         kb = key[2 * i + 1]
         xa, xb = struct.unpack("<QQ", chunk)
         acc ^= gfmul(xa ^ ka, xb ^ kb)
-    return acc
+    return acc ^ increment
 
 
 def ph_compress(key, seed, blocks):
     """Applies the `PH` compression function to each block; generates
-    a stream of (PH value, original_block_size)"""
+    a stream of compressed values"""
     for block, block_size in blocks:
-        yield ph_compress_one_block(key, seed, block), block_size
+        yield ph_compress_one_block(key, seed, block, block_size)
 
 
 ## `PH` is a fast compression function. However, it doesn't scale to
@@ -524,18 +545,6 @@ def ph_compress(key, seed, blocks):
 ## double-pumped Horner update. The result will differ from a direct
 ## evaluation modulo $2^{64} - 8$, but not in $\mathbb{F}$, which is
 ## what matters for analyses.
-##
-## We protect against extension attacks by `xor`ing each block's
-## `PH` value with that block's byte size modulo 256 (the maximum byte size),
-## [like VHASH does](http://krovetz.net/csus/papers/vmac.pdf#page=12),
-## but in $\mathrm{GR}(2^{128}).$ When two streams of blocks differ,
-## the `xor` does not affect the collision probability:
-## [the `PH` bound](https://arxiv.org/pdf/1503.03465.pdf#page=6)
-## already evaluates the probability that the `xor` of two compressed
-## values matches any specific value (almost-XOR-universality). When
-## the two streams of blocks are identical due to extension, the size
-## of the last block differs, and the resulting compressed values
-## definitely differ.
 ##
 ## Every time we feed one 64-bit half of a `PH` value to the polynomial
 ## in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$, we lose slightly
@@ -575,11 +584,8 @@ def poly_reduce(multiplier, input_size, compressed_values):
         # Both values should be the same (mod 2**61 - 1).
         assert acc[0] % (2 ** 61 - 1) == reference
 
-    for value, block_size in compressed_values:
-        # Only the last block may be partial; every other block will
-        # always find `increment == 0`.
-        increment = block_size % (CHUNK_SIZE * BLOCK_SIZE)
-        lo = (value ^ increment) % W
+    for value in compressed_values:
+        lo = value % W
         hi = value // W
         update(lo, hi)
     return acc[0]
@@ -614,6 +620,7 @@ def rotl(x, count):
         bit = (x >> i) & 1
         ret |= bit << ((i + count) % 64)
     return ret
+
 
 def finalize(x):
     """Invertibly mixes the bits in x."""

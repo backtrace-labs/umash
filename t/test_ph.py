@@ -29,7 +29,8 @@ def split_block(data):
 )
 def test_ph_one_block(seed, key, data):
     """Compare PH compression for full blocks."""
-    expected = ph_compress_one_block(key, seed, split_block(data))
+    # The C function does not take the block size into account.
+    expected = ph_compress_one_block(key, seed, split_block(data), 0)
 
     # Copy to exactly-sized malloced buffers to help ASan.
     block = FFI.new("char[]", BLOCK_SIZE)
@@ -55,7 +56,7 @@ def test_ph_one_block(seed, key, data):
 def test_ph_tail_large(seed, key, data):
     """Compare PH compression for the last block, when it has enough data
     to fully contain the last 16-byte chunk."""
-    expected = ph_compress_one_block(key, seed, split_block(data))
+    expected = ph_compress_one_block(key, seed, split_block(data), 0)
 
     n_bytes = len(data)
     # Copy to exactly-sized malloced buffers to help ASan.
@@ -84,7 +85,7 @@ def test_ph_tail_short(seed, key, prefix, data):
     """Compare PH compression for the last block, when we must steal some
     data from the previous chunk."""
     expected = ph_compress_one_block(
-        key, seed, split_block(prefix * (C.UMASH_PH_PARAM_COUNT // 2) + data)
+        key, seed, split_block(prefix * (C.UMASH_PH_PARAM_COUNT // 2) + data), 0
     )
 
     offset = len(prefix)
