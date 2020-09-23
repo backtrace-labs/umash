@@ -133,10 +133,10 @@ its overall structure (`PH` block compressor that feeds a polynomial
 string hash).  There are plenty of lower hanging fruits.
 
 1. The short (8 or fewer bytes) input code can hopefully be simpler.
-2. The medium-length (9-15 bytes) input code path is a micro-optimised
-   version of the general case, but does not actually share any
-   machine code; can we improve the latency and maintain the collision
-   bounds by replacing it with something completely different?
+2. The medium-length (9-16 bytes) input code path mixes an integer
+   multiplication NH function's output with the same polynomial hash
+   as the general case.  Can we further simplify that code sequence
+   while maintaining the collision bound?
 3. We only looked at x86-64 implementations; we will consider simple
    changes that improve performance on x86-64, or on other platforms
    as long they don't penalise x86-64.
