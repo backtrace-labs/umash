@@ -17,7 +17,7 @@ def grouper(iterable, n, fillvalue=None):
     return itertools.zip_longest(*args, fillvalue=fillvalue)
 
 
-def _full_call_sizes(url, limit=(1 << 64), length_fixup=None):
+def _full_call_sizes(url, min=0, limit=(1 << 64), length_fixup=None):
     """Generates the umash_fp sizes < limit (if provided)."""
     if length_fixup is None:
         length_fixup = 0
@@ -25,7 +25,7 @@ def _full_call_sizes(url, limit=(1 << 64), length_fixup=None):
     for trace in umash_traces.umash_full_calls(url):
         tid = trace[1]
         size = trace[-1] + length_fixup
-        if 0 <= size < limit:
+        if min <= size < limit:
             thread_traces[tid].append(size)
     return itertools.chain.from_iterable(thread_traces.values())
 
@@ -37,27 +37,20 @@ def _update_results(acc, lengths, timings, count):
         acc[length].append(timings[i])
 
 
-def compare_short_inputs(
+def compare_inputs(
+    length_arguments,
     current="WIP",
     baseline="HEAD",
-    trace_url=umash_traces.STARTUP_URL,
-    length_limit=4,
-    length_fixup=None,
     cflags=None,
     cc=None,
     block_size=128,
     min_count=100000,
     runner="umash_bench_individual",
 ):
-    """Compares the performance of two implementations for short input
-    sizes from the input trace.
+    """Compares the performance of two implementations for input sizes in `length_arguments`.
 
-    If the trace is too short to satisfy `min_count`, retry the experiment
-    with shuffled versions of the trace.
-
-    Tracing may reveal suboptimal integration, e.g., where a program
-    includes the NUL terminator in the hash.  Set length_fixup=-1
-    to subtract 1 from the length of each call.
+    If that list is too short to satisfy `min_count`, retry the experiment
+    with shuffled versions of the list.
     """
     current_lib, ffi, current_suffix = bench_loader.build_and_load(
         current, cflags=cflags, cc=cc,
@@ -65,7 +58,6 @@ def compare_short_inputs(
     baseline_lib, baseline_ffi, baseline_suffix = bench_loader.build_and_load(
         baseline, cflags=cflags, cc=cc,
     )
-    length_arguments = list(_full_call_sizes(trace_url, length_limit, length_fixup))
     max_len = max(length_arguments)
 
     inputs = ffi.new("size_t[]", block_size)
@@ -110,4 +102,82 @@ def compare_short_inputs(
     implementations.sort()
     return OrderedDict(
         {current_suffix: implementations[0][3], baseline_suffix: implementations[1][3]}
+    )
+
+
+def compare_short_inputs(
+    current="WIP",
+    baseline="HEAD",
+    trace_url=umash_traces.STARTUP_URL,
+    length_limit=4,
+    length_fixup=None,
+    cflags=None,
+    cc=None,
+    block_size=128,
+    min_count=100000,
+    runner="umash_bench_individual",
+    options={},
+):
+    """Compares the performance of two implementations for short input
+    sizes from the input trace.
+
+    If the trace is too short to satisfy `min_count`, retry the experiment
+    with shuffled versions of the trace.
+
+    Tracing may reveal suboptimal integration, e.g., where a program
+    includes the NUL terminator in the hash.  Set length_fixup=-1
+    to subtract 1 from the length of each call.
+    """
+    length_arguments = list(_full_call_sizes(trace_url, 0, length_limit, length_fixup))
+
+    return compare_inputs(
+        length_arguments,
+        current,
+        baseline,
+        cflags,
+        cc,
+        block_size,
+        min_count,
+        runner,
+        options,
+    )
+
+
+def compare_long_inputs(
+    current="WIP",
+    baseline="HEAD",
+    trace_url=umash_traces.STARTUP_URL,
+    length_min=16,
+    length_fixup=None,
+    cflags=None,
+    cc=None,
+    block_size=128,
+    min_count=100000,
+    runner="umash_bench_individual",
+    options={},
+):
+    """Compares the performance of two implementations for long input
+    sizes from the input trace.
+
+    If the trace is too short to satisfy `min_count`, retry the experiment
+    with shuffled versions of the trace.
+
+    Tracing may reveal suboptimal integration, e.g., where a program
+    includes the NUL terminator in the hash.  Set length_fixup=-1
+    to subtract 1 from the length of each call.
+    """
+    length_arguments = list(
+        _full_call_sizes(trace_url, length_min, 1 << 64, length_fixup)
+    )
+
+    return compare_inputs(
+        length_arguments,
+        current,
+        baseline,
+        cflags,
+        cc,
+        block_size,
+        min_count,
+        runner,
+        options,
     )
