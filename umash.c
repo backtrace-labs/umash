@@ -25,6 +25,16 @@
 #endif
 
 /*
+ * #define UMASH_SECTION="special_section" to emit all UMASH symbols
+ * in the `special_section` ELF section.
+ */
+#if defined(UMASH_SECTION) && defined(__GNUC__)
+#define FN __attribute__((__section__(UMASH_SECTION)))
+#else
+#define FN
+#endif
+
+/*
  * UMASH is distributed under the MIT license.
  *
  * SPDX-License-Identifier: MIT
@@ -57,10 +67,10 @@
  * symbols exposed.
  */
 #ifdef UMASH_TEST_ONLY
-#define TEST_DEF
+#define TEST_DEF FN
 #include "t/umash_test_only.h"
 #else
-#define TEST_DEF static
+#define TEST_DEF static FN
 #endif
 
 #ifdef __GNUC__
@@ -93,7 +103,7 @@ add_mod_fast(uint64_t x, uint64_t y)
 	return (__builtin_uaddll_overflow(x, y, &sum) ? sum + 8 : sum);
 }
 
-static uint64_t
+static FN uint64_t
 add_mod_slow_slow_path(uint64_t sum, uint64_t fixup)
 {
 	/* Reduce sum, mod 2**64 - 8. */
@@ -160,7 +170,7 @@ rotate(uint32_t u, int c)
 	return (u << c) | (u >> (32 - c));
 }
 
-static uint32_t
+static inline uint32_t
 load_littleendian(const void *buf)
 {
 	uint32_t ret = 0;
@@ -173,7 +183,7 @@ load_littleendian(const void *buf)
 	return ret;
 }
 
-static void
+static inline void
 store_littleendian(void *dst, uint32_t u)
 {
 
@@ -188,7 +198,7 @@ store_littleendian(void *dst, uint32_t u)
 	return;
 }
 
-static void
+static FN void
 core_salsa20(char *out, const uint8_t in[static 16], const uint8_t key[static 32],
     const uint8_t constant[16])
 {
@@ -346,7 +356,7 @@ ph_one_block(const uint64_t *params, uint64_t seed, const void *block)
 	return ret;
 }
 
-static void
+static FN void
 ph_one_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
     uint64_t seed, const void *block)
 {
@@ -413,7 +423,7 @@ ph_last_block(const uint64_t *params, uint64_t seed, const void *block, size_t n
 	return ret;
 }
 
-static void
+static FN void
 ph_last_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
     uint64_t seed, const void *block, size_t n_bytes)
 {
@@ -550,7 +560,7 @@ umash_short(const uint64_t *params, uint64_t seed, const void *data, size_t n_by
 	return h;
 }
 
-static struct umash_fp
+static FN struct umash_fp
 umash_fp_short(const uint64_t *params, uint64_t seed, const void *data, size_t n_bytes)
 {
 	struct umash_fp ret;
@@ -620,7 +630,7 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t 
 	    /*acc=*/0, multipliers[0], multipliers[1], acc.u64[0], acc.u64[1]));
 }
 
-static struct umash_fp
+static FN struct umash_fp
 umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
     uint64_t seed, const void *data, size_t n_bytes)
 {
@@ -687,7 +697,7 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t se
 	return finalize(acc);
 }
 
-static struct umash_fp
+static FN struct umash_fp
 umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint64_t seed,
     const void *data, size_t n_bytes)
 {
@@ -729,7 +739,7 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint6
 	return ret;
 }
 
-static bool
+static FN bool
 value_is_repeated(const uint64_t *values, size_t n, uint64_t needle)
 {
 
@@ -741,7 +751,7 @@ value_is_repeated(const uint64_t *values, size_t n, uint64_t needle)
 	return false;
 }
 
-bool
+FN bool
 umash_params_prepare(struct umash_params *params)
 {
 	static const uint64_t modulo = (1UL << 61) - 1;
@@ -791,7 +801,7 @@ umash_params_prepare(struct umash_params *params)
 	return true;
 }
 
-void
+FN void
 umash_params_derive(struct umash_params *params, uint64_t bits, const void *key)
 {
 	uint8_t umash_key[32] = "Do not use UMASH VS adversaries.";
@@ -821,7 +831,7 @@ umash_params_derive(struct umash_params *params, uint64_t bits, const void *key)
 /*
  * Updates the polynomial state at the end of a block.
  */
-static void
+static FN void
 sink_update_poly(struct umash_sink *sink)
 {
 	const __m128i ph_acc = _mm_cvtsi64_si128(sink->seed);
@@ -852,7 +862,7 @@ sink_update_poly(struct umash_sink *sink)
 }
 
 /* Updates the PH state with 16 bytes of data. */
-static void
+static FN void
 sink_consume_buf(struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY])
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
@@ -899,7 +909,7 @@ next:
  * Hashes full 256-byte blocks into a sink that just dumped its PH
  * state in the toplevel polynomial hash and reset the block state.
  */
-static size_t
+static FN size_t
 block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 {
 	size_t consumed = 0;
@@ -930,7 +940,7 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	return consumed;
 }
 
-void
+FN void
 umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
@@ -991,7 +1001,7 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	return;
 }
 
-uint64_t
+FN uint64_t
 umash_full(const struct umash_params *params, uint64_t seed, int which, const void *data,
     size_t n_bytes)
 {
@@ -1016,7 +1026,7 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
 	return umash_long(params->poly[which], &params->ph[shift], seed, data, n_bytes);
 }
 
-struct umash_fp
+FN struct umash_fp
 umash_fprint(
     const struct umash_params *params, uint64_t seed, const void *data, size_t n_bytes)
 {
@@ -1032,7 +1042,7 @@ umash_fprint(
 	return umash_fp_long(params->poly, params->ph, seed, data, n_bytes);
 }
 
-void
+FN void
 umash_init(struct umash_state *state, const struct umash_params *params, uint64_t seed,
     int which)
 {
@@ -1056,7 +1066,7 @@ umash_init(struct umash_state *state, const struct umash_params *params, uint64_
 	return;
 }
 
-void
+FN void
 umash_fp_init(
     struct umash_fp_state *state, const struct umash_params *params, uint64_t seed)
 {
@@ -1089,7 +1099,7 @@ umash_fp_init(
 /**
  * Pumps any last block out of the incremental state.
  */
-static void
+static FN void
 digest_flush(struct umash_sink *sink)
 {
 
@@ -1109,7 +1119,7 @@ digest_flush(struct umash_sink *sink)
  * @param index 0 to return the first (only, if hashing) value, 1 for the
  *   second independent value for fingerprinting.
  */
-static uint64_t
+static FN uint64_t
 digest(const struct umash_sink *sink, int index)
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
@@ -1126,7 +1136,7 @@ digest(const struct umash_sink *sink, int index)
 	    &sink->buf[buf_begin], sink->bufsz);
 }
 
-uint64_t
+FN uint64_t
 umash_digest(const struct umash_state *state)
 {
 	struct umash_sink copy;
@@ -1143,7 +1153,7 @@ umash_digest(const struct umash_state *state)
 	return digest(sink, 0);
 }
 
-struct umash_fp
+FN struct umash_fp
 umash_fp_digest(const struct umash_fp_state *state)
 {
 	struct umash_sink copy;

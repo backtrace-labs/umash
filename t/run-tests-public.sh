@@ -5,7 +5,18 @@ PYTHON=${PYTHON3:-python3}
 
 (cd "${BASE}/../";
  ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} umash.c \
+           '-DUMASH_SECTION="umash_text"' \
 	   -fPIC --shared -o libumash.so)
+
+OUT_OF_SECTION_SYMS=$(
+    objdump -t "${BASE}/../libumash.so" | grep 'F \.text.*umash' || true
+)
+
+if [ ! -z "$OUT_OF_SECTION_SYMS" ];
+then
+    echo "UMASH symbols out of section:\n$OUT_OF_SECTION_SYMS"
+    exit 1
+fi
 
 $PYTHON -m venv "${BASE}/umash-venv/"
 

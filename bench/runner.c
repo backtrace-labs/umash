@@ -8,10 +8,16 @@
 
 /**
  * We align our hashed buffers for consistency.  We could also accept
- * the alignmen as an argument if we ever start looking at code that
+ * the alignment as an argument if we ever start looking at code that
  * might be strongly influenced by the hashed data's address.
  */
 #define ALLOC_ALIGNMENT 64
+
+/**
+ * We build UMASH code in the `umash_code` section, for easy CLFLUSH.
+ */
+extern const char ID(__start_umash_code)[];
+extern const char ID(__stop_umash_code)[];
 
 #define PARAMS_MASK 1
 static struct umash_params params[2];
