@@ -71,8 +71,8 @@ for sz in range(4):
     baseline = list(results[BASELINE][sz])
     random.shuffle(test)
     random.shuffle(baseline)
-    test = test[:10000]
-    baseline = baseline[:10000]
+    test = test[:5000]
+    baseline = baseline[:5000]
     fig = px.histogram(dict(Test=test, Baseline=baseline),
                        title="Latency for input size = %i" % sz,
                        histnorm='probability density',
