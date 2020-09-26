@@ -62,7 +62,7 @@ def compare_short_inputs(
     current_lib, ffi, current_suffix = bench_loader.build_and_load(
         current, cflags=cflags, cc=cc,
     )
-    baseline_lib, _, baseline_suffix = bench_loader.build_and_load(
+    baseline_lib, baseline_ffi, baseline_suffix = bench_loader.build_and_load(
         baseline, cflags=cflags, cc=cc,
     )
     length_arguments = list(_full_call_sizes(trace_url, length_limit, length_fixup))
@@ -71,9 +71,19 @@ def compare_short_inputs(
     inputs = ffi.new("size_t[]", block_size)
     timings = ffi.new("uint64_t[]", block_size)
 
+    def make_options(target_ffi):
+        options = target_ffi.new("struct bench_individual_options *")
+        options.size = target_ffi.sizeof("struct bench_individual_options")
+        return options
+
     implementations = [
-        (0, getattr(current_lib, runner), defaultdict(list)),
-        (1, getattr(baseline_lib, runner), defaultdict(list)),
+        (0, getattr(current_lib, runner), make_options(ffi), defaultdict(list)),
+        (
+            1,
+            getattr(baseline_lib, runner),
+            make_options(baseline_ffi),
+            defaultdict(list),
+        ),
     ]
 
     # Don't record results for the first pair of calls: it could
@@ -89,8 +99,8 @@ def compare_short_inputs(
                     break
                 inputs[i] = value
 
-            for _, fn, results in implementations:
-                fn(timings, inputs, count, max_len)
+            for _, fn, options, results in implementations:
+                fn(options, timings, inputs, count, max_len)
                 if record_results:
                     _update_results(results, inputs, timings, count)
             record_results = True
@@ -99,5 +109,5 @@ def compare_short_inputs(
     # order.
     implementations.sort()
     return OrderedDict(
-        {current_suffix: implementations[0][2], baseline_suffix: implementations[1][2]}
+        {current_suffix: implementations[0][3], baseline_suffix: implementations[1][3]}
     )

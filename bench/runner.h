@@ -13,6 +13,16 @@
 #endif
 
 /*
+ * We use the option struct defined in the current tree for all
+ * benchmarking libraries.  The options struct must be updated in an
+ * ABI compatible way.  In the common case, this is as simple as
+ * only adding fields at the end.
+ */
+struct bench_individual_options {
+	size_t size; /* sizeof(struct bench_individual_options) */
+};
+
+/*
  * We rename extern symbols with an explicit version suffix to make it
  * easier to load multiple versions in the same process.
  */
@@ -55,7 +65,7 @@ uint64_t ID(umash_bench_fp_aggregate)(
  * @param num_trials number of lengths in `input_len`.
  * @param max_len maximum value in `input_len`.
  */
-void ID(umash_bench_individual)(
+void ID(umash_bench_individual)(const struct bench_individual_options *,
     uint64_t *timings, const size_t *input_len, size_t num_trials, size_t max_len);
 
 /**
@@ -67,5 +77,5 @@ void ID(umash_bench_individual)(
  * @param num_trials number of lengths in `input_len`.
  * @param max_len maximum value in `input_len`.
  */
-void ID(umash_bench_fp_individual)(
+void ID(umash_bench_fp_individual)(const struct bench_individual_options *,
     uint64_t *timings, const size_t *input_len, size_t num_trials, size_t max_len);

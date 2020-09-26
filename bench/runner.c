@@ -134,13 +134,15 @@ uint64_t ID(umash_bench_fp_aggregate)(
 	return end - begin;
 }
 
-void ID(umash_bench_individual)(uint64_t *restrict timings, const size_t *input_len,
-    size_t num_trials, size_t max_len)
+void ID(umash_bench_individual)(const struct bench_individual_options *options,
+    uint64_t *restrict timings, const size_t *input_len, size_t num_trials,
+    size_t max_len)
 {
 	size_t bufsz = ALLOC_ALIGNMENT * (1 + (max_len + JITTER_MASK) / ALLOC_ALIGNMENT);
 	char *buf;
 	uint64_t seed = 0;
 
+	(void)options;
 	if (posix_memalign((void *)&buf, ALLOC_ALIGNMENT, bufsz) != 0)
 		assert(0 && "Failed to allocate buffer.");
 
@@ -166,13 +168,15 @@ void ID(umash_bench_individual)(uint64_t *restrict timings, const size_t *input_
 	return;
 }
 
-void ID(umash_bench_fp_individual)(uint64_t *restrict timings, const size_t *input_len,
-    size_t num_trials, size_t max_len)
+void ID(umash_bench_fp_individual)(const struct bench_individual_options *options,
+    uint64_t *restrict timings, const size_t *input_len, size_t num_trials,
+    size_t max_len)
 {
 	size_t bufsz = ALLOC_ALIGNMENT * (1 + (max_len + JITTER_MASK) / ALLOC_ALIGNMENT);
 	char *buf;
 	uint64_t seed = 0;
 
+	(void)options;
 	if (posix_memalign((void *)&buf, ALLOC_ALIGNMENT, bufsz) != 0)
 		assert(0 && "Failed to allocate buffer.");
 

@@ -531,7 +531,7 @@ def ph_compress_one_block(key, seed, block, block_size):
 
 def nh_compress_one_medium_block(key, seed, block, block_size):
     """Applies the `NH` hash to shuffle a block of 16 bytes."""
-    assert(block_size <= 16)
+    assert block_size <= 16
     increment = block_size % (CHUNK_SIZE * BLOCK_SIZE)
     # Seed and block size go in the high half to avoid carries.
     acc = ((seed + increment) % W) * W
