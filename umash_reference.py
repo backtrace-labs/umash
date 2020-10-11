@@ -173,8 +173,9 @@
 ##
 ## There's nothing special about SplitMix64, except that it's well
 ## known, satisfies SMHasher's bias and avalanche tests, and is
-## invertible.  We use a subsequence of SplitMix64 as a finaliser in
-## the general case for the same reasons.
+## invertible.  Similarly, we use an invertible xor-rot finaliser
+## in the general case to satisfy SMHasher without impacting the
+## collision bounds.
 ##
 ## Longer strings of 9 or more bytes feed the result of `PH` to the
 ## polynomial hash in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$.
@@ -368,8 +369,8 @@ def vec_to_u64(buf):
 ## When we use a Toeplitz extension to generate a second `PH` key,
 ## collisions for the first and second keys are independent:
 ## $k_{\texttt{len}(x)} \oplus k_{\texttt{len}(y)}$ and
-## $k_{\texttt{len}(x) + k} \oplus k_{\texttt{len}(y) + k}$ are
-## independent for shift constant $k > 0$ (we use $K = 4$).
+## $k_{\texttt{len}(x) + S} \oplus k_{\texttt{len}(y) + S}$ are
+## independent for shift constant $S > 0$ (we use $S = 4$).
 
 
 def umash_short(key, seed, buf):
@@ -406,14 +407,15 @@ def umash_short(key, seed, buf):
 ## 16-byte chunk by concatenating its first and last 8 bytes, while
 ## remembering the original byte size; this logic would also work on
 ## 8-byte inputs, but results in slower hashes for that common size.
-## We then pass that block to `PH`, and feed the result to the
-## polynomial hash. Passing the original byte size down to the
-## polynomial hash lets us defend against extension attacks.
+## We then pass that block to a single eround of the
+## [`NH` compression function](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12),
+## and feed the result to the polynomial hash. Passing the original
+## byte size down to the polynomial hash lets us defend against
+## extension attacks.
 ##
-## Inputs of 9 to 16 bytes are shuffled with a single round of the
-## [`NH` compression function](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12):
-## high throughput is harder to achieve with `NH`, but latency for
-## its integer multiplications tends to be lower than for `PH`'s
+## We use `NH` for inputs of 9 to 16 bytes because, while throughput
+## is challenging with `NH` compared to `PH`, the latency of `NH`'s
+## integer multiplications tends to be lower than that of `PH`'s
 ## carry-less multiplications.
 ##
 ## Longer inputs are turned into a stream of 16-byte chunks by letting
@@ -714,9 +716,9 @@ def umash(key, seed, buf):
 ## The multipliers and modulus for the polynomial hashes were chosen to
 ## simplify implementation on 64-bit machines: assuming the current
 ## hash accumulator is in $[0, 2^{64} - 8),$ we can increment it by a
-## 64-bit value in 3 x86-64 instructions, multiply the sum by a 61-bit
-## multiplier in 5 instructions, and re-normalize the accumulator to
-## the modulus range with 2 instructions and a predictable branch.
+## 64-bit value in three x86-64 instructions, multiply the sum by a 61-bit
+## multiplier in five instructions, and re-normalize the accumulator to
+## the modulus range with two instructions followed by a predictable branch.
 ##
 ## It's also convenient that the range for fast multipliers, $[0,
 ## 2^{61})$, is as wide as the theoretical modulus: we can precompute
@@ -756,7 +758,7 @@ def umash(key, seed, buf):
 ## collision probabilities. Two inputs of different length collide
 ## when $k_s \oplus k_{s^\prime}$ equals one unlucky value; the same
 ## expression in the Toeplitz-extended key is
-## $k_{s + 2} \oplus k_{s^\prime + 4},$ with distribution independent of
+## $k_{s + 4} \oplus k_{s^\prime + 4},$ with distribution independent of
 ## $k_s \oplus k_{s^\prime}.$
 ##
 ## Combining two UMASHes squares the collision probability. The
@@ -791,3 +793,9 @@ def umash(key, seed, buf):
 ##
 ## 2020-08-27: use $s$ for the input byte length parameter, which
 ## renders less confusingly than $l$ (ell) in the face of font issues.
+##
+## 2020-09-13: use an [invertible xor-rot](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
+## finalizer, instead of multiply xorshift.
+##
+## 2020-09-20: mix 9-16 byte inputs with `NH` instead of `PH`, before
+## passing to the same polynomial hash and finalisation.
