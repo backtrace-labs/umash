@@ -5,7 +5,7 @@ ok 1 - Found Hash # umash32_hi
 ### seedbits: 64 statebits: 2560 hashbits: 32
 ###################################################################
 ok 2 - Verification code # umash32_hi
-# umash32_hi           - Verification value 0x8C72DB99 : Passed.
+# umash32_hi           - Verification value 0x799576D1 : Passed.
 ### Sanity Tests ###
 # Sanity check simple key bit flips and consistency - hashbytes=4..........
 ok 3 - SanityTest # umash32_hi
@@ -14,85 +14,85 @@ ok 4 - Appended Zeroes Test # umash32_hi
 ok 5 - Sanity Test # umash32_hi
 ### Speed Tests ###
 ## Bulk speed test - 262144-byte keys
-# Alignment  7 -  7.233 bytes/cycle - 20694.72 MiB/sec @ 3 ghz
-# Alignment  6 -  7.201 bytes/cycle - 20601.78 MiB/sec @ 3 ghz
-# Alignment  5 -  7.206 bytes/cycle - 20617.46 MiB/sec @ 3 ghz
-# Alignment  4 -  7.695 bytes/cycle - 22015.64 MiB/sec @ 3 ghz
-# Alignment  3 -  6.835 bytes/cycle - 19554.97 MiB/sec @ 3 ghz
-# Alignment  2 -  7.072 bytes/cycle - 20231.97 MiB/sec @ 3 ghz
-# Alignment  1 -  6.971 bytes/cycle - 19944.44 MiB/sec @ 3 ghz
-# Alignment  0 -  6.960 bytes/cycle - 19912.58 MiB/sec @ 3 ghz
-# Average      -  7.147 bytes/cycle - 20446.69 MiB/sec @ 3 ghz
+# Alignment  7 -  5.725 bytes/cycle - 16379.52 MiB/sec @ 3 ghz
+# Alignment  6 -  5.627 bytes/cycle - 16097.78 MiB/sec @ 3 ghz
+# Alignment  5 -  5.104 bytes/cycle - 14601.95 MiB/sec @ 3 ghz
+# Alignment  4 -  5.196 bytes/cycle - 14865.09 MiB/sec @ 3 ghz
+# Alignment  3 -  5.193 bytes/cycle - 14855.90 MiB/sec @ 3 ghz
+# Alignment  2 -  6.768 bytes/cycle - 19362.01 MiB/sec @ 3 ghz
+# Alignment  1 -  4.416 bytes/cycle - 12634.83 MiB/sec @ 3 ghz
+# Alignment  0 -  5.658 bytes/cycle - 16186.48 MiB/sec @ 3 ghz
+# Average      -  5.461 bytes/cycle - 15622.95 MiB/sec @ 3 ghz
 ## KeySpeed tests
-# umash32_hi                0 byte keys       29.947 c/h
-# umash32_hi                1 byte keys       25.499 c/h       25.499 c/b        0.039 b/c
-# umash32_hi                2 byte keys       26.320 c/h       13.160 c/b        0.076 b/c
-# umash32_hi                3 byte keys       18.000 c/h        6.000 c/b        0.167 b/c
-# umash32_hi                4 byte keys       21.752 c/h        5.438 c/b        0.184 b/c
-# umash32_hi                5 byte keys       24.000 c/h        4.800 c/b        0.208 b/c
-# umash32_hi                6 byte keys       23.721 c/h        3.954 c/b        0.253 b/c
-# umash32_hi                7 byte keys       23.000 c/h        3.286 c/b        0.304 b/c
-# umash32_hi                8 byte keys       24.448 c/h        3.056 c/b        0.327 b/c
-# umash32_hi                9 byte keys       31.506 c/h        3.501 c/b        0.286 b/c
-# umash32_hi               10 byte keys       37.543 c/h        3.754 c/b        0.266 b/c
-# umash32_hi               11 byte keys       36.119 c/h        3.284 c/b        0.305 b/c
-# umash32_hi               12 byte keys       32.739 c/h        2.728 c/b        0.367 b/c
-# umash32_hi               13 byte keys       31.668 c/h        2.436 c/b        0.411 b/c
-# umash32_hi               14 byte keys       37.293 c/h        2.664 c/b        0.375 b/c
-# umash32_hi               15 byte keys       35.101 c/h        2.340 c/b        0.427 b/c
-# umash32_hi               16 byte keys       33.057 c/h        2.066 c/b        0.484 b/c
-# umash32_hi               17 byte keys       42.434 c/h        2.496 c/b        0.401 b/c
-# umash32_hi               18 byte keys       44.520 c/h        2.473 c/b        0.404 b/c
-# umash32_hi               19 byte keys       43.574 c/h        2.293 c/b        0.436 b/c
-# umash32_hi               20 byte keys       39.895 c/h        1.995 c/b        0.501 b/c
-# umash32_hi               21 byte keys       39.692 c/h        1.890 c/b        0.529 b/c
-# umash32_hi               22 byte keys       42.608 c/h        1.937 c/b        0.516 b/c
-# umash32_hi               23 byte keys       47.675 c/h        2.073 c/b        0.482 b/c
-# umash32_hi               24 byte keys       47.632 c/h        1.985 c/b        0.504 b/c
-# umash32_hi               25 byte keys       45.429 c/h        1.817 c/b        0.550 b/c
-# umash32_hi               26 byte keys       49.405 c/h        1.900 c/b        0.526 b/c
-# umash32_hi               27 byte keys       47.934 c/h        1.775 c/b        0.563 b/c
-# umash32_hi               28 byte keys       41.830 c/h        1.494 c/b        0.669 b/c
-# umash32_hi               29 byte keys       45.035 c/h        1.553 c/b        0.644 b/c
-# umash32_hi               30 byte keys       49.849 c/h        1.662 c/b        0.602 b/c
-# umash32_hi               31 byte keys       49.886 c/h        1.609 c/b        0.621 b/c
-#                          Average < 32       36.535 c/h        2.357 c/b        0.424 b/c
-# umash32_hi               32 byte keys       49.806 c/h        1.556 c/b        0.642 b/c
-# umash32_hi               36 byte keys       51.807 c/h        1.439 c/b        0.695 b/c
-# umash32_hi               40 byte keys       50.087 c/h        1.252 c/b        0.799 b/c
-# umash32_hi               44 byte keys       52.117 c/h        1.184 c/b        0.844 b/c
-# umash32_hi               48 byte keys       48.015 c/h        1.000 c/b        1.000 b/c
-# umash32_hi               52 byte keys       51.706 c/h        0.994 c/b        1.006 b/c
-# umash32_hi               56 byte keys       49.331 c/h        0.881 c/b        1.135 b/c
-# umash32_hi               60 byte keys       52.018 c/h        0.867 c/b        1.153 b/c
-# umash32_hi               64 byte keys       51.080 c/h        0.798 c/b        1.253 b/c
-# umash32_hi               68 byte keys       49.381 c/h        0.726 c/b        1.377 b/c
-# umash32_hi               72 byte keys       52.271 c/h        0.726 c/b        1.377 b/c
-# umash32_hi               76 byte keys       45.491 c/h        0.599 c/b        1.671 b/c
-# umash32_hi               80 byte keys       53.020 c/h        0.663 c/b        1.509 b/c
-# umash32_hi               84 byte keys       58.399 c/h        0.695 c/b        1.438 b/c
-# umash32_hi               88 byte keys       58.272 c/h        0.662 c/b        1.510 b/c
-# umash32_hi               92 byte keys       58.384 c/h        0.635 c/b        1.576 b/c
-# umash32_hi               96 byte keys       57.510 c/h        0.599 c/b        1.669 b/c
-# umash32_hi              100 byte keys       59.372 c/h        0.594 c/b        1.684 b/c
-# umash32_hi              104 byte keys       61.635 c/h        0.593 c/b        1.687 b/c
-# umash32_hi              108 byte keys       51.691 c/h        0.479 c/b        2.089 b/c
-# umash32_hi              112 byte keys       56.187 c/h        0.502 c/b        1.993 b/c
-# umash32_hi              116 byte keys       59.580 c/h        0.514 c/b        1.947 b/c
-# umash32_hi              120 byte keys       61.517 c/h        0.513 c/b        1.951 b/c
-# umash32_hi              124 byte keys       54.570 c/h        0.440 c/b        2.272 b/c
-#                         Average < 128       43.971 c/h        1.040 c/b        0.962 b/c
-# umash32_hi              128 byte keys       43.920 c/h        0.343 c/b        2.914 b/c
-# umash32_hi              256 byte keys      105.848 c/h        0.413 c/b        2.419 b/c
-# umash32_hi              512 byte keys      173.204 c/h        0.338 c/b        2.956 b/c
-# umash32_hi             1024 byte keys      226.860 c/h        0.222 c/b        4.514 b/c
-# umash32_hi             2048 byte keys      446.609 c/h        0.218 c/b        4.586 b/c
-# umash32_hi             4096 byte keys      752.511 c/h        0.184 c/b        5.443 b/c
-# umash32_hi             8192 byte keys     1210.079 c/h        0.148 c/b        6.770 b/c
-# umash32_hi            16384 byte keys     2309.074 c/h        0.141 c/b        7.095 b/c
-# umash32_hi            32768 byte keys     4528.430 c/h        0.138 c/b        7.236 b/c
-# umash32_hi            65536 byte keys     9283.904 c/h        0.142 c/b        7.059 b/c
-#                       Overall Average      326.406 c/h        0.162 c/b        6.188 b/c
+# umash32_hi                0 byte keys       18.451 c/h
+# umash32_hi                1 byte keys       18.747 c/h       18.747 c/b        0.053 b/c
+# umash32_hi                2 byte keys       19.000 c/h        9.500 c/b        0.105 b/c
+# umash32_hi                3 byte keys       19.000 c/h        6.333 c/b        0.158 b/c
+# umash32_hi                4 byte keys       31.403 c/h        7.851 c/b        0.127 b/c
+# umash32_hi                5 byte keys       35.502 c/h        7.100 c/b        0.141 b/c
+# umash32_hi                6 byte keys       34.922 c/h        5.820 c/b        0.172 b/c
+# umash32_hi                7 byte keys       29.444 c/h        4.206 c/b        0.238 b/c
+# umash32_hi                8 byte keys       31.466 c/h        3.933 c/b        0.254 b/c
+# umash32_hi                9 byte keys       41.693 c/h        4.633 c/b        0.216 b/c
+# umash32_hi               10 byte keys       42.066 c/h        4.207 c/b        0.238 b/c
+# umash32_hi               11 byte keys       40.478 c/h        3.680 c/b        0.272 b/c
+# umash32_hi               12 byte keys       41.152 c/h        3.429 c/b        0.292 b/c
+# umash32_hi               13 byte keys       40.562 c/h        3.120 c/b        0.320 b/c
+# umash32_hi               14 byte keys       36.679 c/h        2.620 c/b        0.382 b/c
+# umash32_hi               15 byte keys       38.310 c/h        2.554 c/b        0.392 b/c
+# umash32_hi               16 byte keys       41.380 c/h        2.586 c/b        0.387 b/c
+# umash32_hi               17 byte keys       59.114 c/h        3.477 c/b        0.288 b/c
+# umash32_hi               18 byte keys       56.056 c/h        3.114 c/b        0.321 b/c
+# umash32_hi               19 byte keys       45.183 c/h        2.378 c/b        0.421 b/c
+# umash32_hi               20 byte keys       45.685 c/h        2.284 c/b        0.438 b/c
+# umash32_hi               21 byte keys       55.951 c/h        2.664 c/b        0.375 b/c
+# umash32_hi               22 byte keys       60.012 c/h        2.728 c/b        0.367 b/c
+# umash32_hi               23 byte keys       54.721 c/h        2.379 c/b        0.420 b/c
+# umash32_hi               24 byte keys       51.627 c/h        2.151 c/b        0.465 b/c
+# umash32_hi               25 byte keys       56.440 c/h        2.258 c/b        0.443 b/c
+# umash32_hi               26 byte keys       55.791 c/h        2.146 c/b        0.466 b/c
+# umash32_hi               27 byte keys       45.873 c/h        1.699 c/b        0.589 b/c
+# umash32_hi               28 byte keys       45.111 c/h        1.611 c/b        0.621 b/c
+# umash32_hi               29 byte keys       45.151 c/h        1.557 c/b        0.642 b/c
+# umash32_hi               30 byte keys       49.344 c/h        1.645 c/b        0.608 b/c
+# umash32_hi               31 byte keys       59.901 c/h        1.932 c/b        0.518 b/c
+#                          Average < 32       42.069 c/h        2.714 c/b        0.368 b/c
+# umash32_hi               32 byte keys       46.003 c/h        1.438 c/b        0.696 b/c
+# umash32_hi               36 byte keys       51.000 c/h        1.417 c/b        0.706 b/c
+# umash32_hi               40 byte keys       62.153 c/h        1.554 c/b        0.644 b/c
+# umash32_hi               44 byte keys       62.812 c/h        1.428 c/b        0.700 b/c
+# umash32_hi               48 byte keys       63.543 c/h        1.324 c/b        0.755 b/c
+# umash32_hi               52 byte keys       68.631 c/h        1.320 c/b        0.758 b/c
+# umash32_hi               56 byte keys       64.647 c/h        1.154 c/b        0.866 b/c
+# umash32_hi               60 byte keys       67.427 c/h        1.124 c/b        0.890 b/c
+# umash32_hi               64 byte keys       67.848 c/h        1.060 c/b        0.943 b/c
+# umash32_hi               68 byte keys       78.274 c/h        1.151 c/b        0.869 b/c
+# umash32_hi               72 byte keys       77.352 c/h        1.074 c/b        0.931 b/c
+# umash32_hi               76 byte keys       84.854 c/h        1.116 c/b        0.896 b/c
+# umash32_hi               80 byte keys       87.234 c/h        1.090 c/b        0.917 b/c
+# umash32_hi               84 byte keys       76.643 c/h        0.912 c/b        1.096 b/c
+# umash32_hi               88 byte keys       74.988 c/h        0.852 c/b        1.174 b/c
+# umash32_hi               92 byte keys       76.651 c/h        0.833 c/b        1.200 b/c
+# umash32_hi               96 byte keys       76.656 c/h        0.798 c/b        1.252 b/c
+# umash32_hi              100 byte keys       83.578 c/h        0.836 c/b        1.196 b/c
+# umash32_hi              104 byte keys       83.585 c/h        0.804 c/b        1.244 b/c
+# umash32_hi              108 byte keys       90.202 c/h        0.835 c/b        1.197 b/c
+# umash32_hi              112 byte keys       86.098 c/h        0.769 c/b        1.301 b/c
+# umash32_hi              116 byte keys       97.086 c/h        0.837 c/b        1.195 b/c
+# umash32_hi              120 byte keys       94.033 c/h        0.784 c/b        1.276 b/c
+# umash32_hi              124 byte keys       87.474 c/h        0.705 c/b        1.418 b/c
+#                         Average < 128       56.339 c/h        1.332 c/b        0.751 b/c
+# umash32_hi              128 byte keys       87.852 c/h        0.686 c/b        1.457 b/c
+# umash32_hi              256 byte keys      153.086 c/h        0.598 c/b        1.672 b/c
+# umash32_hi              512 byte keys      236.417 c/h        0.462 c/b        2.166 b/c
+# umash32_hi             1024 byte keys      326.273 c/h        0.319 c/b        3.138 b/c
+# umash32_hi             2048 byte keys      548.879 c/h        0.268 c/b        3.731 b/c
+# umash32_hi             4096 byte keys      910.506 c/h        0.222 c/b        4.499 b/c
+# umash32_hi             8192 byte keys     1258.340 c/h        0.154 c/b        6.510 b/c
+# umash32_hi            16384 byte keys     1878.995 c/h        0.115 c/b        8.720 b/c
+# umash32_hi            32768 byte keys     4708.344 c/h        0.144 c/b        6.960 b/c
+# umash32_hi            65536 byte keys    10821.609 c/h        0.165 c/b        6.056 b/c
+#                       Overall Average      364.929 c/h        0.181 c/b        5.535 b/c
 ok 6 - Speed (always passes) # umash32_hi
 ### Differential Tests ###
 # Testing 8303632 up-to-5-bit differentials in 64-bit keys -> 32 bit hashes.
@@ -111,7 +111,7 @@ ok 12 - ProcessDifferentials
 # 1000 reps, 2796416000 total tests, expecting 0.65 random collisions..........
 ok 13 - Differential collisions # umash32_hi
 ok 14 - Nothing skipped during differential collision check # umash32_hi
-# 0 total collisions, of which 0 single collisions were ignored
+# 1 total collisions, of which 1 single collisions were ignored
 ok 15 - ProcessDifferentials
 ok 16 - Differential # umash32_hi
 ### Differential Distribution Tests ###
@@ -2584,25 +2584,25 @@ ok 160 - Strict Avalanche Criteria - 112 bit/14 byte keys # umash32_hi
 ok 161 - Strict Avalanche Criteria - 120 bit/15 byte keys # umash32_hi
 # Testing 128-bit keys.......... ok.     # worst-bit:   0.607% error-ratio: 1.017534e+00
 ok 162 - Strict Avalanche Criteria - 128 bit/16 byte keys # umash32_hi
-# Testing 136-bit keys.......... ok.     # worst-bit:   0.589% error-ratio: 1.005546e+00
+# Testing 136-bit keys.......... ok.     # worst-bit:   0.626% error-ratio: 1.005509e+00
 ok 163 - Strict Avalanche Criteria - 136 bit/17 byte keys # umash32_hi
-# Testing 144-bit keys.......... ok.     # worst-bit:   0.702% error-ratio: 9.989305e-01
+# Testing 144-bit keys.......... ok.     # worst-bit:   0.638% error-ratio: 1.025289e+00
 ok 164 - Strict Avalanche Criteria - 144 bit/18 byte keys # umash32_hi
-# Testing 152-bit keys.......... ok.     # worst-bit:   0.578% error-ratio: 1.004091e+00
+# Testing 152-bit keys.......... ok.     # worst-bit:   0.596% error-ratio: 9.712691e-01
 ok 165 - Strict Avalanche Criteria - 152 bit/19 byte keys # umash32_hi
-# Testing 152-bit keys.......... ok.     # worst-bit:   0.571% error-ratio: 9.762624e-01
+# Testing 152-bit keys.......... ok.     # worst-bit:   0.657% error-ratio: 1.020831e+00
 ok 166 - Strict Avalanche Criteria - 152 bit/19 byte keys # umash32_hi
-# Testing 200-bit keys.......... ok.     # worst-bit:   0.674% error-ratio: 9.893136e-01
+# Testing 200-bit keys.......... ok.     # worst-bit:   0.572% error-ratio: 1.011707e+00
 ok 167 - Strict Avalanche Criteria - 200 bit/25 byte keys # umash32_hi
-# Testing 256-bit keys.......... ok.     # worst-bit:   0.616% error-ratio: 1.022249e+00
+# Testing 256-bit keys.......... ok.     # worst-bit:   0.607% error-ratio: 1.010415e+00
 ok 168 - Strict Avalanche Criteria - 256 bit/32 byte keys # umash32_hi
-# Testing 520-bit keys.......... ok.     # worst-bit:   0.704% error-ratio: 1.001771e+00
+# Testing 520-bit keys.......... ok.     # worst-bit:   0.655% error-ratio: 1.007165e+00
 ok 169 - Strict Avalanche Criteria - 520 bit/65 byte keys # umash32_hi
-# Testing 512-bit keys.......... ok.     # worst-bit:   0.637% error-ratio: 1.021347e+00
+# Testing 512-bit keys.......... ok.     # worst-bit:   0.662% error-ratio: 1.009906e+00
 ok 170 - Strict Avalanche Criteria - 512 bit/64 byte keys # umash32_hi
-# Testing 1024-bit keys.......... ok.     # worst-bit:   0.759% error-ratio: 9.963798e-01
+# Testing 1024-bit keys.......... ok.     # worst-bit:   0.629% error-ratio: 9.967796e-01
 ok 171 - Strict Avalanche Criteria - 1024 bit/128 byte keys # umash32_hi
-# Testing 2048-bit keys.......... ok.     # worst-bit:   0.707% error-ratio: 9.851191e-01
+# Testing 2048-bit keys.......... ok.     # worst-bit:   0.633% error-ratio: 1.001908e+00
 ok 172 - Strict Avalanche Criteria - 2048 bit/256 byte keys # umash32_hi
 ### Bit Independence Criteria ###
 ...........
@@ -3137,23 +3137,23 @@ ok 172 - Strict Avalanche Criteria - 2048 bit/256 byte keys # umash32_hi
 ok 173 - Bit Independence Criteria (BicTest3) # umash32_hi
 ### Keyset 'Cyclic' Tests ###
 # Keyset 'Cyclic' - 8 cycles of 4 bytes - 10000000 keys
-# Testing collisions   - Expected 11641.53, actual    11508 ( 0.99x) - passed
+# Testing collisions   - Expected 11641.53, actual    11608 ( 1.00x) - passed
 ok 174 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 4 bytes - 10000000 keys
 ok 175 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 4 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 5 bytes - 10000000 keys
-# Testing collisions   - Expected 11641.53, actual    11523 ( 0.99x) - passed
+# Testing collisions   - Expected 11641.53, actual    11465 ( 0.98x) - passed
 ok 176 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 5 bytes - 10000000 keys
 ok 177 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 5 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 6 bytes - 10000000 keys
-# Testing collisions   - Expected 11641.53, actual    11636 ( 1.00x) - passed
+# Testing collisions   - Expected 11641.53, actual    11501 ( 0.99x) - passed
 ok 178 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 6 bytes - 10000000 keys
 ok 179 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 6 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 7 bytes - 10000000 keys
-# Testing collisions   - Expected 11641.53, actual    11637 ( 1.00x) - passed
+# Testing collisions   - Expected 11641.53, actual    11652 ( 1.00x) - passed
 ok 180 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 7 bytes - 10000000 keys
 ok 181 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 7 bytes - 10000000 keys
 # Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
-# Testing collisions   - Expected 11641.53, actual    11805 ( 1.01x) - passed
+# Testing collisions   - Expected 11641.53, actual    11725 ( 1.01x) - passed
 ok 182 - Collision Rate for Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
 ok 183 - Distribution Bias Check for Keyset 'Cyclic' - 8 cycles of 8 bytes - 10000000 keys
 ok 184 - Keyset 'Cyclic' # umash32_hi
@@ -3170,29 +3170,29 @@ ok 190 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-12-byte keys, 186
 # Testing collisions   - Expected 227963.15, actual   226815 ( 0.99x) - passed
 ok 191 - Collision Rate for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
 ok 192 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-16-byte keys, 44251425 total keys
-# Testing collisions   - Expected 871784.70, actual   865870 ( 0.99x) - passed
+# Testing collisions   - Expected 871784.70, actual   865858 ( 0.99x) - passed
 ok 193 - Collision Rate for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
 ok 194 - Distribution Bias Check for Keyset 'TwoBytes' - up-to-20-byte keys, 86536545 total keys
 ok 195 - Keyset 'TwoBytes' # umash32_hi
 ### Keyset 'Sparse' Tests ###
 # Keyset 'Sparse' - 4096-bit keys with up to 2 bits set - 8390657 keys
-# Testing collisions   - Expected  8196.00, actual     8116 ( 0.99x) - passed
+# Testing collisions   - Expected  8196.00, actual     8251 ( 1.01x) - passed
 ok 196 - Collision Rate for Keyset 'Sparse' - 4096-bit keys with up to 2 bits set
 ok 197 - Distribution Bias Check for Keyset 'Sparse' - 4096-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 2048-bit keys with up to 2 bits set - 2098177 keys
-# Testing collisions   - Expected   512.50, actual      516 ( 1.01x) - passed
+# Testing collisions   - Expected   512.50, actual      502 ( 0.98x) - passed
 ok 198 - Collision Rate for Keyset 'Sparse' - 2048-bit keys with up to 2 bits set
 ok 199 - Distribution Bias Check for Keyset 'Sparse' - 2048-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 1024-bit keys with up to 2 bits set - 524801 keys
-# Testing collisions   - Expected    32.06, actual       36 ( 1.12x) - passed
+# Testing collisions   - Expected    32.06, actual       42 ( 1.31x) - passed
 ok 200 - Collision Rate for Keyset 'Sparse' - 1024-bit keys with up to 2 bits set
 ok 201 - Distribution Bias Check for Keyset 'Sparse' - 1024-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 512-bit keys with up to 2 bits set - 131329 keys
-# Testing collisions   - Expected     2.01, actual        1 ( 0.50x) - passed
+# Testing collisions   - Expected     2.01, actual        3 ( 1.49x) - passed
 ok 202 - Collision Rate for Keyset 'Sparse' - 512-bit keys with up to 2 bits set
 ok 203 - Distribution Bias Check for Keyset 'Sparse' - 512-bit keys with up to 2 bits set
 # Keyset 'Sparse' - 256-bit keys with up to 3 bits set - 2796417 keys
-# Testing collisions   - Expected   910.36, actual      895 ( 0.98x) - passed
+# Testing collisions   - Expected   910.36, actual      934 ( 1.03x) - passed
 ok 204 - Collision Rate for Keyset 'Sparse' - 256-bit keys with up to 3 bits set
 ok 205 - Distribution Bias Check for Keyset 'Sparse' - 256-bit keys with up to 3 bits set
 # Keyset 'Sparse' - 32-bit keys with up to 6 bits set - 1149017 keys
@@ -3222,112 +3222,112 @@ ok 217 - Distribution Bias Check for Keyset 'Sparse' - 96-bit keys with up to 4 
 ok 218 - Keyset 'Sparse' # umash32_hi
 ### Keyset 'Crc-MultiCollision' Tests ###
 # Keyset 'Crc(a)-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
-# Testing collisions   - Expected   128.00, actual      129 ( 1.01x) - passed
+# Testing collisions   - Expected   128.00, actual      121 ( 0.95x) - passed
 ok 219 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 1 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
+# Testing collisions   - Expected   128.00, actual      131 ( 1.02x) - passed
 ok 220 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 2 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      135 ( 1.05x) - passed
+# Testing collisions   - Expected   128.00, actual      100 ( 0.78x) - passed
 ok 221 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 3 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      115 ( 0.90x) - passed
+# Testing collisions   - Expected   128.00, actual      123 ( 0.96x) - passed
 ok 222 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 4 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      122 ( 0.95x) - passed
+# Testing collisions   - Expected   128.00, actual      128 ( 1.00x) - passed
 ok 223 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 5 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      138 ( 1.08x) - passed
-ok 224 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 6 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      120 ( 0.94x) - passed
-ok 225 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 7 # umash32_hi
 # Testing collisions   - Expected   128.00, actual      151 ( 1.18x) - passed
+ok 224 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 6 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      121 ( 0.95x) - passed
+ok 225 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 7 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      142 ( 1.11x) - passed
 ok 226 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 8 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      144 ( 1.13x) - passed
+# Testing collisions   - Expected   128.00, actual      146 ( 1.14x) - passed
 ok 227 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 9 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      117 ( 0.91x) - passed
+# Testing collisions   - Expected   128.00, actual      118 ( 0.92x) - passed
 ok 228 - Collision Rate for Keyset 'Crc(a)-MultiCollision' - seed 10 # umash32_hi
 # Keyset 'Crc(b)-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
-# Testing collisions   - Expected   128.00, actual      124 ( 0.97x) - passed
+# Testing collisions   - Expected   128.00, actual      122 ( 0.95x) - passed
 ok 229 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 1 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      102 ( 0.80x) - passed
+# Testing collisions   - Expected   128.00, actual      114 ( 0.89x) - passed
 ok 230 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 2 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      127 ( 0.99x) - passed
+# Testing collisions   - Expected   128.00, actual      122 ( 0.95x) - passed
 ok 231 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 3 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      131 ( 1.02x) - passed
-ok 232 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 4 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      153 ( 1.20x) - passed
-ok 233 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 5 # umash32_hi
 # Testing collisions   - Expected   128.00, actual      136 ( 1.06x) - passed
+ok 232 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 4 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      131 ( 1.02x) - passed
+ok 233 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 5 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      120 ( 0.94x) - passed
 ok 234 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 6 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      124 ( 0.97x) - passed
-ok 235 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 7 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      119 ( 0.93x) - passed
-ok 236 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 8 # umash32_hi
 # Testing collisions   - Expected   128.00, actual      128 ( 1.00x) - passed
+ok 235 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 7 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      139 ( 1.09x) - passed
+ok 236 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 8 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      135 ( 1.05x) - passed
 ok 237 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 9 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      123 ( 0.96x) - passed
+# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
 ok 238 - Collision Rate for Keyset 'Crc(b)-MultiCollision' - seed 10 # umash32_hi
 ### Keyset 'Murmur2-MultiCollision' Tests ###
 # Keyset 'Murmur2-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
-# Testing collisions   - Expected   128.00, actual      125 ( 0.98x) - passed
+# Testing collisions   - Expected   128.00, actual      106 ( 0.83x) - passed
 ok 239 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 1 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      119 ( 0.93x) - passed
+# Testing collisions   - Expected   128.00, actual      118 ( 0.92x) - passed
 ok 240 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 2 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      127 ( 0.99x) - passed
+# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
 ok 241 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 3 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      135 ( 1.05x) - passed
+# Testing collisions   - Expected   128.00, actual      134 ( 1.05x) - passed
 ok 242 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 4 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      149 ( 1.16x) - passed
+# Testing collisions   - Expected   128.00, actual      129 ( 1.01x) - passed
 ok 243 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 5 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      161 ( 1.26x) - passed
+# Testing collisions   - Expected   128.00, actual      141 ( 1.10x) - passed
 ok 244 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 6 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      113 ( 0.88x) - passed
+# Testing collisions   - Expected   128.00, actual      138 ( 1.08x) - passed
 ok 245 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 7 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      133 ( 1.04x) - passed
+# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
 ok 246 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 8 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      116 ( 0.91x) - passed
+# Testing collisions   - Expected   128.00, actual      123 ( 0.96x) - passed
 ok 247 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 9 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      117 ( 0.91x) - passed
+# Testing collisions   - Expected   128.00, actual      115 ( 0.90x) - passed
 ok 248 - Collision Rate for Keyset 'Murmur2-MultiCollision' - seed 10 # umash32_hi
 ### Keyset 'Murmur3A-MultiCollision' Tests ###
 # Keyset 'Murmur3A-MultiCollision' - 1048575 x 16 block keys - 128-bytes long - 10 seeds
-# Testing collisions   - Expected   128.00, actual      138 ( 1.08x) - passed
+# Testing collisions   - Expected   128.00, actual      122 ( 0.95x) - passed
 ok 249 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 1 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      136 ( 1.06x) - passed
+# Testing collisions   - Expected   128.00, actual      126 ( 0.98x) - passed
 ok 250 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 2 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      123 ( 0.96x) - passed
+# Testing collisions   - Expected   128.00, actual      130 ( 1.02x) - passed
 ok 251 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 3 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      109 ( 0.85x) - passed
+# Testing collisions   - Expected   128.00, actual      136 ( 1.06x) - passed
 ok 252 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 4 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      121 ( 0.95x) - passed
+# Testing collisions   - Expected   128.00, actual      141 ( 1.10x) - passed
 ok 253 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 5 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      109 ( 0.85x) - passed
+# Testing collisions   - Expected   128.00, actual      145 ( 1.13x) - passed
 ok 254 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 6 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      120 ( 0.94x) - passed
+# Testing collisions   - Expected   128.00, actual      116 ( 0.91x) - passed
 ok 255 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 7 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      157 ( 1.23x) - passed
+# Testing collisions   - Expected   128.00, actual      131 ( 1.02x) - passed
 ok 256 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 8 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      123 ( 0.96x) - passed
+# Testing collisions   - Expected   128.00, actual      131 ( 1.02x) - passed
 ok 257 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 9 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      129 ( 1.01x) - passed
+# Testing collisions   - Expected   128.00, actual      132 ( 1.03x) - passed
 ok 258 - Collision Rate for Keyset 'Murmur3A-MultiCollision' - seed 10 # umash32_hi
 ### Keyset 'Murmur3F-MultiCollision' Tests ###
 # Keyset 'Murmur3F-MultiCollision' - 1048575 x 16 block keys - 512-bytes long - 10 seeds
-# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
+# Testing collisions   - Expected   128.00, actual      134 ( 1.05x) - passed
 ok 259 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 1 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      130 ( 1.02x) - passed
+# Testing collisions   - Expected   128.00, actual      109 ( 0.85x) - passed
 ok 260 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 2 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      150 ( 1.17x) - passed
+# Testing collisions   - Expected   128.00, actual      113 ( 0.88x) - passed
 ok 261 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 3 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
+# Testing collisions   - Expected   128.00, actual      140 ( 1.09x) - passed
 ok 262 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 4 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      133 ( 1.04x) - passed
+# Testing collisions   - Expected   128.00, actual      114 ( 0.89x) - passed
 ok 263 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 5 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      142 ( 1.11x) - passed
+# Testing collisions   - Expected   128.00, actual      137 ( 1.07x) - passed
 ok 264 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 6 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      136 ( 1.06x) - passed
-ok 265 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 7 # umash32_hi
 # Testing collisions   - Expected   128.00, actual      122 ( 0.95x) - passed
+ok 265 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 7 # umash32_hi
+# Testing collisions   - Expected   128.00, actual      127 ( 0.99x) - passed
 ok 266 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 8 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      126 ( 0.98x) - passed
+# Testing collisions   - Expected   128.00, actual      131 ( 1.02x) - passed
 ok 267 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 9 # umash32_hi
-# Testing collisions   - Expected   128.00, actual      125 ( 0.98x) - passed
+# Testing collisions   - Expected   128.00, actual      123 ( 0.96x) - passed
 ok 268 - Collision Rate for Keyset 'Murmur3F-MultiCollision' - seed 10 # umash32_hi
 ### Keyset 'City64-MultiCollision' Tests ###
 # Keyset 'City64-MultiCollision' - 10 x 2 block keys - 16-bytes long - 10 seeds
@@ -3353,37 +3353,37 @@ ok 277 - Collision Rate for Keyset 'City64-MultiCollision' - seed 9 # umash32_hi
 ok 278 - Collision Rate for Keyset 'City64-MultiCollision' - seed 10 # umash32_hi
 ### Keyset 'Combination Lowbits' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
-# Testing collisions   - Expected 42799.01, actual    42762 ( 1.00x) - passed
+# Testing collisions   - Expected 42799.01, actual    42908 ( 1.00x) - passed
 ok 279 - Collision Rate for Keyset 'Combination Lowbits'
 ok 280 - Distribution Bias Check for Keyset 'Combination Lowbits'
 ok 281 - Keyset 'Combination Lowbits' # umash32_hi
 ### Keyset 'Combination Highbits' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
-# Testing collisions   - Expected 42799.01, actual    42825 ( 1.00x) - passed
+# Testing collisions   - Expected 42799.01, actual    42690 ( 1.00x) - passed
 ok 282 - Collision Rate for Keyset 'Combination Highbits'
 ok 283 - Distribution Bias Check for Keyset 'Combination Highbits'
 ok 284 - Keyset 'Combination Highbits' # umash32_hi
 ### Keyset 'Combination Highbits2' Tests ###
 # Keyset 'Combination' - up to 8 blocks from a set of 8 - 19173960 keys
-# Testing collisions   - Expected 42799.01, actual    42975 ( 1.00x) - passed
+# Testing collisions   - Expected 42799.01, actual    42640 ( 1.00x) - passed
 ok 285 - Collision Rate for Keyset 'Combination Highbits2'
 ok 286 - Distribution Bias Check for Keyset 'Combination Highbits2'
 ok 287 - Keyset 'Combination Highbits2' # umash32_hi
 ### Keyset 'Combination HiBit-Null' Tests ###
 # Keyset 'Combination' - up to 20 blocks from a set of 2 - 2097150 keys
-# Testing collisions   - Expected   512.00, actual      484 ( 0.95x) - passed
+# Testing collisions   - Expected   512.00, actual      516 ( 1.01x) - passed
 ok 288 - Collision Rate for Keyset 'Combination HiBit-Null'
 ok 289 - Distribution Bias Check for Keyset 'Combination HiBit-Null'
 ok 290 - Keyset 'Combination HiBit-Null' # umash32_hi
 ### Keyset 'Combination LowBit-Null' Tests ###
 # Keyset 'Combination' - up to 20 blocks from a set of 2 - 2097150 keys
-# Testing collisions   - Expected   512.00, actual      517 ( 1.01x) - passed
+# Testing collisions   - Expected   512.00, actual      497 ( 0.97x) - passed
 ok 291 - Collision Rate for Keyset 'Combination LowBit-Null'
 ok 292 - Distribution Bias Check for Keyset 'Combination LowBit-Null'
 ok 293 - Keyset 'Combination LowBit-Null' # umash32_hi
 ### Keyset 'Combination Hi-Lo' Tests ###
 # Keyset 'Combination' - up to 6 blocks from a set of 15 - 12204240 keys
-# Testing collisions   - Expected 17339.30, actual    17410 ( 1.00x) - passed
+# Testing collisions   - Expected 17339.30, actual    17321 ( 1.00x) - passed
 ok 294 - Collision Rate for Keyset 'Combination Hi-Lo'
 ok 295 - Distribution Bias Check for Keyset 'Combination Hi-Lo'
 ok 296 - Keyset 'Combination Hi-Lo' # umash32_hi
@@ -3601,17 +3601,17 @@ ok 433 - Distribution Bias Check for Keyset 'Text' - keys of form "[XXXX]FooBar"
 ok 434 - Keyset 'Text' # umash32_hi
 ### Keyset 'Zeroes' Tests ###
 # Keyset 'Zeroes' - 262144 keys, zero seed
-# Testing collisions   - Expected     8.00, actual        9 ( 1.13x) - passed
+# Testing collisions   - Expected     8.00, actual        5 ( 0.63x) - passed
 ok 435 - Collision Rate for Keyset 'Zeroes' - 262144 keys, zero seed
 ok 436 - Distribution Bias Check for Keyset 'Zeroes' - 262144 keys, zero seed
 # Keyset 'Zeroes' - 262144 keys, nonzero seed
-# Testing collisions   - Expected     8.00, actual        8 ( 1.00x) - passed
+# Testing collisions   - Expected     8.00, actual        6 ( 0.75x) - passed
 ok 437 - Collision Rate for Keyset 'Zeroes' - 262144 keys, nonzero seed
 ok 438 - Distribution Bias Check for Keyset 'Zeroes' - 262144 keys, nonzero seed
 ok 439 - Keyset 'Zeroes' # umash32_hi
 ### Keyset 'Seed' Tests ###
 # Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
-# Testing collisions   - Expected   465.66, actual      463 ( 0.99x) - passed
+# Testing collisions   - Expected   465.66, actual      457 ( 0.98x) - passed
 ok 440 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
 ok 441 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "The quick brown fox "...
 # Keyset 'Seed' - 2000000 seeds, Key ""
@@ -3619,11 +3619,11 @@ ok 441 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "The qui
 ok 442 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key ""
 ok 443 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key ""
 # Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
-# Testing collisions   - Expected   465.66, actual      446 ( 0.96x) - passed
+# Testing collisions   - Expected   465.66, actual      468 ( 1.01x) - passed
 ok 444 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
 ok 445 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "00101100110101101"
 # Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
-# Testing collisions   - Expected   465.66, actual      518 ( 1.11x) - passed
+# Testing collisions   - Expected   465.66, actual      452 ( 0.97x) - passed
 ok 446 - Collision Rate for Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
 ok 447 - Distribution Bias Check for Keyset 'Seed' - 2000000 seeds, Key "abcbcddbdebdcaaabaaa"...
 ok 448 - Keyset 'Seed' # umash32_hi
@@ -3633,17 +3633,17 @@ ok 448 - Keyset 'Seed' # umash32_hi
 ok 449 - Collision Rate for Keyset 'Effs' - 262144 keys, zero seed
 ok 450 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, zero seed
 # Keyset 'Effs' - 262144 keys, nonzero seed
-# Testing collisions   - Expected     8.00, actual       10 ( 1.25x) - passed
+# Testing collisions   - Expected     8.00, actual        4 ( 0.50x) - passed
 ok 451 - Collision Rate for Keyset 'Effs' - 262144 keys, nonzero seed
 ok 452 - Distribution Bias Check for Keyset 'Effs' - 262144 keys, nonzero seed
 ok 453 - Keyset 'Effs' # umash32_hi
 ### Keyset 'Words' Tests ###
 # Hashed 501909 keys from 167303 words from file '/usr/share/dict/words'
-# Testing collisions   - Expected    29.33, actual       26 ( 0.89x) - passed
+# Testing collisions   - Expected    29.33, actual       30 ( 1.02x) - passed
 ok 454 - Collision Rate for Keyset 'Words'
 ok 455 - Distribution Bias Check for Keyset 'Words'
 ok 456 - all tests passed # umash32_hi
 1..456
 # All Tests Passed. umash32_hi passed all 456 tests run.
-# Testing took 4349.520899 seconds
-# This is SMHasher version v1.3-demerphq-43-g0762887-dirty - built on Sep 22 2020.
+# Testing took 4869.753908 seconds
+# This is SMHasher version v1.3-demerphq-43-g0762887-dirty - built on Oct 12 2020.

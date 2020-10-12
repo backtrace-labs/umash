@@ -29,7 +29,7 @@
 ## -->
 ##
 ## UMASH is a string hash function with throughput---22 GB/s on a 2.5
-## GHz Xeon 8175M---and latency---9-22 ns for input sizes up to 64
+## GHz Xeon 8175M---and latency---9-20 ns for input sizes up to 64
 ## bytes on the same machine---comparable to that of
 ## performance-optimised hashes like
 ## [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
@@ -57,7 +57,7 @@
 ## hashed outputs, but does guarantee worst-case pair-wise
 ## collision bounds. For any two strings of $s$ bytes or fewer, the
 ## probability of them hashing to the same value satisfies
-## $\varepsilon < \lceil s / 2048\rceil \cdot 2^{-56},$ as long as the
+## $\varepsilon < \lceil s / 4096\rceil \cdot 2^{-55},$ as long as the
 ## key is generated uniformly at random.
 ## However, once a few collisions have been identified (e.g., through a
 ## timing side-channel in a hash table), the linearity of the hash
@@ -71,20 +71,19 @@
 ## [Dai and Krovetz's VHASH](https://eprint.iacr.org/2007/338.pdf),
 ## with parameters weakened to improve speed at the expense of
 ## collision rate, and the [`NH` block compressor](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12)
-## replaced with
-## [`PH`, its equivalent in 128-bit carry-less arithmetic](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf).
-## This construction has been re-derived and baptised multiple times,
-## recently as `CLNH` by
-## [Lemire and Kaser](https://arxiv.org/abs/1503.03465);
-## [Bernstein](http://cr.yp.to/antiforgery/pema-20071022.pdf#page=6)
-## dates it back to 1968.
+## replaced with a (unfortunately) bespoke hybrid compressor `OH`
+## (`OH` because `O` is the letter between `N` and `P`).
 ##
 ## UMASH splits an input string into a sequence of blocks
-## $\mathbf{M}$; the first-level `PH` hash further decomposes each
-## block $\mathbf{M}_i$ of 256 bytes into $m$, a sequence of 64-bit
-## integers. The final block may be short, in which case the blocking
+## $\mathbf{M}$; the first-level `OH` hash further decomposes each
+## block $\mathbf{M}_i$ of 256 bytes into $m$, a sequence of 16-byte
+## chunks. The final block may be short, in which case the blocking
 ## logic may include redundant data to ensure that the final block's
-## size is a multiple of 16 bytes (two 64-bit integers).
+## size is a multiple of 16 bytes.
+##
+## Each block is compressed to 16 bytes with `OH`. The resulting
+## outputs are then fed to a Carter-Wegman polynomial hash function,
+## and the accumulator reversibly finalised to obtain a UMASH value.
 ##
 ## Note that, while the analysis below assumes a modulus of $M_{61} =
 ## 2^{61} - 1$ for the polynomial hash, the implementation actually works
@@ -92,46 +91,231 @@
 ## collision probability, but obviously affects the exact hash values
 ## computed by the function.
 ##
-## The first-level compression function is sampled from
-## [the `PH` family](https://digitalcommons.wpi.edu/etd-theses/437/)
-## with word size $w = 64$ bits and a block size of 256 bytes.
-## The `PH` family of function is parameterised on $k$, an array of
-## randomly chosen $w$-bit words, and implements the following sum in
-## $2w$-bit carry-less arithmetic, for even input size $|m| \leq |k|$:
+## The first-level compression function is sampled from the `OH`
+## family with word size $w = 64$ bits and a block size of 256 bytes.
+##
+## That compression function relies on
+## [`PH`, the equivalent of `NH` in 128-bit carry-less arithmetic](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf)
+## for all but the last iteration, which instead mixes the
+## remaining 16-byte chunk with [`NH`](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12).
+##
+## The core  [`PH` construction](https://digitalcommons.wpi.edu/etd-theses/437/))
+## has been re-derived and baptised multiple times, recently as `CLNH`
+## by [Lemire and Kaser](https://arxiv.org/abs/1503.03465);
+## [Bernstein](http://cr.yp.to/antiforgery/pema-20071022.pdf#page=6)
+## dates it back to 1968.  Compared to `NH`, `PH` offers higher
+## throughput on higher-end contemporary cores, but worse latency;
+## that's why `OH` switches to `NH` for the last iteration.
+##
+## For a given 16-byte chunk $m_i$, we parameterised `PH` on a 16-byte
+## key $k_i$ as
 ##
 ## $$
-## \texttt{PH}_k(m) =
-##     \bigoplus_{i = 0}^{|m| / 2 - 1} (m_{2i} \oplus k_{2i}) \cdot (m_{2i + 1} \oplus k_{2i + 1}).
+## \texttt{PH}_{k_i}(m_i) = (m_i^{hi} \oplus k_i^{hi}) \odot (m_i^{lo} \oplus k_i^{lo}),
 ## $$
 ##
-## For notational convenience, we will assume that the result of `PH`
-## is recast from a bitvector to a $2w$-bit unsigned integer.  Note
-## how the ring of polynomials over $\mathrm{GF}(2)$, while similar to
-## $\mathrm{GF}(2^{2w})$, does not ever reduce the result of a
-## multiplication: we only multiply $w$-bit values, so the final
-## result always fits in $2w$ bits.
+## where $\cdot^{hi}$ is the high 8-byte (64-bit) half of a 16-byte
+## value, and $\cdot^{lo}$ the low 8-byte half, and product is in 128-bit
+## carry-less arithmetic.  This family of hash functions mixes
+## pairs of $w = 64$ bit values into $2w$-bit hashes that are
+## $(2^{-w} = 2^{-64})-$almost-XOR-universal.
 ##
-## When the key words $k_i$ are uniformly chosen from $[0, 2^w)$ at
-## random, the probability that two different blocks $m$ and
-## $m^\prime$ yield the same $2w$-bit `PH` hash value is at most
-## $2^{-w}$. In UMASH, `PH` works with $|k| = 32$ words of $64$ bit
-## each, yielding a collision probability of $2^{-64}.$
+## This last property means that, not only are two different 16-byte
+## chunks unlikely to collide (i.e.,
+## $P[\texttt{PH}_{k_i}(x) = \texttt{PH}_{k_i}(y)] \leq 2^{-64}$
+## for $x \neq y$), but in fact any specific difference
+## $\Delta_{\texttt{XOR}}$ is also unlikely:
+##
+## $$P[\texttt{PH}_{k_i}(x) \oplus \texttt{PH}_{k_i}(y) = \Delta_{\texttt{XOR}}] \leq 2^{-64}.$$
+##
+## Almost-XOR-universality lets us
+## [combine multiple `PH`-mixed values](https://arxiv.org/pdf/1503.03465.pdf#page=6)
+## with bitwise `xor` ($\oplus$) while preserving
+## $2^{-64}-$almost-XOR-universality for the final result.
+##
+## The final `NH` step is similar, except in mixed-width modular
+## arithmetic:
+##
+## $$
+## \texttt{NH}_{k_j}(m_j) = (m_j^{hi} +_{64} k_j^{hi}) \cdot_{128} (m_j^{lo} +_{64} k_j^{lo}),
+## $$
+##
+## where $+_{64}$ denotes 64-bit modular addition, and $\cdot_{128}$
+## a full $64 \times 64 \rightarrow 128$-bit multiplication.
+##
+## This family of hash function mixes 128-bit (16-byte) values into
+## 128-bit hashes that are $2^{-64}-$almost-$\Delta$-unversal: For
+## any $x \neq y$, any specific difference $\Delta$ between
+## $\texttt{NH}_k(x)$ and $\texttt{NH}_k(y)$ satisfies
+##
+## $$
+## P[\texttt{PH}_{k_j}(x) -_{128} \texttt{PH}_{k_j}(y) = \Delta] \leq 2^{-64},
+## $$
+##
+## where $-_{128}$ denotes modular 128-bit subtraction.
+##
+## Let $m$ be a block of $n \geq 1$ 16-byte chunks, and $t$ an
+## arbitrary 128-bit tag; the `OH` hash of $m$ and $t$ for a given
+## parameter vector $k$ is
+##
+## $$
+## \texttt{OH}_k(m) = \left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(m_i) \right) \oplus (\texttt{NH}_{k_n}(m_n) +_{128} t).
+## $$
+##
+## We will use the tag $t$ to encode the initial block size, before
+## expansion to a round number of chunks, and thus prevent length
+## extension attacks.
+##
+## Having defined `OH`, we must now show that it is a universal hash
+## for non-empty vectors of up to 16 chunks of 16 bytes each, and that
+## a Toeplitz extension with a 2-chunk (4-word) shift independently
+## satisfies the same collision bound. When doing so, we must also
+## remember to take into account the public nature of the procedure we
+## use to expand the final block to full 16-byte chunks.
+##
+## Since we only expand the final block to a round number of chunks,
+## but not necessarily to a full block of 16 chunks, we must split our
+## analysis of the universality bound in two main cases:
+##
+## - input $x$ comprises more chunks than $y$ (which symmetrically covers
+##   the opposite case)
+## - the two differing inputs $x$ and $y$ expand to the same number of chunks
+##
+## In the first case, with different sizes, we assume without loss of
+## generality that $x$ comprises more 16-byte chunks that $y$, i.e.,
+## $|x| > |y|.$
+##
+## Let $h_y = \texttt{OH}_k(y)$ be the hash value for $y$, given a
+## fixed vector of parameters $k$.  We wish to bound the probability
+## that $h_x = \texttt{OH}_k(x) = h_y;$ we can easily do so by noting
+## that $h_y$ only considered the first $|y| < |x|$ 16-byte parameters
+## in $k$.  This means the last `NH` step in $h_x$ is independent of
+## $h_y$.  Let $n = |x|$ and $t_x$ be the tag for the initial byte
+## size of $x$, before expansion to complete chunks; for $h_x$ to
+## equal $h_y$, we must find
+##
+## $$
+## \begin{align*}
+## &\left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(x_n) +_{128} t_x).&= h_y \\
+## \Leftrightarrow & \texttt{NH}_{k_n}(m_n) = (h_y -_{128} t_x) \oplus \bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i)
+## \end{align*}
+## $$
+##
+## The parameters for the left-hand side `NH` step are independent of
+## everything on the right-hand side.  The probability of a collision
+## is thus equal to the probability that a randomly parameterised `NH`
+## yields an arbitrary 128-bit value.  The most likely value for `NH`
+## is $0$, with probability $2^{w - 1},$ i.e., $2^{-63}$ in our case
+## ($w = 64$).
+##
+## The probability of a collision between blocks of different lengths
+## is thus at most $2^[-63}.$
+##
+## For the Toeplitz extension case, we can similarly note that the
+## parameters for the final `NH` step in $x$ are independent of the
+## extension hash for $y$ and of everything in the collision bound
+## above.  We can thus apply the same reasoning, \textit{mutatis
+## mutandis}, for the case where we reuse all but the first (or any
+## other strictly positive number) chunks in the parameter vector $k$
+## and backfill more independently generated parameters at the end.
+##
+## When the two blocks $x$ and $y$ are expanded to a different number
+## of chunks, we find that `OH` collides with probability at most
+## $2^{-63}$, and that computing a second `OH` that reuses all but the
+## first parameter chunk gives us another independent collision
+## probability of at most $2^{-63}.$
+##
+## We now have to handle the case when the two blocks differ, but
+## expand the same number of chunks $|x| = |y|.$ The expansion
+## function is public, so it's trivial to construct messages that
+## differ, but are expand to the same block.  That's why we encode the
+## original byte size of each block in the tags $t_x$ and $t_y$.
+##
+## Assume $x = y$ after expansion.  Their sizes must differ, and thus
+## $t_x \neq t_y.$  In that case,
+##
+## $$
+## \texttt{OH}_k(x) = \left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(x_n) +_{128} t_x),
+## $$
+##
+## and, since $x = y$,
+##
+## $$
+## \texttt{OH}_k(y) = \left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(x_n) +_{128} t_y),
+## $$
+##
+## The two expressions are identical, except for $t_x \neq t_y,$ and
+## the two hashes thus always differ, regardless of the parameters $k.$
+##
+## Finally, we're left with the classic case, $x \neq y$ and $n = |x|
+## = |y|,$ and no constraint on the tags $t_x$ and $t_y.$
+##
+## Due to the heterogeneous nature of `OH`, we must further examine
+## two subcases:
+##
+## - the only difference between $x$ and $y$ is in the last chunk $x_n
+##   \neq y_n$
+## - there is a difference in the first $n - 1$ chunks (and the last
+##   chunks may still differ)
+##
+## When only the last chunks differ, the `PH` iterations in
+##
+## $$
+## \texttt{OH}_k(x) = \left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(x_n) +_{128} t_x),
+## $$
+##
+## and
+##
+## $$
+## \texttt{OH}_k(y) = \left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(y_n) +_{128} t_y),
+## $$
+##
+## are identical, since $\forall i < n,\, x_i = y_i.$  The two hashes
+## differ iff the
+## [`ENH` iterations](https://eprint.iacr.org/2004/319.pdf#page=4)
+## $\texttt{NH}() +_{128} t$ differ.  The `ENH` family is
+## $2^{-w$}-almost-universal (this directly follows from the
+## $2^{-w}-$almost-$\Delta$-universality of `NH`).
+##
+## We only considered the last parameter chunk in $k,$ so the same
+## reasoning applies independently for any Toeplitz extension shifted
+## by at least one chunk.
+##
+## In the last remaining subcase, we have a difference in the first $n
+## - 1$ chunks that are hashed with `PH`.  The `ENH` iterations are
+## independent of the first $n - 1$ parameters, so we can
+## directly rely on the $2^{-w}-$almost-XOR-universality of the `PH`
+## iterations to find a collision probability of $2^{-w} = 2^{-64}$
+## or less.
+##
+## We can also extend the Toeplitz extension proof of Krovetz for this
+## case.  Assume without loss of generality (apparently...) that the
+## last `PH` chunk $x_{n - 1}$ and $y_{n - 1}$ differ.  As long as the
+## extension is shifted by 2 or more chunks, the parameters for that
+## `PH` iteration are independent of the unshifted `OH` hash values;
+## we can thus derive a collision bound of at most $2^{-w} = 2^{-64}$
+## for the $2^{-w}-$almost-XOR-universality of `PH`.
+##
+## We had to enumerate a few cases, but we do find a collision
+## probability of at most $2^{-63}$ for `OH`, and the same
+## independent probability for a Toeplitz extended version, as long
+## as the extension skips two or more 16-byte parameter chunks.
 ##
 ## The second level is a
 ## [Carter-Wegman polynomial hash](https://www.cs.princeton.edu/courses/archive/fall09/cos521/Handouts/universalclasses.pdf)
 ## in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$ that consumes
-## one 64-bit half of the `PH` output at a time. In other words, given
-## the $i$th `PH`-compressed value $\texttt{PH}_k(\mathbf{M}_i)$, we
+## one 64-bit half of the `OH` output at a time. In other words, given
+## the $i$th `OH`-compressed value $\texttt{OH}_k(\mathbf{M}_i)$, we
 ## consume its 128-bit integer value by separately
-## feeding $\texttt{PH}_k(\mathbf{M}_i) \bmod 2^{64}$ and
-## $\lfloor \texttt{PH}_k(\mathbf{M}_i) / 2^{64}\rfloor$ to the
+## feeding $\texttt{OH}_k(\mathbf{M}_i) \bmod 2^{64}$ and
+## $\lfloor \texttt{OH}_k(\mathbf{M}_i) / 2^{64}\rfloor$ to the
 ## polynomial hash.
 ##
-## Let $n = |\mathbf{M}|$ be the number of `PH` blocks in the input,
+## Let $n = |\mathbf{M}|$ be the number of `OH` blocks in the input,
 ## and $y_j$, for $j < d = 2n$, be the stream of alternating low
-## ($\texttt{PH}_k(\mathbf{M}_{j / 2}) \bmod 2^{64}$) and high
-## ($\lfloor \texttt{PH}_k(\mathbf{M}_{(j - 1) / 2}) / 2^{64}\rfloor$)
-## 64-bit halves from `PH`'s outputs.
+## ($\texttt{OH}_k(\mathbf{M}_{j / 2}) \bmod 2^{64}$) and high
+## ($\lfloor \texttt{OH}_k(\mathbf{M}_{(j - 1) / 2}) / 2^{64}\rfloor$)
+## 64-bit halves from `OH`'s outputs.
 ## The polynomial hash is parameterised on a single multiplier $f \in
 ## \mathbb{F}$ and evaluates to
 ##
@@ -139,7 +323,7 @@
 ## CW_f(y) = \left(\sum_{j=0}^{d - 1} y_j \cdot f^{d - j}\right) \bmod 2^{61} - 1,
 ## $$
 ##
-## a polynomial of degree $d = 2n$, twice the number of `PH` blocks.
+## a polynomial of degree $d = 2n$, twice the number of `OH` blocks.
 ##
 ## Two streams of at most $d$ half-values $y$ and $y^\prime$ that
 ## differ in at least one place will evaluate to the same hash
@@ -177,48 +361,32 @@
 ## in the general case to satisfy SMHasher without impacting the
 ## collision bounds.
 ##
-## Longer strings of 9 or more bytes feed the result of `PH` to the
+## Longer strings of 9 or more bytes feed the result of `OH` to the
 ## polynomial hash in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$.
 ## When the input is of medium size $s \in [9, 16),$ it is expanded to
 ## 16 bytes by redundantly reading the first and last 8 bytes. In any
 ## case, the small modulus means polynomial hashing disregards
-## slightly more than 6 bits off each `PH` output. This conservatively
-## yields a collision probability less than $2^{-57}$ from `PH`; we
-## will prevent extension attacks by modifying `PH`'s output with the
+## slightly more than 6 bits off each `OH` output. This conservatively
+## yields a collision probability less than $2^{-56}$ from `OH`; we
+## will prevent extension attacks by making `OH`'s consume the
 ## block's original byte length.
 ##
 ## That's quickly dominated by the collision probability for the
 ## polynomial hash, $\varepsilon_{\mathbb{F}} < d / (2^{-61} - 2),$
 ## where $d = 2\lceil s / 256 \rceil.$ The worst-case collision
 ## probability is thus safely less than
-## $\lceil s / 2048\rceil \cdot 2^{-56}.$ That's still universal
+## $\lceil s / 4096\rceil \cdot 2^{-55}.$ That's still universal
 ## with collision probability $\varepsilon_{\textrm{long}} < 2^{-40}$
 ## for strings of 128 MB or less.
 ##
 ## Applications that need stronger guarantees should compute two
 ## independent UMASH values (for a total of 128 bits), while
-## [recycling most of the `PH` key array with a Toeplitz extension](https://eprint.iacr.org/2008/216.pdf#page=20).
-## A C implementation that simply fuses the `PH` inner loops achieves
-## a throughput of 10 GB/s and short-input latency of 10-28
+## [recycling most of the `OH` key array with a Toeplitz extension](https://eprint.iacr.org/2008/216.pdf#page=20).
+## A C implementation that simply fuses the `OH` inner loops achieves
+## a throughput of 11 GB/s and short-input latency of 9-21
 ## ns on a 2.5 GHz Xeon 8175M, more than twice as fast as classic
 ## options like hardware-accelerated SHA-256, SipHash-2-4, or even
 ## SipHash-1-3.
-##
-## # Mapping from `NH` to `PH`
-##
-## The design of VHASH relies on three important properties in `NH`:
-##
-## 1. `NH` is $2^{-64}$-almost-universal.  So is `PH`.
-## 2. `NH` is actually $2^{-64}$-almost-$\Delta$-universal.  [`PH` is
-##    $2^{-64}$-almost-XOR-universal](https://arxiv.org/abs/1503.03465).
-## 3. Independent `NH`s can be computed by reusing key material
-##    with a "Toeplitz extension." `PH` offers the same capability: we can
-##    adapt [Krovetz's proof](https://web.cs.ucdavis.edu/~rogaway/umac/umac_thesis.pdf#page=51)
-##    to [work with almost-XOR-universality](https://digitalcommons.wpi.edu/etd-theses/437/).
-##
-## As long as we remember to replace modular additions with bitwise
-## `xor`, UMASH can easily steal small implementation tricks from
-## VHASH.
 
 ## # Reference UMASH implementation in Python
 from collections import namedtuple
@@ -266,16 +434,16 @@ def gfmul(x, y):
 ##
 ## A UMASH key consists of one multiplier for polynomial hashing in
 ## $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z},$ and of 32
-## `PH` words of 64 bit each.
+## `OH` words of 64 bit each (16 chunks of 16 bytes each).
 ##
 ## The generation code uses rejection sampling to avoid weak keys: the
 ## polynomial key avoids $0$ (for which the hash function constantly
-## returns 0), while the `PH` keys avoid repeated values in order to
+## returns 0), while the `OH` keys avoid repeated values in order to
 ## protects against
 ## [known weaknesses](https://www.esat.kuleuven.be/cosic/publications/article-1150.pdf)
 ## in the extremely similar `NH`.
 
-UmashKey = namedtuple("UmashKey", ["poly", "ph"])
+UmashKey = namedtuple("UmashKey", ["poly", "oh"])
 
 
 def is_acceptable_multiplier(m):
@@ -289,13 +457,13 @@ def generate_key(random=random.SystemRandom()):
     poly = 0
     while not is_acceptable_multiplier(poly):
         poly = random.getrandbits(61)
-    ph = []
+    oh = []
     for _ in range(2 * BLOCK_SIZE):
         u64 = None
-        while u64 is None or u64 in ph:
+        while u64 is None or u64 in oh:
             u64 = random.getrandbits(64)
-        ph.append(u64)
-    return UmashKey(poly, ph)
+        oh.append(u64)
+    return UmashKey(poly, oh)
 
 
 ## # Short input hash
@@ -356,9 +524,9 @@ def vec_to_u64(buf):
 ##
 ## Every step after `vec_to_u64` is reversible, so inputs of the same
 ## byte length $\leq 8$ will never collide. Moreover, a random value
-## from the `PH` key is injected in the process; while each step is
+## from the `OH` key is injected in the process; while each step is
 ## trivial to invert, the additional `xor` is only invertible if we
-## know the random `PH` key.
+## know the random `OH` key.
 ##
 ## Two values of the same size never collide. Two values $x$ and $y$
 ## of different lengths collide iff $k_{\texttt{len}(x)} \oplus
@@ -366,11 +534,12 @@ def vec_to_u64(buf):
 ## difference between $x$ and $y$ after partial mixing. This happens
 ## with probability $2^{-64}.$
 ##
-## When we use a Toeplitz extension to generate a second `PH` key,
+## When we use a Toeplitz extension to generate a second `OH` key,
 ## collisions for the first and second keys are independent:
 ## $k_{\texttt{len}(x)} \oplus k_{\texttt{len}(y)}$ and
 ## $k_{\texttt{len}(x) + S} \oplus k_{\texttt{len}(y) + S}$ are
-## independent for shift constant $S > 0$ (we use $S = 4$).
+## independent for chunk shift constant $S \geq 2$ (we use $S = 2$,
+## i.e., four 64-bit words).
 
 
 def umash_short(key, seed, buf):
@@ -380,7 +549,7 @@ def umash_short(key, seed, buf):
     # Add an unpredictable value to the seed.  vec_to_u64` will
     # return the same integer for some inputs of different length;
     # avoid predictable collisions by letting the input size drive the
-    # selection of one value from the random `PH` key.
+    # selection of one value from the random `OH` key.
     noise = (seed + key[len(buf)]) % W
 
     h = vec_to_u64(buf)
@@ -399,28 +568,29 @@ def umash_short(key, seed, buf):
 
 ## # Long input hash
 ##
-## Inputs of 9 bytes or longers are first compressed with a 64-bit `PH`
+## Inputs of 9 bytes or longers are first compressed with a 64-bit `OH`
 ## function (128-bit output), and then accumulated in a polynomial
 ## string hash.
 ##
 ## When the input size is smaller than 16 bytes, we expand it to a
 ## 16-byte chunk by concatenating its first and last 8 bytes, while
-## remembering the original byte size; this logic would also work on
-## 8-byte inputs, but results in slower hashes for that common size.
-## We then pass that block to a single eround of the
-## [`NH` compression function](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12),
-## and feed the result to the polynomial hash. Passing the original
-## byte size down to the polynomial hash lets us defend against
-## extension attacks.
+## generating the "tag" by `xor`ing the original byte size with the
+## seed (this logic would also work on 8-byte inputs, but results in
+## slower hashes for that common size).  We pass this single input
+## chunk to the `OH` compression function, and feed the result to
+## the polynomial hash.  The tag protects against extension attacks,
+## and the `OH` function reduces to the low latency
+## [`NH` compression function](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12)
+## for single-chunk inputs.
 ##
-## We use `NH` for inputs of 9 to 16 bytes because, while throughput
-## is challenging with `NH` compared to `PH`, the latency of `NH`'s
-## integer multiplications tends to be lower than that of `PH`'s
-## carry-less multiplications.
+## We use `NH` for the last chunk in each `OH` block because, while
+## throughput is challenging with `NH` compared to `PH`, the latency
+## of `NH`'s integer multiplications tends to be lower than that of
+## `PH`'s carry-less multiplications.
 ##
 ## Longer inputs are turned into a stream of 16-byte chunks by letting
 ## the last chunk contain redundant data if it would be short, and
-## passing blocks of up to 16 chunks to `PH`. The last block can
+## passing blocks of up to 16 chunks to `OH`. The last block can
 ## still be shorter than 16 chunks of 16 bytes (256 bytes), but will
 ## always consist of complete 16-byte chunks. Again, we protect
 ## against extension collisions by propagating the original byte size
@@ -429,11 +599,17 @@ def umash_short(key, seed, buf):
 ## This approach simplifies the end-of-string code path when
 ## misaligned loads are efficient, but does mean we must encode the
 ## original string length $s$ somewhere. We use the [same trick as
-## VHASH](http://krovetz.net/csus/papers/vmac.pdf#page=8) and `xor` $(s
-## \bmod 256)$ with the last `PH` output before passing
-## it to polynomial hashing. Since only the last block may span fewer
-## than 256 bytes, this is equivalent to `xor`ing $|\mathbf{M}_i|\bmod 256,$
-## a block's size modulo the maximum block size, to each block's `PH` output.
+## VHASH](http://krovetz.net/csus/papers/vmac.pdf#page=8) and `xor`
+## $(s \bmod 256)$ with the seed to generate the last block's tag
+## value.  Since only the last block may span fewer than 256 bytes,
+## this is equivalent to `xor`ing $|\mathbf{M}_i|\bmod 256,$ a block's
+## size modulo the maximum block size to the seed to generate each
+## block's tag.
+##
+## Tags are 128-bit values, and `xor`ing a 64-bit seed with $s\bmod
+## 256$ yields a 64-bit value.  We avoid a carry in the `NH` step
+## by letting the tag be equal to the `xor`ed value shifted left by
+## 64 bits (i.e., we only populate the high 64-bit half).
 
 
 def chunk_bytes(buf):
@@ -447,7 +623,7 @@ def chunk_bytes(buf):
     `umash_short` handles inputs of 8 bytes or less.
 
     If the last chunk is short (not aligned on a 16 byte boundary),
-    yields the (partially redundant) last 16 bytes in the buffer. We
+    yields the partially redundant last 16 bytes in the buffer. We
     know there are at least 16 such bytes because we already
     special-cased shorter inputs.
     """
@@ -486,83 +662,58 @@ def blockify_chunks(chunks):
 
 ## Given a stream of blocks, the last of which may be partial, we
 ## compress each block of up to 256 bytes (but always a multiple of 16
-## bytes) with the `PH` function defined by the `key`. This yields a
-## stream of 128-bit `PH` outputs.
+## bytes) with the `OH` function defined by the `key`. This yields a
+## stream of 128-bit `OH` outputs.
 ##
-## As a special case, we shuffle inputs of 9 to 16 bytes with a
-## function from the [lower-latency `NH` family](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12).
-## Although it doesn't seem that useful to compress 16 bytes to 16
-## bytes, `NH`'s output offers guarantees very similar to that of
-## `PH`.
-##
-## We propagate a `seed` argument all the way to the individual `PH`
+## We propagate a `seed` argument all the way to the individual `OH`
 ## calls. We use that `seed` to elicit different hash values, with
 ## no guarantee of collision avoidance. Callers that need
 ## collision probability bounds should generate fresh keys.
 ##
-## We protect against extension attacks by `xor`ing each block's
-## `PH` value with that block's byte size modulo 256 (the maximum byte size),
-## [like VHASH does](http://krovetz.net/csus/papers/vmac.pdf#page=12),
-## but in $\mathrm{GR}(2^{128}).$ When two streams of blocks differ,
-## the `xor` does not affect the collision probability:
-## [the `PH` bound](https://arxiv.org/pdf/1503.03465.pdf#page=6)
-## already evaluates the probability that the `xor` of two compressed
-## values matches any specific value (almost-XOR-universality). When
-## the two streams of blocks are identical due to extension, the size
-## of the last block differs, and the resulting compressed values
-## definitely differ.
+## In order to prevent extension attacks, we generate each block's tag
+## by `xor`ing the seed with that block's byte size modulo 256 (the
+## maximum byte size), and shifting the resulting 64-bit value left by
+## 64 bits, much
+## [like VHASH does](http://krovetz.net/csus/papers/vmac.pdf#page=12).
 ##
-## Similarly, in the `NH` medium input case, we add the block size
-## modulo 256 to the high half of the `NH` result.
+## We already proved that two different blocks will collide with
+## probability at most $2^{-63},$ as long as different pre-expanded
+## block size in bytes are assigned distinct tags.  The proof relied
+## on mere almost-universality for the `ENH` iteration; applying a
+## reversible finaliser (we `xor` the low half into the high half)
+## does not affect the collision bound, but improves distribution by
+## inserting a different form of linearity between the modular
+## arithmetic of `NH` and the Carter-Wegman polynomial
 
 
-def ph_compress_one_block(key, seed, block, block_size):
-    """Applies the `PH` hash to compress a block of up to 256 bytes."""
-    # Seed goes to the low half to avoid shuffling in SIMD implementations
-    acc = seed % W
-    # Only the last block may be partial; every other block will
-    # always find `increment == 0`.
-    increment = block_size % (CHUNK_SIZE * BLOCK_SIZE)
+def oh_compress_one_block(key, block, tag):
+    """Applies the `OH` hash to compress a block of up to 256 bytes."""
+    ph_acc = 0
     for i, chunk in enumerate(block):
         ka = key[2 * i]
         kb = key[2 * i + 1]
         xa, xb = struct.unpack("<QQ", chunk)
-        acc ^= gfmul(xa ^ ka, xb ^ kb)
-    return acc ^ increment
-
-
-def nh_compress_one_medium_block(key, seed, block, block_size):
-    """Applies the `NH` hash to shuffle a block of 16 bytes."""
-    assert block_size <= 16
-    increment = block_size % (CHUNK_SIZE * BLOCK_SIZE)
-    # Seed and block size go in the high half to avoid carries.
-    acc = ((seed + increment) % W) * W
-    for i, chunk in enumerate(block):
-        ka = key[2 * i]
-        kb = key[2 * i + 1]
-        xa, xb = struct.unpack("<QQ", chunk)
-        xa = (xa + ka) % W
-        xb = (xb + kb) % W
-        acc += xa * xb
-    # Mix the low half into the high bits
-    acc ^= (acc % W) * W
-    acc %= W ** 2
-    return acc
-
-
-def ph_compress(key, seed, blocks):
-    """Applies the `PH` compression function to each block; generates
-    a stream of compressed values"""
-    first_block = True
-    for block, block_size in blocks:
-        if first_block and block_size <= 16:
-            yield nh_compress_one_medium_block(key, seed, block, block_size)
+        if i < len(block) - 1:
+            ph_acc ^= gfmul(xa ^ ka, xb ^ kb)
         else:
-            yield ph_compress_one_block(key, seed, block, block_size)
-        first_block = False
+            # compute ENH(chunk, tag)
+            xa = (xa + ka) % W
+            xb = (xb + kb) % W
+            enh = ((xa * xb) + tag) % (W * W)
+            enh ^= (enh % W) * W
+    return ph_acc ^ enh
 
 
-## `PH` is a fast compression function. However, it doesn't scale to
+def oh_compress(key, seed, blocks):
+    """Applies the `OH` compression function to each block; generates
+    a stream of compressed values"""
+    for block, block_size in blocks:
+        size_tag = block_size % (CHUNK_SIZE * BLOCK_SIZE)
+        tag = (seed ^ size_tag) * W
+        yield oh_compress_one_block(key, block, tag)
+
+
+## `OH` is a fast compression function. However, it doesn't scale to
 ## arbitrarily large inputs. We split each of its 128-bit outputs
 ## in two 64-bit halves, and accumulate them in a single
 ## polynomial hash modulo $2^{64} - 8 = 8\cdot(2^{61} - 1).$
@@ -581,7 +732,7 @@ def ph_compress(key, seed, blocks):
 ## in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$, we lose slightly
 ## more than 3 bits of data. The resulting collision probability
 ## for truncated `PH` is less than
-## $\lceil 2^{64}/|\mathbb{F}|\rceil^2 \cdot 2^{-64} < 2^{-57}.$
+## $\lceil 2^{64}/|\mathbb{F}|\rceil^2 \cdot 2^{-63} < 2^{-56}.$
 ## As $s$, the input size in bytes, grows, that's quickly dominated by
 ## the collision probability for the polynomial hash in $\mathbb{F},$
 ## $\varepsilon_{\mathbb{F}} \leq d / |\mathbb{F}| = 2\lceil s / 256\rceil / (2^{61} - 2),$
@@ -590,12 +741,12 @@ def ph_compress(key, seed, blocks):
 ##
 ## Note that the Horner update increments before multiplying: this
 ## does not impact the degree of the hash polynomial, nor its
-## collisions probability since its inputs are randomised by `PH`, but
+## collisions probability since its inputs are randomised by `OH`, but
 ## having the last step be a multiplication improves distribution.
 
 
 def poly_reduce(multiplier, input_size, compressed_values):
-    """Updates a polynomial hash with the `PH` compressed outputs."""
+    """Updates a polynomial hash with the `OH` compressed outputs."""
     # Square the multiplier and fully reduce it. This does not affect
     # the result modulo 2**61 - 1, but does differ from a
     # direct evaluation modulo 2**64 - 8.
@@ -665,7 +816,7 @@ def finalize(x):
 ## function chops up its input in 16-byte chunks (where the last chunk
 ## is never partial, but potentially redundant), groups these chunks
 ## in blocks of up to 256 bytes, and compresses each block down
-## to 128 bits with `PH`. A polynomial hash function
+## to 128 bits with `OH`. A polynomial hash function
 ## in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$ reduces that
 ## stream of compressed outputs to a single machine word.
 ##
@@ -676,12 +827,12 @@ def finalize(x):
 ## The probability of collision for longer inputs is the sum of the
 ## collision probability for one `PH` block after truncation to
 ## $\mathbb{F}^2$,
-## $\varepsilon_{\texttt{PH}} < 9^2\cdot 2^{-64} \approx 0.64\cdot 2^{-57},$
+## $\varepsilon_{\texttt{PH}} < 9^2\cdot 2^{-63} \approx 0.64\cdot 2^{-56},$
 ## and that of the polynomial hash,
 ## $\varepsilon_{\mathbb{F}} \approx d \cdot 2^{-61},$ where
 ## $d = 2\lceil s / 256 \rceil$ is twice the number of `PH` blocks for
 ## an input length $s > 8.$ Together, this yields
-## $\varepsilon_{\textrm{long}} \approx 2\lceil s / 256\rceil \cdot 2^{-61} + 0.64\cdot 2^{-57} < \lceil s / 2048\rceil \cdot 2^{-56}.$
+## $\varepsilon_{\textrm{long}} \approx 2\lceil s / 256\rceil \cdot 2^{-61} + 0.64\cdot 2^{-56} < \lceil s / 4096\rceil \cdot 2^{-55}.$
 ##
 ## The short input hash is independent of the polynomial hash
 ## multiplier, and can thus be seen as a degree-0 polynomial. Any
@@ -689,20 +840,20 @@ def finalize(x):
 ## $\varepsilon_{\textrm{long}}$ collision bound. The total collision
 ## probability for strings of $s$ bytes or fewer (with expectation
 ## taken over the generated key) thus adds up to $\varepsilon < \lceil
-## s / 2048\rceil \cdot 2^{-56}.$
+## s / 4096\rceil \cdot 2^{-55}.$
 
 
 def umash_long(key, seed, buf):
     assert len(buf) >= CHUNK_SIZE / 2
     blocks = blockify_chunks(chunk_bytes(buf))
-    ph_values = ph_compress(key.ph, seed, blocks)
-    poly_acc = poly_reduce(key.poly, len(buf), ph_values)
+    oh_values = oh_compress(key.oh, seed, blocks)
+    poly_acc = poly_reduce(key.poly, len(buf), oh_values)
     return finalize(poly_acc)
 
 
 def umash(key, seed, buf):
     if len(buf) <= CHUNK_SIZE / 2:
-        return umash_short(key.ph, seed, buf)
+        return umash_short(key.oh, seed, buf)
     return umash_long(key, seed, buf)
 
 
@@ -710,8 +861,9 @@ def umash(key, seed, buf):
 ##
 ## UMASH is structured to minimise the amount of work for mid-sized
 ## inputs composed of a handful of chunks. The last 16-byte chunk
-## stops the `PH` loop early, and the chunking logic avoids complex
-## variable-length `memcpy`.
+## stops the `OH` loop early to divert to a low-latency `NH` in
+## (64-bit) general purpose registers, and the chunking logic avoids
+## complex variable-length `memcpy`.
 ##
 ## The multipliers and modulus for the polynomial hashes were chosen to
 ## simplify implementation on 64-bit machines: assuming the current
@@ -727,12 +879,12 @@ def umash(key, seed, buf):
 ## more instruction-level parallelism than individual Horner
 ## updates.
 ##
-## For longer inputs, we can micro-optimise the `PH` inner loop by
-## pre-loading the key in SIMD registers (e.g., in 8 AVX-256
-## registers), when vectorising the $m_i \oplus k_i$ step. That step isn't
-## particularly slow, but the `PH` loop body is so simple that a decent
-## implementation tends to be backend-bound, so minimising the number
-## of hardware micro-ops helps.
+## For longer inputs, we can micro-optimise the `PH` bulk of the `OH`
+## inner loop by pre-loading the key in SIMD registers (e.g., in 8
+## AVX-256 registers), when vectorising the $m_i \oplus k_i$
+## step. That step isn't particularly slow, but `PH` is so simple that
+## a decent implementation tends to be backend-bound, so minimising
+## the number of hardware micro-ops helps.
 ##
 ## We only consider the size of the input at the very end of the
 ## `umash_long` function; this makes it possible to implement an
@@ -744,26 +896,26 @@ def umash(key, seed, buf):
 ##
 ## # What if we need stronger guarantees?
 ##
-## We can reuse most of the `PH` key with
+## We can reuse most of the `OH` key with
 ## [a Toeplitz extension](https://ieeexplore.ieee.org/abstract/document/1524931).
-## We skip four `PH` parameters (two suffice for correctness), and
-## obtain a second independent UMASH with five additional
-## parameters (one multiplier, and four `PH` values) in the key; it's
-## also easy to merge the two `PH` compression loops, especially for
-## incremental hashing.
+## We skip two `OH` parameter chunks (four 64-bit words), and obtain a
+## second independent UMASH with five additional parameters (one
+## multiplier, and four `OH` values) in the key; it's also easy to
+## merge the two `OH` compression loops, especially for incremental
+## hashing.
 ##
 ## When the input is 8 bytes or shorter, we `xor` in a single
-## length-dependent value from the `PH` key. Inputs of the same
+## length-dependent value from the `OH` key. Inputs of the same
 ## length never collide, so a Toeplitz extension offers independent
 ## collision probabilities. Two inputs of different length collide
 ## when $k_s \oplus k_{s^\prime}$ equals one unlucky value; the same
 ## expression in the Toeplitz-extended key is
-## $k_{s + 4} \oplus k_{s^\prime + 4},$ with distribution independent of
-## $k_s \oplus k_{s^\prime}.$
+## $k_{s + K} \oplus k_{s^\prime + K}$ for any Toeplitz shift $K > 0$,
+## with distribution independent of $k_s \oplus k_{s^\prime}.$
 ##
 ## Combining two UMASHes squares the collision probability. The
 ## resulting probability,
-## $\varepsilon^2 < \lceil s / 2048\rceil^2 \cdot 2^{-112}$
+## $\varepsilon^2 < \lceil s / 4096\rceil^2 \cdot 2^{-110}$
 ## is easily comparable to the uncorrectable DRAM
 ## [error rates reported by Facebook](https://users.ece.cmu.edu/~omutlu/pub/memory-errors-at-facebook_dsn15.pdf#page=3):
 ## $0.03\%$ per month $\approx 2^{-66}$ per CPU cycle.
@@ -799,3 +951,7 @@ def umash(key, seed, buf):
 ##
 ## 2020-09-20: mix 9-16 byte inputs with `NH` instead of `PH`, before
 ## passing to the same polynomial hash and finalisation.
+##
+## 2020-10-13: replace `PH` with `OH`, a variant that uses `NH` for the
+## last 16-byte chunk.  Analysis shows we can make every block benefit
+## from the improved latency of `NH`, not just short 9-16 byte blocks.

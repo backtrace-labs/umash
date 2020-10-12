@@ -2,7 +2,7 @@ UMASH: a fast almost universal 64-bit string hash
 =================================================
 
 UMASH is a string hash function with throughput (22 GB/s on a 2.5 GHz
-Xeon 8175M) and latency (9-22 ns for input sizes up to 64 bytes on
+Xeon 8175M) and latency (9-20 ns for input sizes up to 64 bytes on
 the same machine) comparable to that of performance-optimised hashes
 like [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
 [XXH3](https://github.com/Cyan4973/xxHash), or
@@ -19,11 +19,11 @@ and thus [usually suffer from such weaknesses](https://www.131002.net/siphash/#a
 UMASH provably avoids parameter-independent collisions.  For any two
 inputs of `l` bytes or fewer, the probability that a randomly
 parameterised UMASH assigns them the same 64 bit hash value is less
-than `ceil(l / 2048) 2**-56`.  UMASH also offers a fingerprinting mode
+than `ceil(l / 4096) 2**-55`.  UMASH also offers a fingerprinting mode
 that simply computes two independent hashes at the same time.  The
 resulting [128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
 collides pairs of `l`-or-fewer-byte inputs with probability less than
-`ceil(l / 2048)**2 * 2**-112`; that's less than `2**-70` (`1e-21`) for
+`ceil(l / 4096)**2 * 2**-110`; that's less than `2**-70` (`1e-21`) for
 up to 7.5 GB of data.
 
 See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
@@ -86,9 +86,9 @@ See `example.c` for a quick example.
     $ cc -O2 -W -Wall example.c umash.c -mpclmul -o example
     $ ./example "the quick brown fox"
     Input: the quick brown fox
-    Fingerprint: 24783a0d59b0d2f0, d165a49500fdd4b6
-    Hash 0: 24783a0d59b0d2f0
-    Hash 1: d165a49500fdd4b6
+    Fingerprint: 398c5bb5cc113d03, 808ab5dab48ef616
+    Hash 0: 398c5bb5cc113d03
+    Hash 1: 808ab5dab48ef616
 
 We can confirm that the parameters are constructed deterministically,
 and that calling `umash_full` with `which = 0` or `which = 1` gets us
@@ -133,10 +133,9 @@ its overall structure (`PH` block compressor that feeds a polynomial
 string hash).  There are plenty of lower hanging fruits.
 
 1. The short (8 or fewer bytes) input code can hopefully be simpler.
-2. The medium-length (9-16 bytes) input code path mixes an integer
-   multiplication NH function's output with the same polynomial hash
-   as the general case.  Can we further simplify that code sequence
-   while maintaining the collision bound?
+2. The new "OH" block compression function is a hybrid of `NH` and `PH`.
+   What's the best way to insert one iteration of `NH` in a mostly-`PH`
+   inner loop?
 3. We only looked at x86-64 implementations; we will consider simple
    changes that improve performance on x86-64, or on other platforms
    as long they don't penalise x86-64.

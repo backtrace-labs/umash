@@ -23,19 +23,19 @@ def test_vec_to_u64(data):
 @given(
     seed=U64S,
     key=st.lists(
-        U64S, min_size=C.UMASH_PH_PARAM_COUNT, max_size=C.UMASH_PH_PARAM_COUNT
+        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
     ),
     data=st.binary(min_size=0, max_size=8),
 )
 def test_umash_short(seed, key, data):
     """Compare umash_short with the reference."""
-    expected = umash(UmashKey(poly=0, ph=key), seed, data)
+    expected = umash(UmashKey(poly=0, oh=key), seed, data)
 
     n_bytes = len(data)
     block = FFI.new("char[]", n_bytes)
     FFI.memmove(block, data, n_bytes)
     params = FFI.new("struct umash_params[1]")
     for i, param in enumerate(key):
-        params[0].ph[i] = param
+        params[0].oh[i] = param
 
-    assert C.umash_short(params[0].ph, seed, block, n_bytes) == expected
+    assert C.umash_short(params[0].oh, seed, block, n_bytes) == expected
