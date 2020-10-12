@@ -1,5 +1,5 @@
 """
-Test suite for the general (17 bytes or longer) input case.
+Test suite for the general (16 bytes or longer) input case.
 """
 from hypothesis import given, note
 import hypothesis.strategies as st
@@ -26,13 +26,13 @@ def repeats(min_size):
     seed=U64S,
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
-        U64S, min_size=C.UMASH_PH_PARAM_COUNT, max_size=C.UMASH_PH_PARAM_COUNT
+        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
     ),
-    data=st.binary(min_size=17) | repeats(17),
+    data=st.binary(min_size=16) | repeats(16),
 )
 def test_umash_long(seed, multiplier, key, data):
     """Compare umash_long with the reference."""
-    expected = umash(UmashKey(poly=multiplier, ph=key), seed, data)
+    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data)
     note(len(data))
 
     n_bytes = len(data)
@@ -43,6 +43,6 @@ def test_umash_long(seed, multiplier, key, data):
     poly[1] = multiplier
     params = FFI.new("struct umash_params[1]")
     for i, param in enumerate(key):
-        params[0].ph[i] = param
+        params[0].oh[i] = param
 
-    assert C.umash_long(poly, params[0].ph, seed, block, n_bytes) == expected
+    assert C.umash_long(poly, params[0].oh, seed, block, n_bytes) == expected

@@ -14,7 +14,7 @@ U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
 FIELD = 2 ** 61 - 1
 
 
-PH_COUNT = C.UMASH_PH_PARAM_COUNT + C.UMASH_PH_TOEPLITZ_SHIFT
+OH_COUNT = C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT
 
 
 def assert_idempotent(params):
@@ -46,8 +46,8 @@ def test_public_multiplier_reduction(multipliers, random):
     params[0].poly[1][0] = random.getrandbits(64)
     params[0].poly[1][1] = multipliers[1]
 
-    for i in range(PH_COUNT):
-        params[0].ph[i] = i
+    for i in range(OH_COUNT):
+        params[0].oh[i] = i
 
     assert C.umash_params_prepare(params) == True
     assert_idempotent(params)
@@ -59,30 +59,30 @@ def test_public_multiplier_reduction(multipliers, random):
         assert 0 < params[0].poly[i][1] < FIELD
         assert params[0].poly[i][0] == (params[0].poly[i][1] ** 2) % FIELD
 
-    # The PH params are valid.
-    for i in range(C.UMASH_PH_PARAM_COUNT + C.UMASH_PH_TOEPLITZ_SHIFT):
-        assert params[0].ph[i] == i
+    # The OH params are valid.
+    for i in range(C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT):
+        assert params[0].oh[i] == i
 
 
-@example(ph=[0] * PH_COUNT, random=random.Random(1))
+@example(oh=[0] * OH_COUNT, random=random.Random(1))
 @given(
-    ph=st.lists(
-        st.integers(min_value=0, max_value=100), min_size=PH_COUNT, max_size=PH_COUNT
+    oh=st.lists(
+        st.integers(min_value=0, max_value=100), min_size=OH_COUNT, max_size=OH_COUNT
     ),
     random=st.randoms(note_method_calls=True, use_true_random=True),
 )
-def test_public_bad_ph(ph, random):
-    """When the PH values repeat, we should replace them if we can.
+def test_public_bad_oh(oh, random):
+    """When the OH values repeat, we should replace them if we can.
     """
-    repeated_values = len(ph) - len(set(ph))
+    repeated_values = len(oh) - len(set(oh))
 
     params = FFI.new("struct umash_params[1]")
     for i in range(2):
         params[0].poly[i][0] = random.getrandbits(64)
         params[0].poly[i][1] = random.getrandbits(64)
 
-    for i, value in enumerate(ph):
-        params[0].ph[i] = value
+    for i, value in enumerate(oh):
+        params[0].oh[i] = value
 
     result = C.umash_params_prepare(params)
     if repeated_values > 2:
@@ -91,9 +91,9 @@ def test_public_bad_ph(ph, random):
         return
 
     assert_idempotent(params)
-    # On success, the PH parameters should be unique
-    actual_ph = [params[0].ph[i] for i in range(PH_COUNT)]
-    assert len(actual_ph) == len(set(actual_ph))
+    # On success, the OH parameters should be unique
+    actual_oh = [params[0].oh[i] for i in range(OH_COUNT)]
+    assert len(actual_oh) == len(set(actual_oh))
 
 
 @given(
@@ -114,7 +114,7 @@ def test_public_smoke_matches(random, seed, data):
     assert C.umash_params_prepare(params) == True
     assert_idempotent(params)
     expected0 = umash(
-        UmashKey(params[0].poly[0][1], [params[0].ph[i] for i in range(PH_COUNT)]),
+        UmashKey(params[0].poly[0][1], [params[0].oh[i] for i in range(OH_COUNT)]),
         seed,
         data,
     )
@@ -124,8 +124,8 @@ def test_public_smoke_matches(random, seed, data):
         UmashKey(
             params[0].poly[1][1],
             [
-                params[0].ph[i + C.UMASH_PH_TOEPLITZ_SHIFT]
-                for i in range(C.UMASH_PH_PARAM_COUNT)
+                params[0].oh[i + C.UMASH_OH_TOEPLITZ_SHIFT]
+                for i in range(C.UMASH_OH_PARAM_COUNT)
             ],
         ),
         seed,

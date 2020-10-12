@@ -40,17 +40,16 @@ uint64_t horner_double_update(
     uint64_t acc, uint64_t m0, uint64_t m1, uint64_t x, uint64_t y);
 
 /**
- * Compresses one PH block of 256 bytes, with the accumulator
- * initialised to `seed`.
+ * Compresses one OH block of 256 bytes.
  */
-struct umash_ph ph_one_block(const uint64_t *params, uint64_t seed, const void *block);
+struct umash_oh oh_one_block(const uint64_t *params, uint64_t tag, const void *block);
 
 /**
- * Compress the last PH block of up to 256 bytes.  `block + n_bytes -
+ * Compress the last OH block of up to 256 bytes.  `block + n_bytes -
  * 16` must contain input data.
  */
-struct umash_ph ph_last_block(
-    const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes);
+struct umash_oh oh_last_block(
+    const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes);
 
 /**
  * Converts a buffer of <= 8 bytes to a 64-bit integers.
@@ -69,19 +68,19 @@ uint64_t umash_short(
 uint64_t finalize(uint64_t x);
 
 /**
- * Hashes 9-16 bytes of data with one overlapped iteration of PH.
+ * Hashes 9-16 bytes of data with one overlapped iteration of OH (i.e., NH).
  *
  * @param multipliers is {f^2, f} reduced mod 2**61 - 1, where f is the seed.
  */
-uint64_t umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph,
+uint64_t umash_medium(const uint64_t multipliers[static 2], const uint64_t *oh,
     uint64_t seed, const void *data, size_t n_bytes);
 
 /**
- * Hashes 16 or more bytes of data with PH feeding into a polynomial hash.
+ * Hashes 16 or more bytes of data with OH feeding into a polynomial hash.
  *
  * @param multipliers is {f^2, f} reduced mod 2**61 - 1, where f is the seed.
  */
-uint64_t umash_long(const uint64_t multipliers[static 2], const uint64_t *ph,
+uint64_t umash_long(const uint64_t multipliers[static 2], const uint64_t *oh,
     uint64_t seed, const void *data, size_t n_bytes);
 
 /**

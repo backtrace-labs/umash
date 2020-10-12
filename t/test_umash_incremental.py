@@ -23,24 +23,24 @@ FIELD = 2 ** 61 - 1
 def umash_params():
     """Generates a UMASH parameter tuple."""
 
-    def make_params(multipliers, ph):
+    def make_params(multipliers, oh):
         params = FFI.new("struct umash_params[1]")
         for i, multiplier in enumerate(multipliers):
             params[0].poly[i][0] = (multiplier ** 2) % FIELD
             params[0].poly[i][1] = multiplier
-        for i, param in enumerate(ph):
-            params[0].ph[i] = param
+        for i, param in enumerate(oh):
+            params[0].oh[i] = param
 
-        return (multipliers, ph, params)
+        return (multipliers, oh, params)
 
     return st.builds(
         make_params,
         st.lists(st.integers(min_value=0, max_value=FIELD - 1), min_size=2, max_size=2),
         st.lists(
-            # We need 4 more PH values for the Toeplitz shift.
+            # We need 4 more OH values for the Toeplitz shift.
             U64S,
-            min_size=C.UMASH_PH_PARAM_COUNT + 4,
-            max_size=C.UMASH_PH_PARAM_COUNT + 4,
+            min_size=C.UMASH_OH_PARAM_COUNT + 4,
+            max_size=C.UMASH_OH_PARAM_COUNT + 4,
         ),
     )
 
@@ -60,7 +60,7 @@ class IncrementalUpdater(RuleBasedStateMachine):
     def __init__(self):
         super().__init__()
         self.multipliers = None
-        self.ph = None
+        self.oh = None
         self.params = None
         self.state = None
         self.acc = b""
@@ -125,7 +125,7 @@ class IncrementalHasher(IncrementalUpdater):
         params=umash_params(), seed=U64S, which=st.integers(min_value=0, max_value=1)
     )
     def create_state(self, params, seed, which):
-        self.multipliers, self.ph, self.params = params
+        self.multipliers, self.oh, self.params = params
         self.state = FFI.new("struct umash_state[1]")
         self.sink = FFI.addressof(self.state[0].sink)
         C.umash_init(self.state, self.params, seed, which)
@@ -139,7 +139,7 @@ class IncrementalHasher(IncrementalUpdater):
         return umash(
             UmashKey(
                 poly=self.multipliers[self.which],
-                ph=self.ph[self.which * C.UMASH_PH_TOEPLITZ_SHIFT :],
+                oh=self.oh[self.which * C.UMASH_OH_TOEPLITZ_SHIFT :],
             ),
             self.seed,
             self.acc,
@@ -162,7 +162,7 @@ class IncrementalFprinter(IncrementalUpdater):
 
     @initialize(params=umash_params(), seed=U64S)
     def create_state(self, params, seed):
-        self.multipliers, self.ph, self.params = params
+        self.multipliers, self.oh, self.params = params
         self.state = FFI.new("struct umash_fp_state[1]")
         self.sink = FFI.addressof(self.state[0].sink)
         C.umash_fp_init(self.state, self.params, seed)
@@ -176,7 +176,7 @@ class IncrementalFprinter(IncrementalUpdater):
             umash(
                 UmashKey(
                     poly=self.multipliers[which],
-                    ph=self.ph[which * C.UMASH_PH_TOEPLITZ_SHIFT :],
+                    oh=self.oh[which * C.UMASH_OH_TOEPLITZ_SHIFT :],
                 ),
                 self.seed,
                 self.acc,

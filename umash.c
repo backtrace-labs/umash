@@ -5,7 +5,7 @@
 #endif
 
 #include <assert.h>
-/* The PH block reduction code is x86-only for now. */
+/* The OH block reduction code is x86-only for now. */
 #include <immintrin.h>
 #include <string.h>
 
@@ -83,7 +83,7 @@
 
 #define ARRAY_SIZE(ARR) (sizeof(ARR) / sizeof(ARR[0]))
 
-#define BLOCK_SIZE (sizeof(uint64_t) * UMASH_PH_PARAM_COUNT)
+#define BLOCK_SIZE (sizeof(uint64_t) * UMASH_OH_PARAM_COUNT)
 
 /* Incremental UMASH consumes 16 bytes at a time. */
 #define INCREMENTAL_GRANULARITY 16
@@ -333,15 +333,16 @@ salsa20_stream(
 }
 
 /**
- * PH block compression.
+ * OH block compression.
  */
-TEST_DEF struct umash_ph
-ph_one_block(const uint64_t *params, uint64_t seed, const void *block)
+TEST_DEF struct umash_oh
+oh_one_block(const uint64_t *params, uint64_t tag, const void *block)
 {
-	struct umash_ph ret;
-	__m128i acc = _mm_cvtsi64_si128(seed);
+	struct umash_oh ret;
+	__m128i acc = { 0 };
+	size_t i;
 
-	for (size_t i = 0; i < UMASH_PH_PARAM_COUNT; i += 2) {
+	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
 		__m128i x, k;
 
 		memcpy(&x, block, sizeof(x));
@@ -353,23 +354,41 @@ ph_one_block(const uint64_t *params, uint64_t seed, const void *block)
 	}
 
 	memcpy(&ret, &acc, sizeof(ret));
+
+	/* Final `ENH` iteration */
+	{
+		__uint128_t enh = (__uint128_t)tag << 64;
+		uint64_t x, y;
+
+		memcpy(&x, block, sizeof(x));
+		block = (const char *)block + sizeof(x);
+		memcpy(&y, block, sizeof(y));
+		x += params[i];
+		y += params[i + 1];
+		enh += (__uint128_t)x * y;
+
+		ret.bits[0] ^= (uint64_t)enh;
+		ret.bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+	}
+
 	return ret;
 }
 
 static FN void
-ph_one_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
-    uint64_t seed, const void *block)
+oh_one_block_toeplitz(struct umash_oh dst[static 2], const uint64_t *restrict params,
+    uint64_t tag, const void *restrict block)
 {
-	__m128i acc[2] = { _mm_cvtsi64_si128(seed), _mm_cvtsi64_si128(seed) };
+	__m128i acc[2] = { { 0 }, { 0 } };
+	size_t i;
 
-	for (size_t i = 0; i < UMASH_PH_PARAM_COUNT; i += 2) {
+	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
 		__m128i x, k0, k1;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
 
 		memcpy(&k0, &params[i], sizeof(k1));
-		memcpy(&k1, &params[i + UMASH_PH_TOEPLITZ_SHIFT], sizeof(k1));
+		memcpy(&k1, &params[i + UMASH_OH_TOEPLITZ_SHIFT], sizeof(k1));
 
 		k0 ^= x;
 		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
@@ -378,14 +397,40 @@ ph_one_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
 	}
 
 	memcpy(dst, acc, sizeof(acc));
+
+	{
+		__uint128_t enh;
+		uint64_t x, y, kx, ky;
+
+		memcpy(&x, block, sizeof(x));
+		block = (const char *)block + sizeof(x);
+		memcpy(&y, block, sizeof(y));
+
+		enh = (__uint128_t)tag << 64;
+		kx = x + params[i];
+		ky = y + params[i + 1];
+		enh += (__uint128_t)kx * ky;
+
+		dst[0].bits[0] ^= (uint64_t)enh;
+		dst[0].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+
+		enh = (__uint128_t)tag << 64;
+		kx = x + params[i + UMASH_OH_TOEPLITZ_SHIFT];
+		ky = y + params[i + 1 + UMASH_OH_TOEPLITZ_SHIFT];
+		enh += (__uint128_t)kx * ky;
+
+		dst[1].bits[0] ^= (uint64_t)enh;
+		dst[1].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+	}
+
 	return;
 }
 
-TEST_DEF struct umash_ph
-ph_last_block(const uint64_t *params, uint64_t seed, const void *block, size_t n_bytes)
+TEST_DEF struct umash_oh
+oh_last_block(const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes)
 {
-	struct umash_ph ret;
-	__m128i acc = _mm_cvtsi64_si128(seed);
+	struct umash_oh ret;
+	__m128i acc = { 0 };
 
 	/* The final block processes `remaining > 0` bytes. */
 	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
@@ -404,31 +449,33 @@ ph_last_block(const uint64_t *params, uint64_t seed, const void *block, size_t n
 		acc ^= _mm_clmulepi64_si128(x, x, 1);
 	}
 
+	memcpy(&ret, &acc, sizeof(ret));
+
 	/* Compress the final (potentially partial) pair. */
 	{
+		__uint128_t enh = (__uint128_t)tag << 64;
 		uint64_t x, y;
 
 		memcpy(&x, last_ptr, sizeof(x));
 		last_ptr = (const char *)last_ptr + sizeof(x);
 		memcpy(&y, last_ptr, sizeof(y));
 
-		x ^= params[i];
-		y ^= params[i + 1];
+		x += params[i];
+		y += params[i + 1];
+		enh += (__uint128_t)x * y;
 
-		acc ^=
-		    _mm_clmulepi64_si128(_mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+		ret.bits[0] ^= (uint64_t)enh;
+		ret.bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
 	}
 
-	memcpy(&ret, &acc, sizeof(ret));
 	return ret;
 }
 
 static FN void
-ph_last_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
-    uint64_t seed, const void *block, size_t n_bytes)
+oh_last_block_toeplitz(struct umash_oh dst[static 2], const uint64_t *restrict params,
+    uint64_t tag, const void *restrict block, size_t n_bytes)
 {
-	__m128i acc[2] = { _mm_cvtsi64_si128(seed), _mm_cvtsi64_si128(seed) };
-
+	__m128i acc[2] = { { 0 }, { 0 } };
 	/* The final block processes `remaining > 0` bytes. */
 	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
 	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
@@ -442,25 +489,7 @@ ph_last_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
 		block = (const char *)block + sizeof(x);
 
 		memcpy(&k0, &params[i], sizeof(k1));
-		memcpy(&k1, &params[i + UMASH_PH_TOEPLITZ_SHIFT], sizeof(k1));
-
-		k0 ^= x;
-		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
-		k1 ^= x;
-		acc[1] ^= _mm_clmulepi64_si128(k1, k1, 1);
-	}
-
-	{
-		__m128i x, k0, k1;
-		uint64_t x0, x1;
-
-		memcpy(&x0, last_ptr, sizeof(x0));
-		last_ptr = (const char *)last_ptr + sizeof(x0);
-		memcpy(&x1, last_ptr, sizeof(x1));
-
-		x = _mm_set_epi64x(x1, x0);
-		memcpy(&k0, &params[i], sizeof(k0));
-		memcpy(&k1, &params[i + UMASH_PH_TOEPLITZ_SHIFT], sizeof(k1));
+		memcpy(&k1, &params[i + UMASH_OH_TOEPLITZ_SHIFT], sizeof(k1));
 
 		k0 ^= x;
 		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
@@ -469,6 +498,32 @@ ph_last_block_toeplitz(struct umash_ph dst[static 2], const uint64_t *params,
 	}
 
 	memcpy(dst, &acc, sizeof(acc));
+
+	{
+		__uint128_t enh;
+		uint64_t x, y, kx, ky;
+
+		memcpy(&x, last_ptr, sizeof(x));
+		last_ptr = (const char *)last_ptr + sizeof(x);
+		memcpy(&y, last_ptr, sizeof(y));
+
+		enh = (__uint128_t)tag << 64;
+		kx = x + params[i];
+		ky = y + params[i + 1];
+		enh += (__uint128_t)kx * ky;
+
+		dst[0].bits[0] ^= (uint64_t)enh;
+		dst[0].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+
+		enh = (__uint128_t)tag << 64;
+		kx = x + params[i + UMASH_OH_TOEPLITZ_SHIFT];
+		ky = y + params[i + 1 + UMASH_OH_TOEPLITZ_SHIFT];
+		enh += (__uint128_t)kx * ky;
+
+		dst[1].bits[0] ^= (uint64_t)enh;
+		dst[1].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+	}
+
 	return;
 }
 
@@ -567,7 +622,7 @@ umash_fp_short(const uint64_t *params, uint64_t seed, const void *data, size_t n
 	uint64_t h;
 
 	ret.hash[0] = seed + params[n_bytes];
-	ret.hash[1] = seed + params[n_bytes + UMASH_PH_TOEPLITZ_SHIFT];
+	ret.hash[1] = seed + params[n_bytes + UMASH_OH_TOEPLITZ_SHIFT];
 
 	h = vec_to_u64(data, n_bytes);
 	h ^= h >> 30;
@@ -606,21 +661,21 @@ finalize(uint64_t x)
 }
 
 TEST_DEF uint64_t
-umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t seed,
+umash_medium(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_bytes)
 {
 	union {
 		__uint128_t h;
 		uint64_t u64[2];
-	} acc = { .h = (__uint128_t)(seed + n_bytes) << 64 };
+	} acc = { .h = (__uint128_t)(seed ^ n_bytes) << 64 };
 
 	{
 		uint64_t x, y;
 
 		memcpy(&x, data, sizeof(x));
 		memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
-		x += ph[0];
-		y += ph[1];
+		x += oh[0];
+		y += oh[1];
 
 		acc.h += (__uint128_t)x * y;
 	}
@@ -631,10 +686,10 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t 
 }
 
 static FN struct umash_fp
-umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
+umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *oh,
     uint64_t seed, const void *data, size_t n_bytes)
 {
-	const uint64_t offset = seed + n_bytes;
+	const uint64_t offset = seed ^ n_bytes;
 	uint64_t x, y;
 	struct umash_fp ret;
 
@@ -651,8 +706,8 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 		uint64_t a, b;                                                        \
                                                                                       \
 		hash.h = (__uint128_t)offset << 64;                                   \
-		a = x + ph[shift];                                                    \
-		b = y + ph[shift + 1];                                                \
+		a = x + oh[shift];                                                    \
+		b = y + oh[shift + 1];                                                \
 		hash.h += (__uint128_t)a * b;                                         \
                                                                                       \
 		hash.u64[1] ^= hash.u64[0];                                           \
@@ -661,22 +716,22 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *ph,
 	} while (0)
 
 	HASH(0, 0);
-	HASH(1, UMASH_PH_TOEPLITZ_SHIFT);
+	HASH(1, UMASH_OH_TOEPLITZ_SHIFT);
 #undef HASH
 
 	return ret;
 }
 
 TEST_DEF uint64_t
-umash_long(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t seed,
+umash_long(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_bytes)
 {
 	uint64_t acc = 0;
 
 	while (n_bytes > BLOCK_SIZE) {
-		struct umash_ph compressed;
+		struct umash_oh compressed;
 
-		compressed = ph_one_block(ph, seed, data);
+		compressed = oh_one_block(oh, seed, data);
 		data = (const char *)data + BLOCK_SIZE;
 		n_bytes -= BLOCK_SIZE;
 
@@ -686,10 +741,10 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t se
 
 	/* Do the final block. */
 	{
-		struct umash_ph compressed;
+		struct umash_oh compressed;
 
 		seed ^= (uint8_t)n_bytes;
-		compressed = ph_last_block(ph, seed, data, n_bytes);
+		compressed = oh_last_block(oh, seed, data, n_bytes);
 		acc = horner_double_update(acc, multipliers[0], multipliers[1],
 		    compressed.bits[0], compressed.bits[1]);
 	}
@@ -698,15 +753,15 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *ph, uint64_t se
 }
 
 static FN struct umash_fp
-umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint64_t seed,
+umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_bytes)
 {
-	struct umash_ph compressed[2];
+	struct umash_oh compressed[2];
 	struct umash_fp ret;
 	uint64_t acc[2] = { 0, 0 };
 
 	while (n_bytes > BLOCK_SIZE) {
-		ph_one_block_toeplitz(compressed, ph, seed, data);
+		oh_one_block_toeplitz(compressed, oh, seed, data);
 
 #define UPDATE(i)                                                                     \
 	do {                                                                          \
@@ -722,18 +777,17 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *ph, uint6
 		n_bytes -= BLOCK_SIZE;
 	}
 
-	seed ^= (uint8_t)n_bytes;
-	ph_last_block_toeplitz(compressed, ph, seed, data, n_bytes);
+	oh_last_block_toeplitz(compressed, oh, seed ^ (uint8_t)n_bytes, data, n_bytes);
 
-#define FINAL(i, shift)                                                               \
+#define FINAL(i)                                                                      \
 	do {                                                                          \
 		acc[i] = horner_double_update(acc[i], multipliers[i][0],              \
 		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]); \
 		ret.hash[i] = finalize(acc[i]);                                       \
 	} while (0)
 
-	FINAL(0, 0);
-	FINAL(1, UMASH_PH_TOEPLITZ_SHIFT);
+	FINAL(0);
+	FINAL(1);
 #undef FINAL
 
 	return ret;
@@ -792,10 +846,10 @@ umash_params_prepare(struct umash_params *params)
 		params->poly[i][1] = f;
 	}
 
-	/* Avoid repeated PH noise values. */
-	for (size_t i = 0; i < ARRAY_SIZE(params->ph); i++) {
-		while (value_is_repeated(params->ph, i, params->ph[i]))
-			GET_RANDOM(params->ph[i]);
+	/* Avoid repeated OH noise values. */
+	for (size_t i = 0; i < ARRAY_SIZE(params->oh); i++) {
+		while (value_is_repeated(params->oh, i, params->oh[i]))
+			GET_RANDOM(params->oh[i]);
 	}
 
 	return true;
@@ -834,22 +888,16 @@ umash_params_derive(struct umash_params *params, uint64_t bits, const void *key)
 static FN void
 sink_update_poly(struct umash_sink *sink)
 {
-	const __m128i ph_acc = _mm_cvtsi64_si128(sink->seed);
-	/*
-	 * Size of the current block in bytes, modulo 256.  May only
-	 * be non-zero for the last block.
-	 */
-	uint8_t block_size = sink->block_size;
 
 #define UPDATE(i)                                                                       \
 	do {                                                                            \
-		uint64_t ph0 = sink->ph_acc[i].bits[0] ^ block_size;                    \
-		uint64_t ph1 = sink->ph_acc[i].bits[1];                                 \
+		uint64_t oh0 = sink->oh_acc[i].bits[0];                                 \
+		uint64_t oh1 = sink->oh_acc[i].bits[1];                                 \
                                                                                         \
 		sink->poly_state[i].acc = horner_double_update(sink->poly_state[i].acc, \
-		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], ph0, ph1);  \
+		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], oh0, oh1);  \
                                                                                         \
-		memcpy(&sink->ph_acc[i], &ph_acc, sizeof(ph_acc));                      \
+		sink->oh_acc[i] = (struct umash_oh) { .bits = { 0 } };                  \
 		if (!sink->fingerprinting)                                              \
 			return;                                                         \
 	} while (0)
@@ -861,9 +909,13 @@ sink_update_poly(struct umash_sink *sink)
 	return;
 }
 
-/* Updates the PH state with 16 bytes of data. */
+/*
+ * Updates the OH state with 16 bytes of data.  If `final` is true, we
+ * are definitely consuming the last chunk in the input.
+ */
 static FN void
-sink_consume_buf(struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY])
+sink_consume_buf(
+    struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY], bool final)
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
 	uint64_t x, y;
@@ -871,42 +923,63 @@ sink_consume_buf(struct umash_sink *sink, const char buf[static INCREMENTAL_GRAN
 	memcpy(&x, buf, sizeof(x));
 	memcpy(&y, buf + sizeof(x), sizeof(y));
 
+	/* All but the last 16-byte chunk of each block goes through PH. */
+	if (sink->oh_iter < UMASH_OH_PARAM_COUNT - 2 && !final) {
 #define UPDATE(i, param)                                                            \
 	do {                                                                        \
 		__m128i acc;                                                        \
                                                                                     \
 		/* Use GPR loads to avoid forwarding stalls.  */                    \
-		memcpy(&acc, &sink->ph_acc[i], sizeof(acc));                        \
-		acc ^= _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->ph[param]), \
-		    _mm_cvtsi64_si128(y ^ sink->ph[param + 1]), 0);                 \
-		memcpy(&sink->ph_acc[i], &acc, sizeof(acc));                        \
+		memcpy(&acc, &sink->oh_acc[i], sizeof(acc));                        \
+		acc ^= _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->oh[param]), \
+		    _mm_cvtsi64_si128(y ^ sink->oh[param + 1]), 0);                 \
+		memcpy(&sink->oh_acc[i], &acc, sizeof(acc));                        \
                                                                                     \
 		if (!sink->fingerprinting)                                          \
 			goto next;                                                  \
 	} while (0)
 
-	UPDATE(0, sink->ph_iter);
-	UPDATE(1, (sink->ph_iter + UMASH_PH_TOEPLITZ_SHIFT));
+		UPDATE(0, sink->oh_iter);
+		UPDATE(1, (sink->oh_iter + UMASH_OH_TOEPLITZ_SHIFT));
 #undef UPDATE
+	} else {
+		/* The last chunk is combined with the size tag with ENH. */
+		uint64_t tag = sink->seed ^ (uint8_t)(sink->block_size + sink->bufsz);
+
+#define UPDATE(i, param)                                                               \
+	do {                                                                           \
+		__uint128_t enh = (__uint128_t)tag << 64;                              \
+                                                                                       \
+		enh += (__uint128_t)(x + sink->oh[param]) * (y + sink->oh[param + 1]); \
+		sink->oh_acc[i].bits[0] ^= (uint64_t)enh;                              \
+		sink->oh_acc[i].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;      \
+                                                                                       \
+		if (!sink->fingerprinting)                                             \
+			goto next;                                                     \
+	} while (0)
+
+		UPDATE(0, sink->oh_iter);
+		UPDATE(1, (sink->oh_iter + UMASH_OH_TOEPLITZ_SHIFT));
+#undef UPDATE
+	}
 
 next:
 	memmove(&sink->buf, buf, buf_begin);
 	sink->block_size += sink->bufsz;
 	sink->bufsz = 0;
-	sink->ph_iter += 2;
-	sink->large_umash = true;
+	sink->oh_iter += 2;
 
-	if (sink->ph_iter == UMASH_PH_PARAM_COUNT) {
+	if (sink->oh_iter == UMASH_OH_PARAM_COUNT || final) {
 		sink_update_poly(sink);
 		sink->block_size = 0;
-		sink->ph_iter = 0;
+		sink->oh_iter = 0;
 	}
 
 	return;
 }
 
 /**
- * Hashes full 256-byte blocks into a sink that just dumped its PH
+ * Hashes full 256-byte blocks into a sink that just dumped its OH
  * state in the toplevel polynomial hash and reset the block state.
  */
 static FN size_t
@@ -918,17 +991,17 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	assert(n_bytes >= BLOCK_SIZE);
 	assert(sink->bufsz == 0);
 	assert(sink->block_size == 0);
-	assert(sink->ph_iter == 0);
+	assert(sink->oh_iter == 0);
 
-	while (n_bytes >= BLOCK_SIZE) {
+	while (n_bytes > BLOCK_SIZE) {
 		/*
 		 * Is this worth unswitching?  Not obviously, given
-		 * the amount of work in one PH block.
+		 * the amount of work in one OH block.
 		 */
 		if (sink->fingerprinting) {
-			ph_one_block_toeplitz(sink->ph_acc, sink->ph, sink->seed, data);
+			oh_one_block_toeplitz(sink->oh_acc, sink->oh, sink->seed, data);
 		} else {
-			sink->ph_acc[0] = ph_one_block(sink->ph, sink->seed, data);
+			sink->oh_acc[0] = oh_one_block(sink->oh, sink->seed, data);
 		}
 
 		sink_update_poly(sink);
@@ -957,23 +1030,27 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	memcpy(&sink->buf[buf_begin + sink->bufsz], data, remaining);
 	data = (const char *)data + remaining;
 	n_bytes -= remaining;
+	/* We know we're hashing at least 16 bytes. */
+	sink->large_umash = true;
 	sink->bufsz = INCREMENTAL_GRANULARITY;
 
 	/*
-	 * We don't know if we saw the first INCREMENTAL_GRANULARITY
-	 * bytes, or the *only* INCREMENTAL_GRANULARITY bytes.  If
-	 * it's the latter, we'll have to use the medium input code
-	 * path.
+	 * We can't compress a 16-byte buffer until we know whether
+	 * data is coming: the last 16-byte chunk goes to `NH` instead
+	 * of `PH`.  We could try to detect when the buffer is the
+	 * last chunk in a block and immediately go to `NH`, but it
+	 * seems more robust to always let the stores settle before we
+	 * read them, just in case the combination is bad for forwarding.
 	 */
-	if (UNLIKELY(n_bytes == 0 && sink->large_umash == false))
+	if (n_bytes == 0)
 		return;
 
-	sink_consume_buf(sink, sink->buf + buf_begin);
+	sink_consume_buf(sink, sink->buf + buf_begin, /*final=*/false);
 
-	while (n_bytes >= INCREMENTAL_GRANULARITY) {
+	while (n_bytes > INCREMENTAL_GRANULARITY) {
 		size_t consumed;
 
-		if (sink->ph_iter == 0 && n_bytes >= BLOCK_SIZE) {
+		if (sink->oh_iter == 0 && n_bytes > BLOCK_SIZE) {
 			consumed = block_sink_update(sink, data, n_bytes);
 			assert(consumed >= BLOCK_SIZE);
 
@@ -989,7 +1066,7 @@ umash_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 		} else {
 			consumed = INCREMENTAL_GRANULARITY;
 			sink->bufsz = INCREMENTAL_GRANULARITY;
-			sink_consume_buf(sink, data);
+			sink_consume_buf(sink, data, /*final=*/false);
 		}
 
 		n_bytes -= consumed;
@@ -1005,7 +1082,7 @@ FN uint64_t
 umash_full(const struct umash_params *params, uint64_t seed, int which, const void *data,
     size_t n_bytes)
 {
-	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
+	const size_t shift = (which == 0) ? 0 : UMASH_OH_TOEPLITZ_SHIFT;
 
 	which = (which == 0) ? 0 : 1;
 
@@ -1017,13 +1094,13 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
 	 */
 	if (LIKELY(n_bytes <= sizeof(__m128i))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
-			return umash_short(&params->ph[shift], seed, data, n_bytes);
+			return umash_short(&params->oh[shift], seed, data, n_bytes);
 
 		return umash_medium(
-		    params->poly[which], &params->ph[shift], seed, data, n_bytes);
+		    params->poly[which], &params->oh[shift], seed, data, n_bytes);
 	}
 
-	return umash_long(params->poly[which], &params->ph[shift], seed, data, n_bytes);
+	return umash_long(params->poly[which], &params->oh[shift], seed, data, n_bytes);
 }
 
 FN struct umash_fp
@@ -1034,19 +1111,19 @@ umash_fprint(
 	DTRACE_PROBE3(libumash, umash_fprint, params, data, n_bytes);
 	if (LIKELY(n_bytes <= sizeof(__m128i))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
-			return umash_fp_short(params->ph, seed, data, n_bytes);
+			return umash_fp_short(params->oh, seed, data, n_bytes);
 
-		return umash_fp_medium(params->poly, params->ph, seed, data, n_bytes);
+		return umash_fp_medium(params->poly, params->oh, seed, data, n_bytes);
 	}
 
-	return umash_fp_long(params->poly, params->ph, seed, data, n_bytes);
+	return umash_fp_long(params->poly, params->oh, seed, data, n_bytes);
 }
 
 FN void
 umash_init(struct umash_state *state, const struct umash_params *params, uint64_t seed,
     int which)
 {
-	const size_t shift = (which == 0) ? 0 : UMASH_PH_TOEPLITZ_SHIFT;
+	const size_t shift = (which == 0) ? 0 : UMASH_OH_TOEPLITZ_SHIFT;
 
 	which = (which == 0) ? 0 : 1;
 	DTRACE_PROBE3(libumash, umash_init, state, params, which);
@@ -1058,8 +1135,7 @@ umash_init(struct umash_state *state, const struct umash_params *params, uint64_
 				params->poly[which][1],
 			},
 		},
-		.ph = &params->ph[shift],
-		.ph_acc[0].bits[0] = seed,
+		.oh = &params->oh[shift],
 		.seed = seed,
 	};
 
@@ -1086,10 +1162,8 @@ umash_fp_init(
 				params->poly[1][1],
 			},
 		},
-		.ph = params->ph,
+		.oh = params->oh,
 		.fingerprinting = true,
-		.ph_acc[0].bits[0] = seed,
-		.ph_acc[1].bits[0] = seed,
 		.seed = seed,
 	};
 
@@ -1104,10 +1178,7 @@ digest_flush(struct umash_sink *sink)
 {
 
 	if (sink->bufsz > 0)
-		sink_consume_buf(sink, &sink->buf[sink->bufsz]);
-
-	if (sink->block_size != 0)
-		sink_update_poly(sink);
+		sink_consume_buf(sink, &sink->buf[sink->bufsz], /*final=*/true);
 	return;
 }
 
@@ -1123,16 +1194,16 @@ static FN uint64_t
 digest(const struct umash_sink *sink, int index)
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
-	const size_t shift = index * UMASH_PH_TOEPLITZ_SHIFT;
+	const size_t shift = index * UMASH_OH_TOEPLITZ_SHIFT;
 
 	if (sink->large_umash)
 		return finalize(sink->poly_state[index].acc);
 
 	if (sink->bufsz <= sizeof(uint64_t))
 		return umash_short(
-		    &sink->ph[shift], sink->seed, &sink->buf[buf_begin], sink->bufsz);
+		    &sink->oh[shift], sink->seed, &sink->buf[buf_begin], sink->bufsz);
 
-	return umash_medium(sink->poly_state[index].mul, &sink->ph[shift], sink->seed,
+	return umash_medium(sink->poly_state[index].mul, &sink->oh[shift], sink->seed,
 	    &sink->buf[buf_begin], sink->bufsz);
 }
 
@@ -1169,17 +1240,17 @@ umash_fp_digest(const struct umash_fp_state *state)
 		sink = &copy;
 	} else if (sink->bufsz <= sizeof(uint64_t)) {
 		return umash_fp_short(
-		    sink->ph, sink->seed, &sink->buf[buf_begin], sink->bufsz);
+		    sink->oh, sink->seed, &sink->buf[buf_begin], sink->bufsz);
 	} else {
 		const struct umash_params *params;
 
 		/*
 		 * Back out the params struct from our pointer to its
-		 * `ph` member.
+		 * `oh` member.
 		 */
-		params = (const void *)((const char *)sink->ph -
-		    __builtin_offsetof(struct umash_params, ph));
-		return umash_fp_medium(params->poly, sink->ph, sink->seed,
+		params = (const void *)((const char *)sink->oh -
+		    __builtin_offsetof(struct umash_params, oh));
+		return umash_fp_medium(params->poly, sink->oh, sink->seed,
 		    &sink->buf[buf_begin], sink->bufsz);
 	}
 
