@@ -12,7 +12,12 @@ OUT_OF_SECTION_SYMS=$(
     objdump -t "${BASE}/../libumash.so" | grep 'F \.text.*umash' || true
 )
 
-if [ ! -z "$OUT_OF_SECTION_SYMS" ];
+# Preload ASAN if CFLAGS made us build umash with it.
+ASAN_PATH=$(ldd "${BASE}/../umash_test_only.so" | awk '/asan/ { printf(":%s", $3) }')
+
+# Make sure everything is in the expected section, unless ASan is
+# adding its own definitions.
+if [ -z "$ASAN_PATH" -a ! -z "$OUT_OF_SECTION_SYMS"  ];
 then
     echo "UMASH symbols out of section:\n$OUT_OF_SECTION_SYMS"
     exit 1
@@ -26,9 +31,6 @@ pip3 install wheel
 pip3 install --prefer-binary -r "${BASE}/requirements.txt"
 
 black "${BASE}/"*.py
-
-# Preload ASAN if CFLAGS made us build umash with it.
-ASAN_PATH=$(ldd "${BASE}/../libumash.so" | awk '/asan/ { printf(":%s", $3) }')
 
 # We probably don't want to hear about leaks.
 if [ -z "$ASAN_OPTIONS" ];
