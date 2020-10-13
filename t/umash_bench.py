@@ -46,6 +46,7 @@ def compare_inputs(
     block_size=128,
     min_count=100000,
     runner="umash_bench_individual",
+    options={},
 ):
     """Compares the performance of two implementations for input sizes in `length_arguments`.
 
@@ -64,9 +65,11 @@ def compare_inputs(
     timings = ffi.new("uint64_t[]", block_size)
 
     def make_options(target_ffi):
-        options = target_ffi.new("struct bench_individual_options *")
-        options.size = target_ffi.sizeof("struct bench_individual_options")
-        return options
+        ret = target_ffi.new("struct bench_individual_options *")
+        ret.size = target_ffi.sizeof("struct bench_individual_options")
+        for field, value in options.items():
+            setattr(ret, field, value)
+        return ret
 
     implementations = [
         (0, getattr(current_lib, runner), make_options(ffi), defaultdict(list)),
