@@ -13,7 +13,7 @@ OUT_OF_SECTION_SYMS=$(
 )
 
 # Preload ASAN if CFLAGS made us build umash with it.
-ASAN_PATH=$(ldd "${BASE}/../umash_test_only.so" | awk '/asan/ { printf(":%s", $3) }')
+ASAN_PATH=$(ldd "${BASE}/../libumash.so" | awk '/asan/ { printf(":%s", $3) }')
 
 # Make sure everything is in the expected section, unless ASan is
 # adding its own definitions.
