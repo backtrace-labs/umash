@@ -390,6 +390,7 @@
 
 ## # Reference UMASH implementation in Python
 from collections import namedtuple
+from functools import reduce
 import random
 import struct
 
@@ -692,24 +693,31 @@ def blockify_chunks(chunks):
 ## arithmetic of `NH` and the Carter-Wegman polynomial
 
 
-## TODO: compare against the reference directly with `secondary=True`.
-def oh_compress_one_block(key, block, tag, secondary=False):
-    """Applies the `OH` hash to compress a block of up to 256 bytes."""
+def oh_mix_one_block(key, block, tag, secondary=False):
+    """Mixes each chunk in block."""
     shift = TOEPLITZ_SHIFT if secondary else 0
-    ph_acc = 0
+    mixed = list()
     for i, chunk in enumerate(block):
         ka = key[2 * i + shift]
         kb = key[2 * i + 1 + shift]
         xa, xb = struct.unpack("<QQ", chunk)
         if i < len(block) - 1:
-            ph_acc ^= gfmul(xa ^ ka, xb ^ kb)
+            mixed.append(gfmul(xa ^ ka, xb ^ kb))
         else:
             # compute ENH(chunk, tag)
             xa = (xa + ka) % W
             xb = (xb + kb) % W
             enh = ((xa * xb) + tag) % (W * W)
             enh ^= (enh % W) * W
-    return ph_acc ^ enh
+            mixed.append(enh)
+    mixed.reverse()
+    return mixed
+
+
+## TODO: compare against the reference directly with `secondary=True`.
+def oh_compress_one_block(key, block, tag, secondary=False):
+    """Applies the `OH` hash to compress a block of up to 256 bytes."""
+    return reduce(lambda x, y: x ^ y, oh_mix_one_block(key, block, tag, secondary), 0)
 
 
 def oh_compress(key, seed, blocks, secondary):
