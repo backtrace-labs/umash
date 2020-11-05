@@ -24,8 +24,8 @@ def test_vec_to_u64(data):
     seed=U64S,
     key=st.lists(
         U64S,
-        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
-        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
     ),
     data=st.binary(min_size=0, max_size=8),
 )

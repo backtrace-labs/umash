@@ -445,10 +445,13 @@ def gfmul(x, y):
 ## in the extremely similar `NH`.
 
 
-# We encode two OH keys in one UmashKey.  The second one lives 4
-# u64s ahead.
-TOEPLITZ_SHIFT = 4
+# We encode a OH key and a secondary twisting constant in one UmashKey.
+TWISTING_COUNT = 2
 
+# For short keys, the secondary set of constants lives four u64s
+# ahead: that's the value we used in the earlier more symmetric
+# incarnation of UMASH, and it seemed to work well.
+SHORT_KEY_SHIFT = 4
 
 UmashKey = namedtuple("UmashKey", ["poly", "oh"])
 
@@ -465,7 +468,7 @@ def generate_key(random=random.SystemRandom()):
     while not is_acceptable_multiplier(poly):
         poly = random.getrandbits(61)
     oh = []
-    for _ in range(2 * BLOCK_SIZE + TOEPLITZ_SHIFT):
+    for _ in range(2 * BLOCK_SIZE + TWISTING_COUNT):
         u64 = None
         while u64 is None or u64 in oh:
             u64 = random.getrandbits(64)
@@ -695,12 +698,13 @@ def blockify_chunks(chunks):
 
 def oh_mix_one_block(key, block, tag, secondary=False):
     """Mixes each chunk in block."""
-    shift = TOEPLITZ_SHIFT if secondary else 0
     mixed = list()
+    lrc = (0, 0)  # we generate an additional chunk by xoring everything together
     for i, chunk in enumerate(block):
-        ka = key[2 * i + shift]
-        kb = key[2 * i + 1 + shift]
+        ka = key[2 * i]
+        kb = key[2 * i + 1]
         xa, xb = struct.unpack("<QQ", chunk)
+        lrc = (lrc[0] ^ (ka ^ xa), lrc[1] ^ (kb ^ xb))
         if i < len(block) - 1:
             mixed.append(gfmul(xa ^ ka, xb ^ kb))
         else:
@@ -710,6 +714,8 @@ def oh_mix_one_block(key, block, tag, secondary=False):
             enh = ((xa * xb) + tag) % (W * W)
             enh ^= (enh % W) * W
             mixed.append(enh)
+    if secondary:
+        mixed.append(gfmul(lrc[0] ^ key[-2], lrc[1] ^ key[-1]))
     mixed.reverse()
     return mixed
 
@@ -717,7 +723,34 @@ def oh_mix_one_block(key, block, tag, secondary=False):
 ## TODO: compare against the reference directly with `secondary=True`.
 def oh_compress_one_block(key, block, tag, secondary=False):
     """Applies the `OH` hash to compress a block of up to 256 bytes."""
-    return reduce(lambda x, y: x ^ y, oh_mix_one_block(key, block, tag, secondary), 0)
+    mixed = oh_mix_one_block(key, block, tag, secondary)
+    if secondary is False:
+        # Easy case (fast hash): xor everything
+        return reduce(lambda x, y: x ^ y, mixed, 0)
+
+    def xs(x, i):
+        """Computes our almost-xor-shift of x, on parallel 64-bit halves.
+
+        If i == 0, this function is the identity
+        If i == 1, this is (x << 1)
+        Otherwise, this is (x << i) ^ (x << 1)."""
+
+        def parallel_shift(x, s):
+            lo, hi = x % W, x // W
+            lo = (lo << s) % W
+            hi = (hi << s) % W
+            return lo + W * hi
+
+        if i == 0:
+            return x
+        if i == 1:
+            return parallel_shift(x, 1)
+        return parallel_shift(x, i) ^ parallel_shift(x, 1)
+
+    acc = mixed[0]
+    for i, mixed_chunk in enumerate(mixed[1:]):
+        acc ^= xs(mixed_chunk, i)
+    return acc
 
 
 def oh_compress(key, seed, blocks, secondary):
@@ -870,7 +903,7 @@ def umash_long(key, seed, buf, secondary):
 def umash(key, seed, buf, secondary):
     if len(buf) <= CHUNK_SIZE / 2:
         return umash_short(
-            key.oh if secondary is False else key.oh[TOEPLITZ_SHIFT:], seed, buf
+            key.oh if secondary is False else key.oh[SHORT_KEY_SHIFT:], seed, buf
         )
     return umash_long(key, seed, buf, secondary)
 

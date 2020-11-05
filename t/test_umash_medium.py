@@ -18,8 +18,8 @@ FIELD = 2 ** 61 - 1
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
         U64S,
-        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
-        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
     ),
     data=st.binary(min_size=9, max_size=16),
 )

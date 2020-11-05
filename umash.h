@@ -92,7 +92,7 @@
 extern "C" {
 #endif
 
-enum { UMASH_OH_PARAM_COUNT = 32, UMASH_OH_TOEPLITZ_SHIFT = 4 };
+enum { UMASH_OH_PARAM_COUNT = 32, UMASH_OH_TWISTING_COUNT = 2 };
 
 /**
  * A single UMASH params struct stores the parameters for a pair of
@@ -105,10 +105,10 @@ struct umash_params {
 	 */
 	uint64_t poly[2][2];
 	/*
-	 * The second OH function starts reading parameters from the
-	 * fourth 64-bit element.
+	 * The second (twisted) OH function uses an additional
+	 * 128-bit constant stored in the last two elements.
 	 */
-	uint64_t oh[UMASH_OH_PARAM_COUNT + UMASH_OH_TOEPLITZ_SHIFT];
+	uint64_t oh[UMASH_OH_PARAM_COUNT + UMASH_OH_TWISTING_COUNT];
 };
 
 /**
@@ -172,7 +172,12 @@ struct umash_sink {
 	/* Accumulators for the current OH value. */
 	struct umash_oh {
 		uint64_t bits[2];
-	} oh_acc[2];
+	} oh_acc;
+	struct umash_twisted_oh {
+		uint64_t lrc[2];
+		uint64_t prev[2];
+		struct umash_oh acc;
+	} oh_twisted;
 
 	uint64_t seed;
 };

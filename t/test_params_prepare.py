@@ -14,7 +14,7 @@ U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
 FIELD = 2 ** 61 - 1
 
 
-OH_COUNT = C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT
+OH_COUNT = C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT
 
 
 def assert_idempotent(params):
@@ -60,7 +60,7 @@ def test_public_multiplier_reduction(multipliers, random):
         assert params[0].poly[i][0] == (params[0].poly[i][1] ** 2) % FIELD
 
     # The OH params are valid.
-    for i in range(C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT):
+    for i in range(C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT):
         assert params[0].oh[i] == i
 
 
@@ -105,7 +105,7 @@ def test_public_smoke_matches(random, seed, data):
     """Prepare a params struct, and make sure the UMASH function matches
     our reference."""
     params = FFI.new("struct umash_params[1]")
-    size = size = FFI.sizeof("struct umash_params")
+    size = FFI.sizeof("struct umash_params")
     assert size % 8 == 0
     for i in range(size // 8):
         FFI.cast("uint64_t *", params)[i] = random.getrandbits(64)

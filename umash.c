@@ -85,6 +85,13 @@
 
 #define BLOCK_SIZE (sizeof(uint64_t) * UMASH_OH_PARAM_COUNT)
 
+/*
+ * We derive independent short hashes by offsetting the constant array
+ * by four u64s.  In theory, any positive even number works, but this
+ * is the constant we used in an earlier incarnation, and it works.
+ */
+#define OH_SHORT_HASH_SHIFT 4
+
 /* Incremental UMASH consumes 16 bytes at a time. */
 #define INCREMENTAL_GRANULARITY 16
 
@@ -375,28 +382,58 @@ oh_one_block(const uint64_t *params, uint64_t tag, const void *block)
 }
 
 static FN void
-oh_one_block_toeplitz(struct umash_oh dst[static 2], const uint64_t *restrict params,
+oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block)
 {
-	__m128i acc[2] = { { 0 }, { 0 } };
+	__m128i acc = { 0 }; /* Base umash */
+	__m128i acc_shifted = { 0 }; /* Accumulates shifted values */
+	__m128i lrc;
+	__m128i prev = { 0 };
 	size_t i;
 
+	lrc = _mm_set_epi64x(
+	    params[UMASH_OH_PARAM_COUNT + 1], params[UMASH_OH_PARAM_COUNT]);
 	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
-		__m128i x, k0, k1;
+		__m128i x, k;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
 
-		memcpy(&k0, &params[i], sizeof(k1));
-		memcpy(&k1, &params[i + UMASH_OH_TOEPLITZ_SHIFT], sizeof(k1));
+		memcpy(&k, &params[i], sizeof(k));
 
-		k0 ^= x;
-		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
-		k1 ^= x;
-		acc[1] ^= _mm_clmulepi64_si128(k1, k1, 1);
+		x ^= k;
+		lrc ^= x;
+
+		x = _mm_clmulepi64_si128(x, x, 1);
+
+		acc ^= x;
+
+		acc_shifted ^= prev;
+		acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+
+		prev = x;
 	}
 
-	memcpy(dst, acc, sizeof(acc));
+	/*
+	 * Update the LRC for the last chunk before treating it
+	 * specially.
+	 */
+	{
+		__m128i x, k;
+
+		memcpy(&x, block, sizeof(x));
+		memcpy(&k, &params[i], sizeof(k));
+
+		lrc ^= x ^ k;
+	}
+
+	acc_shifted ^= acc;
+	acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+
+	acc_shifted ^= _mm_clmulepi64_si128(lrc, lrc, 1);
+
+	memcpy(&dst[0], &acc, sizeof(dst[0]));
+	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
 
 	{
 		__uint128_t enh;
@@ -411,16 +448,12 @@ oh_one_block_toeplitz(struct umash_oh dst[static 2], const uint64_t *restrict pa
 		ky = y + params[i + 1];
 		enh += (__uint128_t)kx * ky;
 
+		enh ^= enh << 64;
 		dst[0].bits[0] ^= (uint64_t)enh;
-		dst[0].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
-
-		enh = (__uint128_t)tag << 64;
-		kx = x + params[i + UMASH_OH_TOEPLITZ_SHIFT];
-		ky = y + params[i + 1 + UMASH_OH_TOEPLITZ_SHIFT];
-		enh += (__uint128_t)kx * ky;
+		dst[0].bits[1] ^= (uint64_t)(enh >> 64);
 
 		dst[1].bits[0] ^= (uint64_t)enh;
-		dst[1].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+		dst[1].bits[1] ^= (uint64_t)(enh >> 64);
 	}
 
 	return;
@@ -472,32 +505,62 @@ oh_last_block(const uint64_t *params, uint64_t tag, const void *block, size_t n_
 }
 
 static FN void
-oh_last_block_toeplitz(struct umash_oh dst[static 2], const uint64_t *restrict params,
+oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes)
 {
-	__m128i acc[2] = { { 0 }, { 0 } };
+	__m128i acc = { 0 }; /* Base umash */
+	__m128i acc_shifted = { 0 }; /* Accumulates shifted values */
+	__m128i lrc;
+	__m128i prev = { 0 };
 	/* The final block processes `remaining > 0` bytes. */
 	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
 	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
 	const void *last_ptr = (const char *)block + n_bytes - sizeof(__m128i);
 	size_t i;
 
+	lrc = _mm_set_epi64x(
+	    params[UMASH_OH_PARAM_COUNT + 1], params[UMASH_OH_PARAM_COUNT]);
 	for (i = 0; i < end_full_pairs; i += 2) {
-		__m128i x, k0, k1;
+		__m128i x, k;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
 
-		memcpy(&k0, &params[i], sizeof(k1));
-		memcpy(&k1, &params[i + UMASH_OH_TOEPLITZ_SHIFT], sizeof(k1));
+		memcpy(&k, &params[i], sizeof(k));
 
-		k0 ^= x;
-		acc[0] ^= _mm_clmulepi64_si128(k0, k0, 1);
-		k1 ^= x;
-		acc[1] ^= _mm_clmulepi64_si128(k1, k1, 1);
+		x ^= k;
+		lrc ^= x;
+
+		x = _mm_clmulepi64_si128(x, x, 1);
+
+		acc ^= x;
+
+		acc_shifted ^= prev;
+		acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+
+		prev = x;
 	}
 
-	memcpy(dst, &acc, sizeof(acc));
+	/*
+	 * Update the LRC for the last chunk before treating it
+	 * specially.
+	 */
+	{
+		__m128i x, k;
+
+		memcpy(&x, last_ptr, sizeof(x));
+		memcpy(&k, &params[end_full_pairs], sizeof(k));
+
+		lrc ^= x ^ k;
+	}
+
+	acc_shifted ^= acc;
+	acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+
+	acc_shifted ^= _mm_clmulepi64_si128(lrc, lrc, 1);
+
+	memcpy(&dst[0], &acc, sizeof(dst[0]));
+	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
 
 	{
 		__uint128_t enh;
@@ -508,20 +571,16 @@ oh_last_block_toeplitz(struct umash_oh dst[static 2], const uint64_t *restrict p
 		memcpy(&y, last_ptr, sizeof(y));
 
 		enh = (__uint128_t)tag << 64;
-		kx = x + params[i];
-		ky = y + params[i + 1];
+		kx = x + params[end_full_pairs];
+		ky = y + params[end_full_pairs + 1];
 		enh += (__uint128_t)kx * ky;
 
+		enh ^= enh << 64;
 		dst[0].bits[0] ^= (uint64_t)enh;
-		dst[0].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
-
-		enh = (__uint128_t)tag << 64;
-		kx = x + params[i + UMASH_OH_TOEPLITZ_SHIFT];
-		ky = y + params[i + 1 + UMASH_OH_TOEPLITZ_SHIFT];
-		enh += (__uint128_t)kx * ky;
+		dst[0].bits[1] ^= (uint64_t)(enh >> 64);
 
 		dst[1].bits[0] ^= (uint64_t)enh;
-		dst[1].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+		dst[1].bits[1] ^= (uint64_t)(enh >> 64);
 	}
 
 	return;
@@ -622,7 +681,7 @@ umash_fp_short(const uint64_t *params, uint64_t seed, const void *data, size_t n
 	uint64_t h;
 
 	ret.hash[0] = seed + params[n_bytes];
-	ret.hash[1] = seed + params[n_bytes + UMASH_OH_TOEPLITZ_SHIFT];
+	ret.hash[1] = seed + params[n_bytes + OH_SHORT_HASH_SHIFT];
 
 	h = vec_to_u64(data, n_bytes);
 	h ^= h >> 30;
@@ -689,35 +748,43 @@ static FN struct umash_fp
 umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *oh,
     uint64_t seed, const void *data, size_t n_bytes)
 {
-	const uint64_t offset = seed ^ n_bytes;
-	uint64_t x, y;
 	struct umash_fp ret;
+	const uint64_t offset = seed ^ n_bytes;
+	union {
+		__uint128_t h;
+		uint64_t u64[2];
+	} hash;
+	union {
+		__m128i v;
+		uint64_t u64[2];
+	} mixed_lrc;
+	uint64_t lrc[2] = { oh[UMASH_OH_PARAM_COUNT], oh[UMASH_OH_PARAM_COUNT + 1] };
+	uint64_t x, y;
+	uint64_t a, b;
 
 	/* Expand the 9-16 bytes to 16. */
 	memcpy(&x, data, sizeof(x));
 	memcpy(&y, (const char *)data + n_bytes - sizeof(y), sizeof(y));
 
-#define HASH(i, shift)                                                                \
-	do {                                                                          \
-		union {                                                               \
-			__uint128_t h;                                                \
-			uint64_t u64[2];                                              \
-		} hash;                                                               \
-		uint64_t a, b;                                                        \
-                                                                                      \
-		hash.h = (__uint128_t)offset << 64;                                   \
-		a = x + oh[shift];                                                    \
-		b = y + oh[shift + 1];                                                \
-		hash.h += (__uint128_t)a * b;                                         \
-                                                                                      \
-		hash.u64[1] ^= hash.u64[0];                                           \
-		ret.hash[i] = finalize(horner_double_update(/*acc=*/0,                \
-		    multipliers[i][0], multipliers[i][1], hash.u64[0], hash.u64[1])); \
-	} while (0)
+	a = oh[0];
+	b = oh[1];
 
-	HASH(0, 0);
-	HASH(1, UMASH_OH_TOEPLITZ_SHIFT);
-#undef HASH
+	lrc[0] ^= x ^ a;
+	lrc[1] ^= y ^ b;
+	mixed_lrc.v = _mm_clmulepi64_si128((__m128i) { lrc[0] }, (__m128i) { lrc[1] }, 0);
+
+	hash.h = (__uint128_t)offset << 64;
+	a += x;
+	b += y;
+	hash.h += (__uint128_t)a * b;
+	hash.u64[1] ^= hash.u64[0];
+
+	ret.hash[0] = finalize(horner_double_update(
+	    /*acc=*/0, multipliers[0][0], multipliers[0][1], hash.u64[0], hash.u64[1]));
+
+	ret.hash[1] =
+	    finalize(horner_double_update(/*acc=*/0, multipliers[1][0], multipliers[1][1],
+		hash.u64[0] ^ mixed_lrc.u64[0], hash.u64[1] ^ mixed_lrc.u64[1]));
 
 	return ret;
 }
@@ -761,7 +828,7 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint6
 	uint64_t acc[2] = { 0, 0 };
 
 	while (n_bytes > BLOCK_SIZE) {
-		oh_one_block_toeplitz(compressed, oh, seed, data);
+		oh_one_block_fprint(compressed, oh, seed, data);
 
 #define UPDATE(i)                                                                     \
 	do {                                                                          \
@@ -777,7 +844,7 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint6
 		n_bytes -= BLOCK_SIZE;
 	}
 
-	oh_last_block_toeplitz(compressed, oh, seed ^ (uint8_t)n_bytes, data, n_bytes);
+	oh_last_block_fprint(compressed, oh, seed ^ (uint8_t)n_bytes, data, n_bytes);
 
 #define FINAL(i)                                                                      \
 	do {                                                                          \
@@ -888,24 +955,25 @@ umash_params_derive(struct umash_params *params, uint64_t bits, const void *key)
 static FN void
 sink_update_poly(struct umash_sink *sink)
 {
+	uint64_t oh0, oh1;
 
-#define UPDATE(i)                                                                       \
-	do {                                                                            \
-		uint64_t oh0 = sink->oh_acc[i].bits[0];                                 \
-		uint64_t oh1 = sink->oh_acc[i].bits[1];                                 \
-                                                                                        \
-		sink->poly_state[i].acc = horner_double_update(sink->poly_state[i].acc, \
-		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], oh0, oh1);  \
-                                                                                        \
-		sink->oh_acc[i] = (struct umash_oh) { .bits = { 0 } };                  \
-		if (sink->hash_wanted == 0)                                             \
-			return;                                                         \
-	} while (0)
+	oh0 = sink->oh_acc.bits[0];
+	oh1 = sink->oh_acc.bits[1];
+	sink->poly_state[0].acc = horner_double_update(sink->poly_state[0].acc,
+	    sink->poly_state[0].mul[0], sink->poly_state[0].mul[1], oh0, oh1);
 
-	UPDATE(0);
-	UPDATE(1);
-#undef UPDATE
+	sink->oh_acc = (struct umash_oh) { .bits = { 0 } };
+	if (sink->hash_wanted == 0)
+		return;
 
+	oh0 = sink->oh_twisted.acc.bits[0];
+	oh1 = sink->oh_twisted.acc.bits[1];
+	sink->poly_state[1].acc = horner_double_update(sink->poly_state[1].acc,
+	    sink->poly_state[1].mul[0], sink->poly_state[1].mul[1], oh0, oh1);
+
+	sink->oh_twisted =
+	    (struct umash_twisted_oh) { .lrc = { sink->oh[UMASH_OH_PARAM_COUNT],
+					    sink->oh[UMASH_OH_PARAM_COUNT + 1] } };
 	return;
 }
 
@@ -918,49 +986,82 @@ sink_consume_buf(
     struct umash_sink *sink, const char buf[static INCREMENTAL_GRANULARITY], bool final)
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
+	const size_t param = sink->oh_iter;
+	const uint64_t k0 = sink->oh[param];
+	const uint64_t k1 = sink->oh[param + 1];
 	uint64_t x, y;
 
+	/* Use GPR loads to avoid forwarding stalls.  */
 	memcpy(&x, buf, sizeof(x));
 	memcpy(&y, buf + sizeof(x), sizeof(y));
 
 	/* All but the last 16-byte chunk of each block goes through PH. */
 	if (sink->oh_iter < UMASH_OH_PARAM_COUNT - 2 && !final) {
-#define UPDATE(i, param)                                                            \
-	do {                                                                        \
-		__m128i acc;                                                        \
-                                                                                    \
-		/* Use GPR loads to avoid forwarding stalls.  */                    \
-		memcpy(&acc, &sink->oh_acc[i], sizeof(acc));                        \
-		acc ^= _mm_clmulepi64_si128(_mm_cvtsi64_si128(x ^ sink->oh[param]), \
-		    _mm_cvtsi64_si128(y ^ sink->oh[param + 1]), 0);                 \
-		memcpy(&sink->oh_acc[i], &acc, sizeof(acc));                        \
-                                                                                    \
-		if (sink->hash_wanted == 0)                                         \
-			goto next;                                                  \
-	} while (0)
+		__m128i acc, h, twisted_acc, prev;
+		uint64_t m0, m1;
 
-		UPDATE(0, sink->oh_iter);
-		UPDATE(1, (sink->oh_iter + UMASH_OH_TOEPLITZ_SHIFT));
-#undef UPDATE
+		m0 = x ^ k0;
+		m1 = y ^ k1;
+
+		memcpy(&acc, &sink->oh_acc, sizeof(acc));
+		h = _mm_clmulepi64_si128(_mm_cvtsi64_si128(m0), _mm_cvtsi64_si128(m1), 0);
+		acc ^= h;
+		memcpy(&sink->oh_acc, &acc, sizeof(acc));
+
+		if (sink->hash_wanted == 0)
+			goto next;
+
+		sink->oh_twisted.lrc[0] ^= m0;
+		sink->oh_twisted.lrc[1] ^= m1;
+
+		memcpy(&twisted_acc, &sink->oh_twisted.acc, sizeof(twisted_acc));
+		memcpy(&prev, sink->oh_twisted.prev, sizeof(prev));
+
+		twisted_acc ^= prev;
+		twisted_acc = _mm_add_epi64(twisted_acc, twisted_acc);
+		memcpy(&sink->oh_twisted.acc, &twisted_acc, sizeof(twisted_acc));
+		memcpy(&sink->oh_twisted.prev, &h, sizeof(h));
 	} else {
+		__uint128_t enh;
 		/* The last chunk is combined with the size tag with ENH. */
 		uint64_t tag = sink->seed ^ (uint8_t)(sink->block_size + sink->bufsz);
 
-#define UPDATE(i, param)                                                               \
-	do {                                                                           \
-		__uint128_t enh = (__uint128_t)tag << 64;                              \
-                                                                                       \
-		enh += (__uint128_t)(x + sink->oh[param]) * (y + sink->oh[param + 1]); \
-		sink->oh_acc[i].bits[0] ^= (uint64_t)enh;                              \
-		sink->oh_acc[i].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;      \
-                                                                                       \
-		if (sink->hash_wanted == 0)                                            \
-			goto next;                                                     \
-	} while (0)
+		enh = (__uint128_t)tag << 64;
+		enh += (__uint128_t)(x + k0) * (y + k1);
+		enh ^= enh << 64;
 
-		UPDATE(0, sink->oh_iter);
-		UPDATE(1, (sink->oh_iter + UMASH_OH_TOEPLITZ_SHIFT));
-#undef UPDATE
+		if (sink->hash_wanted != 0) {
+			union {
+				__m128i vec;
+				uint64_t h[2];
+			} lrc_hash;
+			uint64_t lrc0, lrc1;
+			uint64_t oh0, oh1;
+			uint64_t oh_twisted0, oh_twisted1;
+
+			lrc0 = sink->oh_twisted.lrc[0] ^ x ^ k0;
+			lrc1 = sink->oh_twisted.lrc[1] ^ y ^ k1;
+			lrc_hash.vec = _mm_clmulepi64_si128(
+			    _mm_cvtsi64_si128(lrc0), _mm_cvtsi64_si128(lrc1), 0);
+
+			oh_twisted0 = sink->oh_twisted.acc.bits[0];
+			oh_twisted1 = sink->oh_twisted.acc.bits[1];
+
+			oh0 = sink->oh_acc.bits[0];
+			oh1 = sink->oh_acc.bits[1];
+			oh0 ^= oh_twisted0;
+			oh0 <<= 1;
+			oh1 ^= oh_twisted1;
+			oh1 <<= 1;
+
+			oh0 ^= lrc_hash.h[0];
+			oh1 ^= lrc_hash.h[1];
+			sink->oh_twisted.acc.bits[0] = oh0 ^ (uint64_t)enh;
+			sink->oh_twisted.acc.bits[1] = oh1 ^ (uint64_t)(enh >> 64);
+		}
+
+		sink->oh_acc.bits[0] ^= (uint64_t)enh;
+		sink->oh_acc.bits[1] ^= (uint64_t)(enh >> 64);
 	}
 
 next:
@@ -999,9 +1100,13 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 		 * the amount of work in one OH block.
 		 */
 		if (sink->hash_wanted != 0) {
-			oh_one_block_toeplitz(sink->oh_acc, sink->oh, sink->seed, data);
+			struct umash_oh hashes[2];
+
+			oh_one_block_fprint(hashes, sink->oh, sink->seed, data);
+			sink->oh_acc = hashes[0];
+			sink->oh_twisted.acc = hashes[1];
 		} else {
-			sink->oh_acc[0] = oh_one_block(sink->oh, sink->seed, data);
+			sink->oh_acc = oh_one_block(sink->oh, sink->seed, data);
 		}
 
 		sink_update_poly(sink);
@@ -1154,6 +1259,8 @@ umash_init(struct umash_state *state, const struct umash_params *params, uint64_
 		},
 		.oh = params->oh,
 		.hash_wanted = which,
+		.oh_twisted.lrc = { params->oh[UMASH_OH_PARAM_COUNT],
+			params->oh[UMASH_OH_PARAM_COUNT + 1] },
 		.seed = seed,
 	};
 
@@ -1182,6 +1289,8 @@ umash_fp_init(
 		},
 		.oh = params->oh,
 		.hash_wanted = 2,
+		.oh_twisted.lrc = { params->oh[UMASH_OH_PARAM_COUNT],
+			params->oh[UMASH_OH_PARAM_COUNT + 1] },
 		.seed = seed,
 	};
 
@@ -1212,7 +1321,7 @@ static FN uint64_t
 digest(const struct umash_sink *sink, int index)
 {
 	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
-	const size_t shift = index * UMASH_OH_TOEPLITZ_SHIFT;
+	const size_t shift = (index == 0) ? 0 : OH_SHORT_HASH_SHIFT;
 
 	if (sink->large_umash)
 		return finalize(sink->poly_state[index].acc);
@@ -1221,7 +1330,7 @@ digest(const struct umash_sink *sink, int index)
 		return umash_short(
 		    &sink->oh[shift], sink->seed, &sink->buf[buf_begin], sink->bufsz);
 
-	return umash_medium(sink->poly_state[index].mul, &sink->oh[shift], sink->seed,
+	return umash_medium(sink->poly_state[index].mul, sink->oh, sink->seed,
 	    &sink->buf[buf_begin], sink->bufsz);
 }
 
