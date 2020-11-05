@@ -692,12 +692,14 @@ def blockify_chunks(chunks):
 ## arithmetic of `NH` and the Carter-Wegman polynomial
 
 
-def oh_compress_one_block(key, block, tag):
+## TODO: compare against the reference directly with `secondary=True`.
+def oh_compress_one_block(key, block, tag, secondary=False):
     """Applies the `OH` hash to compress a block of up to 256 bytes."""
+    shift = TOEPLITZ_SHIFT if secondary else 0
     ph_acc = 0
     for i, chunk in enumerate(block):
-        ka = key[2 * i]
-        kb = key[2 * i + 1]
+        ka = key[2 * i + shift]
+        kb = key[2 * i + 1 + shift]
         xa, xb = struct.unpack("<QQ", chunk)
         if i < len(block) - 1:
             ph_acc ^= gfmul(xa ^ ka, xb ^ kb)
@@ -710,13 +712,13 @@ def oh_compress_one_block(key, block, tag):
     return ph_acc ^ enh
 
 
-def oh_compress(key, seed, blocks):
+def oh_compress(key, seed, blocks, secondary):
     """Applies the `OH` compression function to each block; generates
     a stream of compressed values"""
     for block, block_size in blocks:
         size_tag = block_size % (CHUNK_SIZE * BLOCK_SIZE)
         tag = (seed ^ size_tag) * W
-        yield oh_compress_one_block(key, block, tag)
+        yield oh_compress_one_block(key, block, tag, secondary)
 
 
 ## `OH` is a fast compression function. However, it doesn't scale to
@@ -852,9 +854,7 @@ def finalize(x):
 def umash_long(key, seed, buf, secondary):
     assert len(buf) >= CHUNK_SIZE / 2
     blocks = blockify_chunks(chunk_bytes(buf))
-    oh_values = oh_compress(
-        key.oh if secondary is False else key.oh[TOEPLITZ_SHIFT:], seed, blocks
-    )
+    oh_values = oh_compress(key.oh, seed, blocks, secondary)
     poly_acc = poly_reduce(key.poly, len(buf), oh_values)
     return finalize(poly_acc)
 
