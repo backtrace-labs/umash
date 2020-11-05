@@ -1082,11 +1082,24 @@ FN uint64_t
 umash_full(const struct umash_params *params, uint64_t seed, int which, const void *data,
     size_t n_bytes)
 {
-	const size_t shift = (which == 0) ? 0 : UMASH_OH_TOEPLITZ_SHIFT;
 
 	which = (which == 0) ? 0 : 1;
 
 	DTRACE_PROBE4(libumash, umash_full, params, which, data, n_bytes);
+
+	/*
+	 * We don't (yet) implement code that only evaluates the
+	 * second hash.  We don't currently use that logic, and it's
+	 * about to become a bit more complex, so let's just go for a
+	 * full fingerprint and take what we need.
+	 */
+	if (which == 1) {
+		struct umash_fp fp;
+
+		fp = umash_fprint(params, seed, data, n_bytes);
+		return fp.hash[1];
+	}
+
 	/*
 	 * It's not that short inputs are necessarily more likely, but
 	 * we want to make sure they fall through correctly to
@@ -1094,13 +1107,12 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
 	 */
 	if (LIKELY(n_bytes <= sizeof(__m128i))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
-			return umash_short(&params->oh[shift], seed, data, n_bytes);
+			return umash_short(params->oh, seed, data, n_bytes);
 
-		return umash_medium(
-		    params->poly[which], &params->oh[shift], seed, data, n_bytes);
+		return umash_medium(params->poly[0], params->oh, seed, data, n_bytes);
 	}
 
-	return umash_long(params->poly[which], &params->oh[shift], seed, data, n_bytes);
+	return umash_long(params->poly[0], params->oh, seed, data, n_bytes);
 }
 
 FN struct umash_fp
