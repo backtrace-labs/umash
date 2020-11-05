@@ -1219,32 +1219,12 @@ digest(const struct umash_sink *sink, int index)
 	    &sink->buf[buf_begin], sink->bufsz);
 }
 
-FN uint64_t
-umash_digest(const struct umash_state *state)
-{
-	struct umash_sink copy;
-	const struct umash_sink *sink = &state->sink;
-
-	DTRACE_PROBE1(libumash, umash_digest, state);
-
-	if (sink->large_umash) {
-		copy = *sink;
-		digest_flush(&copy);
-		sink = &copy;
-	}
-
-	return digest(sink, 0);
-}
-
-FN struct umash_fp
-umash_fp_digest(const struct umash_fp_state *state)
+static FN struct umash_fp
+fp_digest_sink(const struct umash_sink *sink)
 {
 	struct umash_sink copy;
 	struct umash_fp ret;
-	const size_t buf_begin = sizeof(state->sink.buf) - INCREMENTAL_GRANULARITY;
-	const struct umash_sink *sink = &state->sink;
-
-	DTRACE_PROBE1(libumash, umash_fp_digest, state);
+	const size_t buf_begin = sizeof(sink->buf) - INCREMENTAL_GRANULARITY;
 
 	if (sink->large_umash) {
 		copy = *sink;
@@ -1270,4 +1250,29 @@ umash_fp_digest(const struct umash_fp_state *state)
 		ret.hash[i] = digest(sink, i);
 
 	return ret;
+}
+
+FN uint64_t
+umash_digest(const struct umash_state *state)
+{
+	struct umash_sink copy;
+	const struct umash_sink *sink = &state->sink;
+
+	DTRACE_PROBE1(libumash, umash_digest, state);
+
+	if (sink->large_umash) {
+		copy = *sink;
+		digest_flush(&copy);
+		sink = &copy;
+	}
+
+	return digest(sink, 0);
+}
+
+FN struct umash_fp
+umash_fp_digest(const struct umash_fp_state *state)
+{
+
+	DTRACE_PROBE1(libumash, umash_fp_digest, state);
+	return fp_digest_sink(&state->sink);
 }
