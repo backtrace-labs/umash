@@ -151,7 +151,7 @@ struct umash_sink {
 
 	/* The next 64 bytes are accessed in the `OH` inner loop. */
 
-	/* key->oh, shifted when evaluating only the second UMASH function. */
+	/* key->oh. */
 	const uint64_t *oh;
 
 	/* oh_iter tracks where we are in the inner loop, times 2. */
@@ -160,10 +160,14 @@ struct umash_sink {
 	uint8_t block_size; /* Current OH block size, excluding `bufsz`. */
 	bool large_umash; /* True once we definitely have >= 16 bytes. */
 	/*
-	 * If true, we're computing a fingerprint.  Otherwise, we only
-	 * want to update the first OH/poly state.
+	 * 0 if we're computing the first umash, 1 for the second, and
+	 * 2 for a fingerprint.
+	 *
+	 * In practice, we treat 1 and 2 the same (always compute a
+	 * full fingerprint), and return only the second half if we
+	 * only want that half.
 	 */
-	bool fingerprinting;
+	uint8_t hash_wanted;
 
 	/* Accumulators for the current OH value. */
 	struct umash_oh {

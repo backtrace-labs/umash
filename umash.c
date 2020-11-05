@@ -898,7 +898,7 @@ sink_update_poly(struct umash_sink *sink)
 		    sink->poly_state[i].mul[0], sink->poly_state[i].mul[1], oh0, oh1);  \
                                                                                         \
 		sink->oh_acc[i] = (struct umash_oh) { .bits = { 0 } };                  \
-		if (!sink->fingerprinting)                                              \
+		if (sink->hash_wanted == 0)                                             \
 			return;                                                         \
 	} while (0)
 
@@ -935,7 +935,7 @@ sink_consume_buf(
 		    _mm_cvtsi64_si128(y ^ sink->oh[param + 1]), 0);                 \
 		memcpy(&sink->oh_acc[i], &acc, sizeof(acc));                        \
                                                                                     \
-		if (!sink->fingerprinting)                                          \
+		if (sink->hash_wanted == 0)                                         \
 			goto next;                                                  \
 	} while (0)
 
@@ -954,7 +954,7 @@ sink_consume_buf(
 		sink->oh_acc[i].bits[0] ^= (uint64_t)enh;                              \
 		sink->oh_acc[i].bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;      \
                                                                                        \
-		if (!sink->fingerprinting)                                             \
+		if (sink->hash_wanted == 0)                                            \
 			goto next;                                                     \
 	} while (0)
 
@@ -998,7 +998,7 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 		 * Is this worth unswitching?  Not obviously, given
 		 * the amount of work in one OH block.
 		 */
-		if (sink->fingerprinting) {
+		if (sink->hash_wanted != 0) {
 			oh_one_block_toeplitz(sink->oh_acc, sink->oh, sink->seed, data);
 		} else {
 			sink->oh_acc[0] = oh_one_block(sink->oh, sink->seed, data);
@@ -1135,7 +1135,6 @@ FN void
 umash_init(struct umash_state *state, const struct umash_params *params, uint64_t seed,
     int which)
 {
-	const size_t shift = (which == 0) ? 0 : UMASH_OH_TOEPLITZ_SHIFT;
 
 	which = (which == 0) ? 0 : 1;
 	DTRACE_PROBE3(libumash, umash_init, state, params, which);
@@ -1143,11 +1142,18 @@ umash_init(struct umash_state *state, const struct umash_params *params, uint64_
 	state->sink = (struct umash_sink) {
 		.poly_state[0] = {
 			.mul = {
-				params->poly[which][0],
-				params->poly[which][1],
+				params->poly[0][0],
+				params->poly[0][1],
 			},
 		},
-		.oh = &params->oh[shift],
+		.poly_state[1]= {
+			.mul = {
+				params->poly[1][0],
+				params->poly[1][1],
+			},
+		},
+		.oh = params->oh,
+		.hash_wanted = which,
 		.seed = seed,
 	};
 
@@ -1175,7 +1181,7 @@ umash_fp_init(
 			},
 		},
 		.oh = params->oh,
-		.fingerprinting = true,
+		.hash_wanted = 2,
 		.seed = seed,
 	};
 
@@ -1259,6 +1265,13 @@ umash_digest(const struct umash_state *state)
 	const struct umash_sink *sink = &state->sink;
 
 	DTRACE_PROBE1(libumash, umash_digest, state);
+
+	if (sink->hash_wanted == 1) {
+		struct umash_fp fp;
+
+		fp = fp_digest_sink(sink);
+		return fp.hash[1];
+	}
 
 	if (sink->large_umash) {
 		copy = *sink;
