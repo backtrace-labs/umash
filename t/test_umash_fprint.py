@@ -38,8 +38,8 @@ def repeats(min_size):
 def test_public_umash_fprint(seed, multipliers, key, data):
     """Compare umash_fprint with two calls to the reference."""
     expected = [
-        umash(UmashKey(poly=multipliers[0], oh=key[:-4]), seed, data),
-        umash(UmashKey(poly=multipliers[1], oh=key[4:]), seed, data),
+        umash(UmashKey(poly=multipliers[0], oh=key), seed, data, secondary=False),
+        umash(UmashKey(poly=multipliers[1], oh=key), seed, data, secondary=True),
     ]
     n_bytes = len(data)
     block = FFI.new("char[]", n_bytes)

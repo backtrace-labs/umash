@@ -26,13 +26,15 @@ def repeats(min_size):
     seed=U64S,
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
-        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
+        U64S,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
     ),
     data=st.binary(min_size=16) | repeats(16),
 )
 def test_umash_long(seed, multiplier, key, data):
     """Compare umash_long with the reference."""
-    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data)
+    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data, secondary=False)
     note(len(data))
 
     n_bytes = len(data)
@@ -52,13 +54,15 @@ def test_umash_long(seed, multiplier, key, data):
     seed=U64S,
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
-        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
+        U64S,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
     ),
     data=repeats(512),
 )
 def test_umash_long_repeat(seed, multiplier, key, data):
     """Compare umash_long on repeated strings with the reference."""
-    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data)
+    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data, secondary=False)
     note(len(data))
 
     n_bytes = len(data)

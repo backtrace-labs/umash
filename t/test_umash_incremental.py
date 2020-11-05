@@ -37,10 +37,9 @@ def umash_params():
         make_params,
         st.lists(st.integers(min_value=0, max_value=FIELD - 1), min_size=2, max_size=2),
         st.lists(
-            # We need 4 more OH values for the Toeplitz shift.
             U64S,
-            min_size=C.UMASH_OH_PARAM_COUNT + 4,
-            max_size=C.UMASH_OH_PARAM_COUNT + 4,
+            min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+            max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
         ),
     )
 
@@ -137,12 +136,10 @@ class IncrementalHasher(IncrementalUpdater):
 
     def reference_value(self):
         return umash(
-            UmashKey(
-                poly=self.multipliers[self.which],
-                oh=self.oh[self.which * C.UMASH_OH_TOEPLITZ_SHIFT :],
-            ),
+            UmashKey(poly=self.multipliers[self.which], oh=self.oh,),
             self.seed,
             self.acc,
+            secondary=(self.which == 1),
         )
 
     def batch_value(self):
@@ -174,12 +171,10 @@ class IncrementalFprinter(IncrementalUpdater):
     def reference_value(self):
         return [
             umash(
-                UmashKey(
-                    poly=self.multipliers[which],
-                    oh=self.oh[which * C.UMASH_OH_TOEPLITZ_SHIFT :],
-                ),
+                UmashKey(poly=self.multipliers[which], oh=self.oh,),
                 self.seed,
                 self.acc,
+                secondary=(which == 1),
             )
             for which in range(2)
         ]

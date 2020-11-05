@@ -23,13 +23,15 @@ def test_vec_to_u64(data):
 @given(
     seed=U64S,
     key=st.lists(
-        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
+        U64S,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
     ),
     data=st.binary(min_size=0, max_size=8),
 )
 def test_umash_short(seed, key, data):
     """Compare umash_short with the reference."""
-    expected = umash(UmashKey(poly=0, oh=key), seed, data)
+    expected = umash(UmashKey(poly=0, oh=key), seed, data, secondary=False)
 
     n_bytes = len(data)
     block = FFI.new("char[]", n_bytes)

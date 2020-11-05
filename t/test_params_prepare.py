@@ -117,18 +117,14 @@ def test_public_smoke_matches(random, seed, data):
         UmashKey(params[0].poly[0][1], [params[0].oh[i] for i in range(OH_COUNT)]),
         seed,
         data,
+        secondary=False,
     )
     assert C.umash_full(params, seed, 0, data, len(data)) == expected0
 
     expected1 = umash(
-        UmashKey(
-            params[0].poly[1][1],
-            [
-                params[0].oh[i + C.UMASH_OH_TOEPLITZ_SHIFT]
-                for i in range(C.UMASH_OH_PARAM_COUNT)
-            ],
-        ),
+        UmashKey(params[0].poly[1][1], [params[0].oh[i] for i in range(OH_COUNT)],),
         seed,
         data,
+        secondary=True,
     )
     assert C.umash_full(params, seed, 1, data, len(data)) == expected1

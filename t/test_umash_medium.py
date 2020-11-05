@@ -17,13 +17,15 @@ FIELD = 2 ** 61 - 1
     seed=U64S,
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
-        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
+        U64S,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
     ),
     data=st.binary(min_size=9, max_size=16),
 )
 def test_umash_medium(seed, multiplier, key, data):
     """Compare umash_medium with the reference."""
-    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data)
+    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data, secondary=False)
 
     n_bytes = len(data)
     block = FFI.new("char[]", n_bytes)

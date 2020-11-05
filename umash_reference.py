@@ -443,6 +443,12 @@ def gfmul(x, y):
 ## [known weaknesses](https://www.esat.kuleuven.be/cosic/publications/article-1150.pdf)
 ## in the extremely similar `NH`.
 
+
+# We encode two OH keys in one UmashKey.  The second one lives 4
+# u64s ahead.
+TOEPLITZ_SHIFT = 4
+
+
 UmashKey = namedtuple("UmashKey", ["poly", "oh"])
 
 
@@ -458,7 +464,7 @@ def generate_key(random=random.SystemRandom()):
     while not is_acceptable_multiplier(poly):
         poly = random.getrandbits(61)
     oh = []
-    for _ in range(2 * BLOCK_SIZE):
+    for _ in range(2 * BLOCK_SIZE + TOEPLITZ_SHIFT):
         u64 = None
         while u64 is None or u64 in oh:
             u64 = random.getrandbits(64)
@@ -843,18 +849,22 @@ def finalize(x):
 ## s / 4096\rceil \cdot 2^{-55}.$
 
 
-def umash_long(key, seed, buf):
+def umash_long(key, seed, buf, secondary):
     assert len(buf) >= CHUNK_SIZE / 2
     blocks = blockify_chunks(chunk_bytes(buf))
-    oh_values = oh_compress(key.oh, seed, blocks)
+    oh_values = oh_compress(
+        key.oh if secondary is False else key.oh[TOEPLITZ_SHIFT:], seed, blocks
+    )
     poly_acc = poly_reduce(key.poly, len(buf), oh_values)
     return finalize(poly_acc)
 
 
-def umash(key, seed, buf):
+def umash(key, seed, buf, secondary):
     if len(buf) <= CHUNK_SIZE / 2:
-        return umash_short(key.oh, seed, buf)
-    return umash_long(key, seed, buf)
+        return umash_short(
+            key.oh if secondary is False else key.oh[TOEPLITZ_SHIFT:], seed, buf
+        )
+    return umash_long(key, seed, buf, secondary)
 
 
 ## # Implementation tricks

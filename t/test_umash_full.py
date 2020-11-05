@@ -17,13 +17,15 @@ FIELD = 2 ** 61 - 1
     seed=U64S,
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
-        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
+        U64S,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
     ),
     data=st.binary(),
 )
 def test_public_umash_full(seed, multiplier, key, data):
     """Compare umash_full with the reference."""
-    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data)
+    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data, secondary=False)
 
     n_bytes = len(data)
     block = FFI.new("char[]", n_bytes)
@@ -41,13 +43,15 @@ def test_public_umash_full(seed, multiplier, key, data):
     seed=U64S,
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
-        U64S, min_size=C.UMASH_OH_PARAM_COUNT, max_size=C.UMASH_OH_PARAM_COUNT
+        U64S,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
     ),
     data=st.binary(),
 )
 def test_public_umash_full_shifted(seed, multiplier, key, data):
     """Compare umash_full(which=1) with the reference."""
-    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data)
+    expected = umash(UmashKey(poly=multiplier, oh=key), seed, data, secondary=True)
 
     n_bytes = len(data)
     block = FFI.new("char[]", n_bytes)
@@ -56,6 +60,6 @@ def test_public_umash_full_shifted(seed, multiplier, key, data):
     params[0].poly[1][0] = (multiplier ** 2) % FIELD
     params[0].poly[1][1] = multiplier
     for i, param in enumerate(key):
-        params[0].oh[i + C.UMASH_OH_TOEPLITZ_SHIFT] = param
+        params[0].oh[i] = param
 
     assert C.umash_full(params, seed, 1, block, n_bytes) == expected
