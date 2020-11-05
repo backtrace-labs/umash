@@ -1,6 +1,11 @@
 UMASH: a fast almost universal 64-bit string hash
 =================================================
 
+STATUS: the hash and fingerprint algorithms are finalized, and so
+is the mapping from `umash_params_derive` inputs to UMASH parameters.
+However, the ABI is not finalized; in particular, passing random bytes
+to `umash_params_prepare` may still result in different parameters.
+
 UMASH is a string hash function with throughput (22 GB/s on a 2.5 GHz
 Xeon 8175M) and latency (9-20 ns for input sizes up to 64 bytes on
 the same machine) comparable to that of performance-optimised hashes
@@ -20,16 +25,22 @@ UMASH provably avoids parameter-independent collisions.  For any two
 inputs of `l` bytes or fewer, the probability that a randomly
 parameterised UMASH assigns them the same 64 bit hash value is less
 than `ceil(l / 4096) 2**-55`.  UMASH also offers a fingerprinting mode
-that simply computes two independent hashes at the same time.  The
-resulting [128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
+that simply computes two nearly-independent hashes at the same time.
+The resulting [128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
 collides pairs of `l`-or-fewer-byte inputs with probability less than
-`ceil(l / 4096)**2 * 2**-110`; that's less than `2**-70` (`1e-21`) for
+`ceil(l / 2**27)**2 * 2**-82`; that's less than `2**-70` (`1e-21`) for
 up to 7.5 GB of data.
 
 See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
 rationale about the design, and a proof sketch for the collision bound.
 The [blog post announcing UMASH](https://engineering.backtrace.io/2020-08-24-umash-fast-enough-almost-universal-fingerprinting/)
 includes a higher level overview and may also provide useful context.
+
+There has been a major change to the algorithm since that post; the
+[new fingerprinting algorithm is described in this post](https://pvk.ca/Blog/2020/10/31/nearly-double-the-ph-bits-with-one-more-clmul/)
+but some documentation and comments still have to be overhauled.
+However, the reference implementation and tests do reflect this new
+algorithm.
 
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
@@ -79,16 +90,18 @@ table afer too many collisions.  The fingerprint returned by
 `umash_fprint` is simply an array of two hash values.  We can compute
 either of these 64-bit hash values by calling `umash_full`: letting
 `which = 0` computes the first hash value in the fingerprint, and
-`which = 1` computes the second.
+`which = 1` computes the second.  In practice, computing the second
+hash value is as slow as computing a full fingerprint, so that's
+rarely a good option.
 
 See `example.c` for a quick example.
 
     $ cc -O2 -W -Wall example.c umash.c -mpclmul -o example
     $ ./example "the quick brown fox"
     Input: the quick brown fox
-    Fingerprint: 398c5bb5cc113d03, 808ab5dab48ef616
+    Fingerprint: 398c5bb5cc113d03, 3a52693519575aba
     Hash 0: 398c5bb5cc113d03
-    Hash 1: 808ab5dab48ef616
+    Hash 1: 3a52693519575aba
 
 We can confirm that the parameters are constructed deterministically,
 and that calling `umash_full` with `which = 0` or `which = 1` gets us
@@ -128,20 +141,16 @@ automatically run a set of statistical tests on that data. See
 Help wanted
 -----------
 
-While the UMASH algorithm isn't frozen yet, we do not expect to change
-its overall structure (`PH` block compressor that feeds a polynomial
-string hash).  There are plenty of lower hanging fruits.
+The UMASH algorithm is now frozen.  However, there's plenty of work
+left:
 
-1. The short (8 or fewer bytes) input code can hopefully be simpler.
-2. The new "OH" block compression function is a hybrid of `NH` and `PH`.
-   What's the best way to insert one iteration of `NH` in a mostly-`PH`
-   inner loop?
-3. We only looked at x86-64 implementations; we will consider simple
-   changes that improve performance on x86-64, or on other platforms
-   as long they don't penalise x86-64.
-4. We currently only use incremental and one-shot hashing
+1. The block fingerprinting loop could be vastly improved, especially
+   with AVX-256.
+2. We currently only use incremental and one-shot hashing
    interfaces. If someone needs parallel hashing, we can collaborate
    to find out what that interface could look like.
+3. A size-optimised implementation could be helpful.
+4. How fast could we go on a GPU?
 
 And of course, portability to other C compilers or platforms is
 interesting.

@@ -28,10 +28,9 @@ def repeats(min_size):
         st.integers(min_value=0, max_value=FIELD - 1), min_size=2, max_size=2
     ),
     key=st.lists(
-        # We need 4 more OH values for the Toeplitz shift.
         U64S,
-        min_size=C.UMASH_OH_PARAM_COUNT + 4,
-        max_size=C.UMASH_OH_PARAM_COUNT + 4,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
     ),
     data=st.binary() | repeats(1),
 )

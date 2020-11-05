@@ -38,8 +38,8 @@ def umash_params():
         st.lists(st.integers(min_value=0, max_value=FIELD - 1), min_size=2, max_size=2),
         st.lists(
             U64S,
-            min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
-            max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+            min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
+            max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
         ),
     )
 

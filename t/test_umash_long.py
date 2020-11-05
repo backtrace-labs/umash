@@ -27,8 +27,8 @@ def repeats(min_size):
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
         U64S,
-        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
-        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
     ),
     data=st.binary(min_size=16) | repeats(16),
 )
@@ -55,8 +55,8 @@ def test_umash_long(seed, multiplier, key, data):
     multiplier=st.integers(min_value=0, max_value=FIELD - 1),
     key=st.lists(
         U64S,
-        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
-        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TOEPLITZ_SHIFT,
+        min_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
+        max_size=C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT,
     ),
     data=repeats(512),
 )
