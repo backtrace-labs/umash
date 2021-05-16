@@ -1,6 +1,6 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2020-08-27
+## % 2021-05-16
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
 ##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
 ##
@@ -194,12 +194,10 @@
 ## size of $x$, before expansion to complete chunks; for $h_x$ to
 ## equal $h_y$, we must find
 ##
-## $$
 ## \begin{align*}
-## &\left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(x_n) +_{128} t_x).&= h_y \\
-## \Leftrightarrow & \texttt{NH}_{k_n}(m_n) = (h_y -_{128} t_x) \oplus \bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i)
+## &\left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i) \right) \oplus (\texttt{NH}_{k_n}(x_n) +_{128} t_x) = h_y \\
+## \Leftrightarrow\quad& \texttt{NH}_{k_n}(m_n) = (h_y -_{128} t_x) \oplus \bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(x_i)
 ## \end{align*}
-## $$
 ##
 ## The parameters for the left-hand side `NH` step are independent of
 ## everything on the right-hand side.  The probability of a collision
@@ -209,7 +207,7 @@
 ## ($w = 64$).
 ##
 ## The probability of a collision between blocks of different lengths
-## is thus at most $2^[-63}.$
+## is thus at most $2^{-63}.$
 ##
 ## For the Toeplitz extension case, we can similarly note that the
 ## parameters for the final `NH` step in $x$ are independent of the
@@ -274,7 +272,7 @@
 ## differ iff the
 ## [`ENH` iterations](https://eprint.iacr.org/2004/319.pdf#page=4)
 ## $\texttt{NH}() +_{128} t$ differ.  The `ENH` family is
-## $2^{-w$}-almost-universal (this directly follows from the
+## $2^{-w}-$almost-universal (this directly follows from the
 ## $2^{-w}-$almost-$\Delta$-universality of `NH`).
 ##
 ## We only considered the last parameter chunk in $k,$ so the same
