@@ -5,7 +5,7 @@
 ##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
 ##
 ## This semi-literate code is distributed under the MIT license.
-## Copyright 2020 Backtrace I/O, Inc.
+## Copyright 2021 Backtrace I/O, Inc.
 ##
 ## Permission is hereby granted, free of charge, to any person
 ## obtaining a copy of this software and associated documentation
@@ -35,7 +35,7 @@
 ## [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
 ## [XXH3](https://github.com/Cyan4973/xxHash), or
 ## [farmhash](https://github.com/google/farmhash).
-## Its 64-bit output is almost universal (see below for collision
+## Its 64-bit output is *almost universal* (see below for collision
 ## probability), and it, as well as both its 32-bit halves, passes
 ## both [Reini Urban's fork of
 ## SMHasher](https://github.com/rurban/smhasher/) and [Yves Orton's
@@ -47,10 +47,9 @@
 ## data. While UMASH accepts a regular 64-bit "seed" value, it is
 ## merely a hint that we would like to see a different set of hash
 ## values, without any guarantee. Nevertheless, this suffices to pass
-## SMHasher's seed-based collision tests.  For real guarantees, we
-## recommend the use of a stream cipher like
-## [Salsa20](https://nacl.cr.yp.to/) to expand short seeds into full
-## UMASH keys.
+## SMHasher's seed-based collision tests.  For real guarantees,
+## expand short keys into full UMASH keys with a stream cipher
+## like [Salsa20](https://nacl.cr.yp.to/).
 ##
 ## UMASH should not be used for cryptographic purposes, especially
 ## against adversaries that can exploit side-channels or adapt to the
@@ -99,7 +98,7 @@
 ## for all but the last iteration, which instead mixes the
 ## remaining 16-byte chunk with [`NH`](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12).
 ##
-## The core  [`PH` construction](https://digitalcommons.wpi.edu/etd-theses/437/))
+## The core  [`PH` construction](https://digitalcommons.wpi.edu/etd-theses/437/)
 ## has been re-derived and baptised multiple times, recently as `CLNH`
 ## by [Lemire and Kaser](https://arxiv.org/abs/1503.03465);
 ## [Bernstein](http://cr.yp.to/antiforgery/pema-20071022.pdf#page=6)
@@ -115,16 +114,16 @@
 ## $$
 ##
 ## where $\cdot^{hi}$ is the high 8-byte (64-bit) half of a 16-byte
-## value, and $\cdot^{lo}$ the low 8-byte half, and product is in 128-bit
-## carry-less arithmetic.  This family of hash functions mixes
-## pairs of $w = 64$ bit values into $2w$-bit hashes that are
-## $(2^{-w} = 2^{-64})-$almost-XOR-universal.
+## value, $\cdot^{lo}$ the low 8-byte half, and $\odot$ is a
+## multiplication in 128-bit carry-less arithmetic.  This family of
+## hash functions mixes pairs of $w = 64$ bit values into $2w$-bit
+## hashes that are $(2^{-w} = 2^{-64})-$almost-XOR-universal.
 ##
 ## This last property means that, not only are two different 16-byte
 ## chunks unlikely to collide (i.e.,
 ## $P[\texttt{PH}_{k_i}(x) = \texttt{PH}_{k_i}(y)] \leq 2^{-64}$
 ## for $x \neq y$), but in fact any specific difference
-## $\Delta_{\texttt{XOR}}$ is also unlikely:
+## $\Delta_{\texttt{XOR}}$ is equally unlikely:
 ##
 ## $$P[\texttt{PH}_{k_i}(x) \oplus \texttt{PH}_{k_i}(y) = \Delta_{\texttt{XOR}}] \leq 2^{-64}.$$
 ##
@@ -143,9 +142,9 @@
 ## where $+_{64}$ denotes 64-bit modular addition, and $\cdot_{128}$
 ## a full $64 \times 64 \rightarrow 128$-bit multiplication.
 ##
-## This family of hash function mixes 128-bit (16-byte) values into
+## The `NH` family of hash function mixes 128-bit (16-byte) values into
 ## 128-bit hashes that are $2^{-64}-$almost-$\Delta$-unversal: For
-## any $x \neq y$, any specific difference $\Delta$ between
+## any $x \neq y$, every specific difference $\Delta$ between
 ## $\texttt{NH}_k(x)$ and $\texttt{NH}_k(y)$ satisfies
 ##
 ## $$
@@ -163,7 +162,7 @@
 ## $$
 ##
 ## We will use the tag $t$ to encode the initial block size, before
-## expansion to a round number of chunks, and thus prevent length
+## expansion to an integral number of chunks, and thus prevent length
 ## extension attacks.
 ##
 ## Having defined `OH`, we must now show that it is a universal hash
@@ -348,7 +347,7 @@
 ## Strings of 8 or fewer bytes are converted to 64-bit integers
 ## and passed to a mixing routine based on
 ## [SplitMix64](http://prng.di.unimi.it/splitmix64.c), with
-## the addition of a secret parameter that differs for each input
+## the addition of a random parameter that differs for each input
 ## size $s \in [0, 8].$ The result is universal, never collides values
 ## of the same size, and otherwise collides values with probability
 ## $\varepsilon_{\textrm{short}} \approx 2^{-64}.$
@@ -366,8 +365,8 @@
 ## case, the small modulus means polynomial hashing disregards
 ## slightly more than 6 bits off each `OH` output. This conservatively
 ## yields a collision probability less than $2^{-56}$ from `OH`; we
-## will prevent extension attacks by making `OH`'s consume the
-## block's original byte length.
+## prevent extension attacks by making `OH` consume the block's
+## original byte length.
 ##
 ## That's quickly dominated by the collision probability for the
 ## polynomial hash, $\varepsilon_{\mathbb{F}} < d / (2^{-61} - 2),$
@@ -611,7 +610,7 @@ def umash_short(key, seed, buf):
 ## $(s \bmod 256)$ with the seed to generate the last block's tag
 ## value.  Since only the last block may span fewer than 256 bytes,
 ## this is equivalent to `xor`ing $|\mathbf{M}_i|\bmod 256,$ a block's
-## size modulo the maximum block size to the seed to generate each
+## size modulo the maximum block size, with the seed to generate each
 ## block's tag.
 ##
 ## Tags are 128-bit values, and `xor`ing a 64-bit seed with $s\bmod
@@ -691,7 +690,7 @@ def blockify_chunks(chunks):
 ## reversible finaliser (we `xor` the low half into the high half)
 ## does not affect the collision bound, but improves distribution by
 ## inserting a different form of linearity between the modular
-## arithmetic of `NH` and the Carter-Wegman polynomial
+## arithmetic of `NH` and the Carter-Wegman polynomial.
 
 
 def oh_mix_one_block(key, block, tag, secondary=False):
@@ -718,7 +717,7 @@ def oh_mix_one_block(key, block, tag, secondary=False):
     return mixed
 
 
-## TODO: compare against the reference directly with `secondary=True`.
+# TODO: compare against the reference directly with `secondary=True`.
 def oh_compress_one_block(key, block, tag, secondary=False):
     """Applies the `OH` hash to compress a block of up to 256 bytes."""
     mixed = oh_mix_one_block(key, block, tag, secondary)
@@ -835,13 +834,14 @@ def poly_reduce(multiplier, input_size, compressed_values):
 ## [xor-rotate](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
 ## transformation.  Rotating before `xor` mixes both the low and high
 ## bits around, and `xor`ing a pair of bit-rotated values guarantees
-## invertibility (`xor`ing a single rotate always maps both 0 and -1
-## to 0).
+## invertibility (`xor`ing a single rotate would irreversibly map both
+## 0 and -1 to 0).
 ##
 ## The pair of rotation constants in the finalizer, 8 and 33, was
 ## found with an exhaustive search: they're good enough for SMHasher.
 ## In theory, this is a bad finalizer, for all constants.  The rotation
 ## counts are likely tied to the `(mod 2**64 - 8)` polynomial hash.
+
 def rotl(x, count):
     """Rotates the 64-bit value `x` to the left by `count` bits."""
     ret = 0
