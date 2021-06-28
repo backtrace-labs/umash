@@ -45,11 +45,26 @@ uint64_t horner_double_update(
 struct umash_oh oh_one_block(const uint64_t *params, uint64_t tag, const void *block);
 
 /**
+ * Compresses one OH block of 256 bytes with the primary and secondary
+ * compressors.
+ */
+void oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
+    uint64_t tag, const void *restrict block);
+
+/**
  * Compress the last OH block of up to 256 bytes.  `block + n_bytes -
  * 16` must contain input data.
  */
 struct umash_oh oh_last_block(
     const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes);
+
+/**
+ * Compress the last OH block of up to 256 bytes with the primary and
+ * secondary compressors.  `block + n_bytes - 16` must contain input
+ * data.
+ */
+void oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
+    uint64_t tag, const void *restrict block, size_t n_bytes);
 
 /**
  * Converts a buffer of <= 8 bytes to a 64-bit integers.

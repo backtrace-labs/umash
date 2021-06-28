@@ -381,7 +381,7 @@ oh_one_block(const uint64_t *params, uint64_t tag, const void *block)
 	return ret;
 }
 
-static FN void
+TEST_DEF void
 oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block)
 {
@@ -504,7 +504,7 @@ oh_last_block(const uint64_t *params, uint64_t tag, const void *block, size_t n_
 	return ret;
 }
 
-static FN void
+TEST_DEF void
 oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes)
 {

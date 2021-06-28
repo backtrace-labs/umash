@@ -830,8 +830,6 @@ def xs(x, i):
     return parallel_shift(x, i) ^ parallel_shift(x, 1)
 
 
-# TODO: compare the compressor directly against this reference with
-# `secondary=True`.
 def oh_compress_one_block(key, block, tag, secondary=False):
     """Applies the `OH` hash to compress a block of up to 256 bytes."""
     mixed = oh_mix_one_block(key, block, tag, secondary)
