@@ -1,6 +1,6 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2021-06-28
+## % 2021-06-29
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
 ##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
 ##
@@ -806,16 +806,20 @@ def oh_mix_one_block(key, block, tag, secondary=False):
             mixed.append(enh)
     if secondary:  # We only use the checksum chunk in the secondary hash
         mixed.append(gfmul(lrc[0] ^ key[-2], lrc[1] ^ key[-1]))
-    mixed.reverse()
     return mixed
 
 
-def xs(x, i):
+def xs(x, i, n):
     """Computes our almost-xor-shift of x, on parallel 64-bit halves.
 
-    If i == 0, this function is the identity
-    If i == 1, this is (x << 1)
-    Otherwise, this is (x << i) ^ (x << 1)."""
+    If i == n, this function is the identity
+    If i == n - 1, it returns (x << 1)
+    Otherwise, it returns [x << (n - i)] ^ (x << 1).
+
+    The reverse ordering in the shifts (smaller values of `i` shift
+    more) makes it possible to implement the surrounding loop with
+    accumulators that are shifted by one at each inner iteration.
+    """
 
     def parallel_shift(x, s):
         lo, hi = x % W, x // W
@@ -823,11 +827,12 @@ def xs(x, i):
         hi = (hi << s) % W
         return lo + W * hi
 
-    if i == 0:
+    shift = n - i
+    if shift == 0:
         return x
-    if i == 1:
+    if shift == 1:
         return parallel_shift(x, 1)
-    return parallel_shift(x, i) ^ parallel_shift(x, 1)
+    return parallel_shift(x, shift) ^ parallel_shift(x, 1)
 
 
 def oh_compress_one_block(key, block, tag, secondary=False):
@@ -837,9 +842,10 @@ def oh_compress_one_block(key, block, tag, secondary=False):
         # Easy case (fast hash): xor everything
         return reduce(lambda x, y: x ^ y, mixed, 0)
 
-    acc = mixed[0]
-    for i, mixed_chunk in enumerate(mixed[1:]):
-        acc ^= xs(mixed_chunk, i)
+    acc = mixed[-1]
+    n = len(mixed) - 1
+    for i, mixed_chunk in enumerate(mixed[:-1]):
+        acc ^= xs(mixed_chunk, i + 1, n)
     return acc
 
 
@@ -1068,6 +1074,8 @@ def umash(key, seed, buf, secondary):
 ## function with `PH`.
 ##
 ## # Change log
+##
+## 2021-06-29: simplify secondary OH compression loop.
 ##
 ## 2021-06-28: actually document the new fingerprinting algorithm
 ## inspired by [Nandi's "On the Minimum Number of Multiplications Necessary for Universal Hash Functions"](https://link.springer.com/chapter/10.1007/978-3-662-46706-0_25)
