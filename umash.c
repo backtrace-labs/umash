@@ -42,8 +42,43 @@ v128_clmul_cross(v128 x)
 {
 	return _mm_clmulepi64_si128(x, x, 1);
 }
+
+#elif defined(__ARM_FEATURE_CRYPTO)
+
+#include <arm_neon.h>
+
+typedef uint64x2_t v128;
+
+#define V128_ZERO { 0 };
+
+static inline v128
+v128_create(uint64_t lo, uint64_t hi)
+{
+	return vcombine_u64(vcreate_u64(lo), vcreate_u64(hi));
+}
+
+static inline v128
+v128_shift(v128 x)
+{
+	return vshlq_n_u64(x, 1);
+}
+
+static inline v128
+v128_clmul(uint64_t x, uint64_t y)
+{
+	return vreinterpretq_u64_p128(vmull_p64(x, y));
+}
+
+static inline v128
+v128_clmul_cross(v128 x)
+{
+	return v128_clmul(vgetq_lane_u64(x, 0), vgetq_lane_u64(x, 1));
+}
+
 #else
-#error "Unsupported platform: umash requires x86's SSE2 and CLMUL (-mpclmul)"
+
+#error \
+    "Unsupported platform: umash requires CLMUL (-mpclmul) on x86-64, or crypto (-march=...+crypto) extensions on aarch64."
 #endif
 
 /*
