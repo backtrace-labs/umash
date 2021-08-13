@@ -5,9 +5,46 @@
 #endif
 
 #include <assert.h>
-/* The OH block reduction code is x86-only for now. */
-#include <immintrin.h>
 #include <string.h>
+
+#ifdef __PCLMUL__
+/* If we have access to x86 PCLMUL (and some basic SSE). */
+#include <immintrin.h>
+
+/* We only use 128-bit vector, as pairs of 64-bit integers. */
+typedef __m128i v128;
+
+#define V128_ZERO { 0 };
+
+static inline v128
+v128_create(uint64_t lo, uint64_t hi)
+{
+	return _mm_set_epi64x(hi, lo);
+}
+
+/* Shift each 64-bit lane left by one bit. */
+static inline v128
+v128_shift(v128 x)
+{
+	return _mm_add_epi64(x, x);
+}
+
+/* Computes the 128-bit carryless product of x and y. */
+static inline v128
+v128_clmul(uint64_t x, uint64_t y)
+{
+	return _mm_clmulepi64_si128(_mm_cvtsi64_si128(x), _mm_cvtsi64_si128(y), 0);
+}
+
+/* Computes the 128-bit carryless product of the high and low halves of x. */
+static inline v128
+v128_clmul_cross(v128 x)
+{
+	return _mm_clmulepi64_si128(x, x, 1);
+}
+#else
+#error "Unsupported platform: umash requires x86's SSE2 and CLMUL (-mpclmul)"
+#endif
 
 /*
  * #define UMASH_STAP_PROBE=1 to insert probe points in public UMASH
@@ -346,18 +383,18 @@ TEST_DEF struct umash_oh
 oh_one_block(const uint64_t *params, uint64_t tag, const void *block)
 {
 	struct umash_oh ret;
-	__m128i acc = { 0 };
+	v128 acc = V128_ZERO;
 	size_t i;
 
 	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
-		__m128i x, k;
+		v128 x, k;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
 
 		memcpy(&k, &params[i], sizeof(k));
 		x ^= k;
-		acc ^= _mm_clmulepi64_si128(x, x, 1);
+		acc ^= v128_clmul_cross(x);
 	}
 
 	memcpy(&ret, &acc, sizeof(ret));
@@ -385,16 +422,15 @@ TEST_DEF void
 oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block)
 {
-	__m128i acc = { 0 }; /* Base umash */
-	__m128i acc_shifted = { 0 }; /* Accumulates shifted values */
-	__m128i lrc;
-	__m128i prev = { 0 };
+	v128 acc = V128_ZERO; /* Base umash */
+	v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
+	v128 lrc;
+	v128 prev = V128_ZERO;
 	size_t i;
 
-	lrc = _mm_set_epi64x(
-	    params[UMASH_OH_PARAM_COUNT + 1], params[UMASH_OH_PARAM_COUNT]);
+	lrc = v128_create(params[UMASH_OH_PARAM_COUNT], params[UMASH_OH_PARAM_COUNT + 1]);
 	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
-		__m128i x, k;
+		v128 x, k;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
@@ -404,12 +440,12 @@ oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict para
 		x ^= k;
 		lrc ^= x;
 
-		x = _mm_clmulepi64_si128(x, x, 1);
+		x = v128_clmul_cross(x);
 
 		acc ^= x;
 
 		acc_shifted ^= prev;
-		acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+		acc_shifted = v128_shift(acc_shifted);
 
 		prev = x;
 	}
@@ -419,7 +455,7 @@ oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict para
 	 * specially.
 	 */
 	{
-		__m128i x, k;
+		v128 x, k;
 
 		memcpy(&x, block, sizeof(x));
 		memcpy(&k, &params[i], sizeof(k));
@@ -428,9 +464,9 @@ oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict para
 	}
 
 	acc_shifted ^= acc;
-	acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+	acc_shifted = v128_shift(acc_shifted);
 
-	acc_shifted ^= _mm_clmulepi64_si128(lrc, lrc, 1);
+	acc_shifted ^= v128_clmul_cross(lrc);
 
 	memcpy(&dst[0], &acc, sizeof(dst[0]));
 	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
@@ -463,23 +499,23 @@ TEST_DEF struct umash_oh
 oh_last_block(const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes)
 {
 	struct umash_oh ret;
-	__m128i acc = { 0 };
+	v128 acc = V128_ZERO;
 
 	/* The final block processes `remaining > 0` bytes. */
-	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
+	size_t remaining = 1 + ((n_bytes - 1) % sizeof(v128));
 	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
-	const void *last_ptr = (const char *)block + n_bytes - sizeof(__m128i);
+	const void *last_ptr = (const char *)block + n_bytes - sizeof(v128);
 	size_t i;
 
 	for (i = 0; i < end_full_pairs; i += 2) {
-		__m128i x, k;
+		v128 x, k;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
 
 		memcpy(&k, &params[i], sizeof(k));
 		x ^= k;
-		acc ^= _mm_clmulepi64_si128(x, x, 1);
+		acc ^= v128_clmul_cross(x);
 	}
 
 	memcpy(&ret, &acc, sizeof(ret));
@@ -508,20 +544,19 @@ TEST_DEF void
 oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes)
 {
-	__m128i acc = { 0 }; /* Base umash */
-	__m128i acc_shifted = { 0 }; /* Accumulates shifted values */
-	__m128i lrc;
-	__m128i prev = { 0 };
+	v128 acc = V128_ZERO; /* Base umash */
+	v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
+	v128 lrc;
+	v128 prev = V128_ZERO;
 	/* The final block processes `remaining > 0` bytes. */
-	size_t remaining = 1 + ((n_bytes - 1) % sizeof(__m128i));
+	size_t remaining = 1 + ((n_bytes - 1) % sizeof(v128));
 	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
-	const void *last_ptr = (const char *)block + n_bytes - sizeof(__m128i);
+	const void *last_ptr = (const char *)block + n_bytes - sizeof(v128);
 	size_t i;
 
-	lrc = _mm_set_epi64x(
-	    params[UMASH_OH_PARAM_COUNT + 1], params[UMASH_OH_PARAM_COUNT]);
+	lrc = v128_create(params[UMASH_OH_PARAM_COUNT], params[UMASH_OH_PARAM_COUNT + 1]);
 	for (i = 0; i < end_full_pairs; i += 2) {
-		__m128i x, k;
+		v128 x, k;
 
 		memcpy(&x, block, sizeof(x));
 		block = (const char *)block + sizeof(x);
@@ -531,12 +566,12 @@ oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict par
 		x ^= k;
 		lrc ^= x;
 
-		x = _mm_clmulepi64_si128(x, x, 1);
+		x = v128_clmul_cross(x);
 
 		acc ^= x;
 
 		acc_shifted ^= prev;
-		acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+		acc_shifted = v128_shift(acc_shifted);
 
 		prev = x;
 	}
@@ -546,7 +581,7 @@ oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict par
 	 * specially.
 	 */
 	{
-		__m128i x, k;
+		v128 x, k;
 
 		memcpy(&x, last_ptr, sizeof(x));
 		memcpy(&k, &params[end_full_pairs], sizeof(k));
@@ -555,9 +590,9 @@ oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict par
 	}
 
 	acc_shifted ^= acc;
-	acc_shifted = _mm_add_epi64(acc_shifted, acc_shifted);
+	acc_shifted = v128_shift(acc_shifted);
 
-	acc_shifted ^= _mm_clmulepi64_si128(lrc, lrc, 1);
+	acc_shifted ^= v128_clmul_cross(lrc);
 
 	memcpy(&dst[0], &acc, sizeof(dst[0]));
 	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
@@ -755,7 +790,7 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *oh,
 		uint64_t u64[2];
 	} hash;
 	union {
-		__m128i v;
+		v128 v;
 		uint64_t u64[2];
 	} mixed_lrc;
 	uint64_t lrc[2] = { oh[UMASH_OH_PARAM_COUNT], oh[UMASH_OH_PARAM_COUNT + 1] };
@@ -771,7 +806,7 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *oh,
 
 	lrc[0] ^= x ^ a;
 	lrc[1] ^= y ^ b;
-	mixed_lrc.v = _mm_clmulepi64_si128((__m128i) { lrc[0] }, (__m128i) { lrc[1] }, 0);
+	mixed_lrc.v = v128_clmul(lrc[0], lrc[1]);
 
 	hash.h = (__uint128_t)offset << 64;
 	a += x;
@@ -997,14 +1032,14 @@ sink_consume_buf(
 
 	/* All but the last 16-byte chunk of each block goes through PH. */
 	if (sink->oh_iter < UMASH_OH_PARAM_COUNT - 2 && !final) {
-		__m128i acc, h, twisted_acc, prev;
+		v128 acc, h, twisted_acc, prev;
 		uint64_t m0, m1;
 
 		m0 = x ^ k0;
 		m1 = y ^ k1;
 
 		memcpy(&acc, &sink->oh_acc, sizeof(acc));
-		h = _mm_clmulepi64_si128(_mm_cvtsi64_si128(m0), _mm_cvtsi64_si128(m1), 0);
+		h = v128_clmul(m0, m1);
 		acc ^= h;
 		memcpy(&sink->oh_acc, &acc, sizeof(acc));
 
@@ -1018,7 +1053,7 @@ sink_consume_buf(
 		memcpy(&prev, sink->oh_twisted.prev, sizeof(prev));
 
 		twisted_acc ^= prev;
-		twisted_acc = _mm_add_epi64(twisted_acc, twisted_acc);
+		twisted_acc = v128_shift(twisted_acc);
 		memcpy(&sink->oh_twisted.acc, &twisted_acc, sizeof(twisted_acc));
 		memcpy(&sink->oh_twisted.prev, &h, sizeof(h));
 	} else {
@@ -1032,7 +1067,7 @@ sink_consume_buf(
 
 		if (sink->hash_wanted != 0) {
 			union {
-				__m128i vec;
+				v128 vec;
 				uint64_t h[2];
 			} lrc_hash;
 			uint64_t lrc0, lrc1;
@@ -1041,8 +1076,7 @@ sink_consume_buf(
 
 			lrc0 = sink->oh_twisted.lrc[0] ^ x ^ k0;
 			lrc1 = sink->oh_twisted.lrc[1] ^ y ^ k1;
-			lrc_hash.vec = _mm_clmulepi64_si128(
-			    _mm_cvtsi64_si128(lrc0), _mm_cvtsi64_si128(lrc1), 0);
+			lrc_hash.vec = v128_clmul(lrc0, lrc1);
 
 			oh_twisted0 = sink->oh_twisted.acc.bits[0];
 			oh_twisted1 = sink->oh_twisted.acc.bits[1];
@@ -1210,7 +1244,7 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
 	 * we want to make sure they fall through correctly to
 	 * minimise latency.
 	 */
-	if (LIKELY(n_bytes <= sizeof(__m128i))) {
+	if (LIKELY(n_bytes <= sizeof(v128))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
 			return umash_short(params->oh, seed, data, n_bytes);
 
@@ -1226,7 +1260,7 @@ umash_fprint(
 {
 
 	DTRACE_PROBE3(libumash, umash_fprint, params, data, n_bytes);
-	if (LIKELY(n_bytes <= sizeof(__m128i))) {
+	if (LIKELY(n_bytes <= sizeof(v128))) {
 		if (LIKELY(n_bytes <= sizeof(uint64_t)))
 			return umash_fp_short(params->oh, seed, data, n_bytes);
 
