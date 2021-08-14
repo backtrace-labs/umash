@@ -1,6 +1,8 @@
 UMASH: a fast almost universal 64-bit string hash
 =================================================
 
+[![Build Status](https://travis-ci.com/backtrace-labs/umash.svg?branch=master)](https://travis-ci.com/backtrace-labs/umash)
+
 STATUS: the hash and fingerprint algorithms are finalized, and so
 is the mapping from `umash_params_derive` inputs to UMASH parameters.
 However, the ABI is not finalized; in particular, passing random bytes
