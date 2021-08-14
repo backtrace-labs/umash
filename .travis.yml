@@ -1,0 +1,16 @@
+language: c
+compiler:
+  - clang
+  - gcc
+arch:
+  - amd64
+os: linux
+dist: bionic
+
+install:
+  - pyenv shell 3.8 || echo "using default python"
+  - sudo apt-get -y install python3-venv
+  - pip3 install --upgrade pip
+script:
+  - export CFLAGS='-g -O2 -std=c99 -W -Wall -Werror -mpclmul';
+  - t/run-tests-public.sh && t/run-tests.sh
