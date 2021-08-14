@@ -51,11 +51,11 @@ The current implementation only build with gcc-compatible compilers
 that support the [integer overflow builtins](https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html)
 introduced by GCC 5 (April 2015) and targets x86-64 machines with the
 [CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set) extension
-(available since 2011 on Intel and AMD).  That's simply because we
-only use UMASH on such platforms at [Backtrace](https://backtrace.io/).
-There should be no reason we can't also target other compilers, or
-other architectures with carry-less multiplication instructions
-(e.g., `VMULL` on ARMv8).
+(available since 2011 on Intel and AMD), or aarch64 with the "crypto"
+extension (for `VMULL`).  We only test the performance of UMASH on
+x86-64 because that's the platform where hashing performance matters
+at [Backtrace](https://backtrace.io/); however, thanks to travis-ci,
+we do automatically run our correctness tests on x86-64 and aarch64.
 
 Quick start
 -----------
