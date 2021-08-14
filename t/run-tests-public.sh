@@ -23,6 +23,8 @@ then
     exit 1
 fi
 
+CFLAGS=  # Undefine CFLAGS before pip tries to use it.
+
 $PYTHON -m venv "${BASE}/umash-venv/"
 
 . "${BASE}/umash-venv/bin/activate"
