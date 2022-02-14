@@ -16,14 +16,15 @@
  * [ceil(s / 4096) * 2^{-55}]-almost-universal for inputs of s or
  * fewer bytes.
  *
- * When that's not enough, UMASH can also generate two independent
- * 64-bit hashes in a single traversal.  The resulting fingerprint
- * squares the collision probability to less than
- * ceil(l / 4096)^2 * 2^{-110}; the probability that two distinct
- * inputs receive the same fingerprint is less than 2^{-70} as long
- * as they are shorter than 7.5 GB each.  This expectation is taken
- * over the randomly generated `umash_params`; if an attacker can
- * infer the contents of these parameters, the bounds do not apply.
+ * When that's not enough, UMASH can also generate a pair of 64-bit
+ * hashes in a single traversal.  The resulting fingerprint reduces
+ * the collision probability to less than ceil(s / 2^{26})^2 *
+ * 2^{-83}; the probability that two distinct inputs receive the same
+ * fingerprint is less 2^{-83} for inputs up to 64 MB, and less than
+ * 2^{-70} as long as the inputs are shorter than 5 GB each.  This
+ * expectation is taken over the randomly generated `umash_params`.
+ * If an attacker can infer the contents of these parameters, the
+ * bounds do not apply.
  *
  * ## Initialisation
  *

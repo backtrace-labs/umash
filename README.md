@@ -24,14 +24,14 @@ Unlike most other non-cryptographic hash functions
 [do not prevent seed-independent collisions](https://github.com/Cyan4973/xxHash/issues/180#issuecomment-474100780)
 and thus [usually suffer from such weaknesses](https://www.131002.net/siphash/#at),
 UMASH provably avoids parameter-independent collisions.  For any two
-inputs of `l` bytes or fewer, the probability that a randomly
+inputs of `s` bytes or fewer, the probability that a randomly
 parameterised UMASH assigns them the same 64 bit hash value is less
-than `ceil(l / 4096) 2**-55`.  UMASH also offers a fingerprinting mode
+than `ceil(s / 4096) 2**-55`.  UMASH also offers a fingerprinting mode
 that simply computes two nearly-independent hashes at the same time.
 The resulting [128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
-collides pairs of `l`-or-fewer-byte inputs with probability less than
-`ceil(l / 2**27)**2 * 2**-82`; that's less than `2**-70` (`1e-21`) for
-up to 7.5 GB of data.
+collides pairs of `s`-or-fewer-byte inputs with probability less than
+`ceil(s / 2**26)**2 * 2**-83`; that's less than `2**-70` (`1e-21`) for
+up to 5 GB of data.
 
 See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
 rationale about the design, and a proof sketch for the collision bound.
@@ -150,7 +150,7 @@ left:
    with AVX-256.
 2. We currently only use incremental and one-shot hashing
    interfaces. If someone needs parallel hashing, we can collaborate
-   to find out what that interface could look like.
+   to find out what that interface should look like.
 3. A size-optimised implementation could be helpful.
 4. How fast could we go on a GPU?
 

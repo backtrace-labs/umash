@@ -1,8 +1,9 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2021-06-29
+## % 2022-02-18
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
-##     pandoc -M colorlinks -o umash.pdf -  # TY lukego
+##     pandoc --lua-filter=t/diagram-generator.lua -M colorlinks \
+##       -o umash.pdf -  # TY lukego
 ##
 ## This semi-literate code is distributed under the MIT license.
 ## Copyright 2021 Backtrace I/O, Inc.
@@ -35,24 +36,24 @@
 ## [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
 ## [XXH3](https://github.com/Cyan4973/xxHash), or
 ## [farmhash](https://github.com/google/farmhash).
-## Its 64-bit output is *almost universal* (see below for collision
-## probability), and it, as well as both its 32-bit halves, passes
-## both [Reini Urban's fork of
+## Its 64-bit output is [*almost universal*](https://en.wikipedia.org/wiki/Universal_hashing)
+## (see below for collision probability), and it, as well as both its
+## 32-bit halves, satisfies [Reini Urban's fork of
 ## SMHasher](https://github.com/rurban/smhasher/) and [Yves Orton's
 ## extended version](https://github.com/demerphq/smhasher).
 ##
 ## The universal collision bounds for UMASH hold under the assumption
-## that independent keys are fully re-generated with random
-## data. While UMASH accepts a regular 64-bit "seed" value, it is
-## merely a hint that we would like to see a different set of hash
+## that keys are fully re-generated with random bytes, independently
+## of the hash function's inputs. While UMASH accepts a 64-bit "seed"
+## value, it is merely a hint that we would like to see different hash
 ## values, without any guarantee. Nevertheless, this suffices to pass
-## SMHasher's seed-based collision tests.  For real guarantees,
-## expand short keys into full UMASH keys with a stream cipher
-## like [Salsa20](https://nacl.cr.yp.to/).
+## SMHasher's seed-based collision tests.  For real guarantees, expand
+## short keys into full UMASH keys with a stream cipher like
+## [Salsa20](https://nacl.cr.yp.to/).
 ##
-## UMASH should not be used for cryptographic purposes, especially
+## UMASH should not be used for cryptographic purposes, especially not
 ## against adversaries that can exploit side-channels or adapt to the
-## hashed outputs, but does guarantee worst-case pair-wise
+## hashed outputs, but it does provide worst-case pair-wise
 ## collision bounds. For any two strings of $s$ bytes or fewer, the
 ## probability of them hashing to the same value satisfies
 ## $\varepsilon < \lceil s / 4096\rceil \cdot 2^{-55},$ as long as the
@@ -62,58 +63,115 @@
 ## function makes it trivial to combine them into exponentially more
 ## colliding values.
 ##
-## UMASH can also be used for fingerprinting, in conjunction with a
-## secondary hash function; the combination provides a collision
-## probability less than $2^{-70}$ for input size up to 1 GB.  This
-## secondary function reuses most of the work performed in the primary
-## function, so the additional collision resistance comes at a
-## reasonable overhead.
+## UMASH may also generate a 128-bit fingerprint by computing a
+## secondary hash value concurrently with the usual (primary) UMASH
+## value; the combination of the two 64-bit values guarantees a
+## collision probability less than $2^{-83}$ for input size up to 64
+## MB, and less than $2^{-70}$ at 5 GB.  The secondary hash function
+## mostly reuses work performed in the primary one, so this
+## additional collision resistance comes at a reasonable overhead.
 ##
 ## # Overview of the UMASH hash function
 ##
 ## When hashing strings of 8 or fewer bytes, UMASH converts them to
 ## 64-bit integers and passes those to a mixing routine based on
-## [SplitMix64](http://prng.di.unimi.it/splitmix64.c), with
-## an additional a random parameter that differs for each input
-## size $s \in [0, 8].$ The result is universal, never collides values
+## [SplitMix64](http://prng.di.unimi.it/splitmix64.c), with an
+## additional random parameter that differs for each input size
+## $s \in [0, 8].$ The result is universal, never collides values
 ## of the same size, and otherwise collides values with probability
 ## $\varepsilon_{\textrm{short}} \approx 2^{-64}.$
 ##
 ## There's nothing special about SplitMix64, except that it's well
 ## known, satisfies SMHasher's bias and avalanche tests, and is
-## invertible.  Similarly, we use an invertible xor-rot finaliser
-## in the general case to satisfy SMHasher without impacting the
-## collision bounds.
+## invertible.  Similarly, we use an invertible but otherwise
+## arbitrary `xor`-rot finaliser in the general case to satisfy SMHasher
+## without impacting the collision bounds.
 ##
-## The structure of UMASH on strings of 9 or more bytes closely
-## follows that of
-## [Dai and Krovetz's VHASH](https://eprint.iacr.org/2007/338.pdf),
+## The structure of UMASH on strings of 9 or more bytes (Figure 1)
+## closely follows that of [Dai and Krovetz's VHASH](https://eprint.iacr.org/2007/338.pdf),
 ## with parameters weakened to improve speed at the expense of
 ## collision rate, and the [`NH` block compressor](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12)
-## replaced with a (unfortunately) bespoke hybrid compressor `OH`
-## (`OH` because `O` is the letter between `N` and `P`).
+## replaced with a (unfortunately) bespoke hybrid compressor `OH`.[^why-oh]
 ##
-## UMASH splits an input string into a sequence of blocks
-## $\mathbf{M}$; the first-level `OH` hash further decomposes each
+## [^why-oh]: `OH` because it's a hybrid of `PH` and `NH`, and `O` is
+## the letter between `N` and `P`.
+##
+## ```{.graphviz caption="The two-level (OH / polynomial string hash) structure of UMASH"}
+## digraph hash_funnel {
+## 	rankdir=BT;
+## 	size="10,5";
+##      input [shape = none, width = 1, label = "input bytes:"];
+##      block_1 [shape = box, width = 1, label = "block 1\n(256 B)"];
+##      block_2 [shape = box, width = 1, label = "block 2\n(256 B)"];
+##      block_dot [shape = none, width = 1, label = "..."];
+##      block_n [shape = box, width = 1, label = "block n\n(≤256 B)"];
+##      { rank = same; input -> block_1 -> block_2 -> block_dot -> block_n [style = invis] }
+##
+##      chunk_1 [shape = box, label = "chunk 1\n(16 B)"];
+##      chunk_2 [shape = box, label = "chunk 2\n(16 B)"];
+##      chunk_dot [shape = none, label = "..."];
+##      chunk_n_1 [shape = box, label = "chunk n-1\n(16 B)"];
+##      chunk_n [shape = box, label = "chunk n\n(≤16 B)"];
+##      { rank = same; chunk_1 -> chunk_2 -> chunk_dot -> chunk_n_1 -> chunk_n [style = invis] }
+##
+##      block_1 -> chunk_1;
+##      block_1 -> chunk_2;
+##      block_1 -> chunk_n_1;
+##      block_1 -> chunk_n;
+##
+##      xor [shape = none, label = "⊕", fontsize = 40];
+##      chunk_1 -> xor [label = "PH" ];
+##      chunk_2 -> xor [label = "PH" ];
+##      chunk_n_1 -> xor [label = "PH" ];
+##      chunk_n -> xor [label = "ENH" ];
+##
+##      OH_1 [label = "OH 1\n(16 B)"];
+##      OH_2 [label = "OH 2\n(16 B)"];
+##      OH_dot [shape = none, label = "..."];
+##      OH_n [label = "OH n\n(16 B)"];
+##      { rank = same; OH_1 -> OH_2 -> OH_dot -> OH_n [style = invis] }
+##
+##      xor -> OH_1;
+##      block_2 -> OH_2;
+##      block_n -> OH_n;
+##
+##      CW [label = "CW\n(8 B)"];
+##
+##      OH_1 -> CW;
+##      OH_1 -> CW;
+##      OH_2 -> CW;
+##      OH_2 -> CW;
+##      OH_n -> CW;
+##      OH_n -> CW;
+##
+##      UMASH [label = "UMASH\n(8B)"];
+##      CW -> UMASH [label = "Finalizer"];
+## }
+## ```
+##
+## UMASH splits its input string into a sequence of blocks
+## $\mathbf{M}$; the first-level `OH` compressor further decomposes each
 ## block $\mathbf{M}_i$ of 256 bytes into $m$, a sequence of 16-byte
 ## chunks. The final block may be short, in which case the blocking
-## logic may include redundant data to ensure that the final block's
-## size is a multiple of 16 bytes.
+## logic may include redundant data to ensure its size is a multiple
+## of 16 bytes.
 ##
-## Each block is compressed to 16 bytes with `OH`. The resulting
-## outputs are then fed to a Carter-Wegman polynomial hash function,
-## and the accumulator reversibly finalised to obtain a UMASH value.
+## Each block of up to 256 bytes is compressed to 16 bytes with
+## `OH`. The resulting outputs are then fed to a Carter-Wegman string
+## polynomial hash function (with a standard Horner evaluation
+## algorithm), and the accumulator finalised with a reversible
+## function to obtain a UMASH value.
 ##
-## Although the analysis below assumes a modulus of $M_{61} = 2^{61} -
-## 1$ for the polynomial hash, the implementation actually works in
+## Although the analysis below assumes a modulus of $M_{61} = 2^{61} - 1$
+## for the polynomial hash, the implementation actually works in
 ## $2^{64} - 8 = 8 M_{61}.$ This does not worsen the collision
 ## probability, but obviously affects the exact hash values computed
-## by the function.
+## by the algorithm.
 ##
 ## The first-level compression function is sampled from the `OH`
 ## family with word size $w = 64$ bits and a block size of 256 bytes.
 ##
-## That compression function relies on
+## The `OH` compression function relies on
 ## [`PH`, the equivalent of `NH` in 128-bit carry-less arithmetic](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf)
 ## for all but the last iteration, which instead mixes the
 ## remaining 16-byte chunk with [`NH`](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=12).
@@ -122,9 +180,9 @@
 ## has been re-derived and baptised multiple times, recently as `CLNH`
 ## by [Lemire and Kaser](https://arxiv.org/abs/1503.03465);
 ## [Bernstein](http://cr.yp.to/antiforgery/pema-20071022.pdf#page=6)
-## dates it back to 1968.  Compared to `NH`, `PH` offers higher
-## throughput on higher-end contemporary cores, but worse latency;
-## that's why `OH` switches to `NH` for the last iteration.
+## dates it back to 1968.  Compared to `NH`, `PH` offers better
+## throughput on higher-end contemporary cores, but worse latency.
+## That's why `OH` switches to `NH` for the last iteration.
 ##
 ## For a given 16-byte chunk $m_i$, we parameterise `PH` on a 16-byte
 ## key $k_i$ as
@@ -137,20 +195,22 @@
 ## value, $\cdot^{lo}$ the low 8-byte half, and $\odot$ is a
 ## multiplication in 128-bit carry-less arithmetic.  This family of
 ## hash functions mixes pairs of $w = 64$ bit values into $2w$-bit
-## hashes that are $(2^{-w} = 2^{-64})-$almost-XOR-universal.
+## hashes that are $(2^{-w} = 2^{-64})-$almost-`xor`-universal.
 ##
 ## This last property means that, not only are two different 16-byte
 ## chunks unlikely to collide (i.e.,
 ## $P[\texttt{PH}_{k_i}(x) = \texttt{PH}_{k_i}(y)] \leq 2^{-64}$
 ## for $x \neq y$), but in fact any specific difference
-## $\Delta_{\texttt{XOR}}$ is equally unlikely:
+## $\Delta_{\texttt{xor}}$ is just as unlikely:
 ##
-## $$P[\texttt{PH}_{k_i}(x) \oplus \texttt{PH}_{k_i}(y) = \Delta_{\texttt{XOR}}] \leq 2^{-64}.$$
+## $$
+## P[\texttt{PH}_{k_i}(x) \oplus \texttt{PH}_{k_i}(y) = \Delta_{\texttt{xor}}] \leq 2^{-64}.
+## $$
 ##
-## Almost-XOR-universality lets us
+## Almost-`xor`-universality lets us
 ## [combine multiple `PH`-mixed values](https://arxiv.org/pdf/1503.03465.pdf#page=6)
 ## with bitwise `xor` ($\oplus$) while preserving
-## $2^{-64}-$almost-XOR-universality for the final result.
+## $2^{-64}-$almost-`xor`-universality for the final result.
 ##
 ## The final `NH` step is similar, except in mixed-width modular
 ## arithmetic:
@@ -159,19 +219,23 @@
 ## \texttt{NH}_{k_j}(m_j) = (m_j^{hi} +_{64} k_j^{hi}) \cdot_{128} (m_j^{lo} +_{64} k_j^{lo}),
 ## $$
 ##
-## where $+_{64}$ denotes 64-bit modular addition, and $\cdot_{128}$
-## a full $64 \times 64 \rightarrow 128$-bit multiplication.
+## where $+_{64}$ denotes addition modulo $2^{64}$, and
+## $\cdot_{128}$ a full $64 \times 64 \rightarrow 128$-bit
+## multiplication.
 ##
 ## The `NH` family of hash function mixes 128-bit (16-byte) values into
-## 128-bit hashes that are $2^{-64}-$almost-$\Delta$-universal: For
+## 128-bit hashes that are $2^{-64}-$almost-$\Delta$-universal: for
 ## any $x \neq y$, every specific difference $\Delta$ between
 ## $\texttt{NH}_k(x)$ and $\texttt{NH}_k(y)$ satisfies
 ##
 ## $$
-## P[\texttt{PH}_{k_j}(x) -_{128} \texttt{PH}_{k_j}(y) = \Delta] \leq 2^{-64},
+## P[\texttt{NH}_{k_j}(x) -_{128} \texttt{NH}_{k_j}(y) = \Delta] \leq 2^{-64},
 ## $$
 ##
-## where $-_{128}$ denotes modular 128-bit subtraction.
+## where $-_{128}$ denotes subtraction modulo $2^{128}$.  This
+## $\Delta$-almost-universality means that we can add an arbitrary
+## 128-bit value to the output of `NH` and still obtain a
+## function from the [$2^{-64}-$almost-universal `ENH` family](https://eprint.iacr.org/2004/319.pdf#page=4).
 ##
 ## Let $m$ be a block of $n \geq 1$ 16-byte chunks, and $t$ an
 ## arbitrary 128-bit tag; the `OH` hash of $m$ and $t$ for a given
@@ -188,30 +252,39 @@
 ## The second level is a
 ## [Carter-Wegman polynomial hash](https://www.cs.princeton.edu/courses/archive/fall09/cos521/Handouts/universalclasses.pdf)
 ## in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$ that consumes
-## one 64-bit half of the `OH` output at a time. In other words, given
-## the $i$th `OH`-compressed value $\texttt{OH}_k(\mathbf{M}_i)$, we
-## consume its 128-bit integer value by consecutively
-## feeding $\texttt{OH}_k(\mathbf{M}_i) \bmod 2^{64}$ and
+## one 64-bit half of the `OH` output at a time, with a Horner update.[^double-pump]
+##
+## [^double-pump]: The implementation in $\bmod\ 2^{64} - 8$
+## actually precomputes the square of the evaluation point
+## $f \in \mathbb{F}$, and performs two Horner updates in parallel.
+## It thus computes a value that does not match the polynomial in
+## $\bmod\ 2^{64} - 8$ nor in $\bmod\ M_{61}$, but does match the
+## latter once reduced to $\bmod\ M_{61}.$
+##
+## In other words, given the $i$th `OH`-compressed value
+## $\texttt{OH}_k(\mathbf{M}_i)$, we consume that 128-bit value by
+## serially feeding $\texttt{OH}_k(\mathbf{M}_i) \bmod 2^{64}$ and
 ## $\lfloor \texttt{OH}_k(\mathbf{M}_i) / 2^{64}\rfloor$ to the
 ## polynomial hash.
 ##
 ## Let $n = |\mathbf{M}|$ be the number of `OH` blocks in the input,
-## and $y_j$, for $j < d = 2n$, be the stream of alternating low
-## ($\texttt{OH}_k(\mathbf{M}_{j / 2}) \bmod 2^{64}$) and high
-## ($\lfloor \texttt{OH}_k(\mathbf{M}_{(j - 1) / 2}) / 2^{64}\rfloor$)
+## and $y_j$, for $0 < j \leq d = 2n$, be the stream of alternating low
+## ($\texttt{OH}_k(\mathbf{M}_{(j + 1) / 2}) \bmod 2^{64}$) and high
+## ($\lfloor \texttt{OH}_k(\mathbf{M}_{j / 2}) / 2^{64}\rfloor$)
 ## 64-bit halves from `OH`'s outputs.
-## The polynomial hash is parameterised on a single multiplier $f \in
-## \mathbb{F}$ and evaluates to
+## The polynomial hash is parameterised on a single multiplier
+## $f \in \mathbb{F}$ and evaluates to
 ##
 ## $$
-## CW_f(y) = \left(\sum_{j=0}^{d - 1} y_j \cdot f^{d - j}\right) \bmod 2^{61} - 1,
+## CW_f(y) = \left(\sum_{j=1}^{d} y_j \cdot f^{1 + d - j}\right) \bmod 2^{61} - 1,
 ## $$
 ##
 ## a polynomial of degree $d = 2n$, twice the number of `OH` blocks.
 ##
-## The last step is a finalizer that reversibly mixes the mod $2^{64}
-## - 8$ polynomial hash value to improve its distribution and pass
-## SMHasher.
+## The last step is a finalizer that reversibly mixes the mod
+## $2^{64} - 8$ polynomial hash value to spread variation across all
+## the output bits and pass SMHasher.  This finalizer is reversible,
+## so it has no impact on collisions.
 ##
 ## # Where do collisions come from?
 ##
@@ -219,10 +292,10 @@
 ## parameterised mixing routine for each input size $s \in [0, 8].$
 ## Each of these routines is invertible, and the random parameter
 ## ensures any input value can be mapped to any output value with
-## probability $2^{-64}$ (i.e., they're universal hash functions) This
+## probability $2^{-64}$ (i.e., they're universal hash functions). This
 ## means the short-string mixers never collide values of the same
-## length, and otherwise collides with probability
-## $\varepsilon_{\textrm{short}} \approx 2^{-64},$
+## length, and otherwise collide with probability
+## $\varepsilon_{\textrm{short}} \approx 2^{-64}.$
 ##
 ## For strings of 9 or more bytes, we will show that the second-level
 ## Carter-Wegman polynomial quickly becomes the dominant source of
@@ -230,250 +303,475 @@
 ## short) is compressed to 16 bytes, which increases the polynomial's
 ## degree by *two*, one for each 64-bit half of the compressed output.
 ##
-## The polynomial is in in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z},$
-## so the collision probability for two polynomials of degree at most
+## The polynomial is in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z},$
+## so the collision probability between two polynomials of degree at most
 ## $d$ is $\approx d \cdot 2^{-61}$, i.e., $\lceil s / 256\rceil 2^{-60}$
 ## for strings of $s$ or fewer bytes.
 ##
 ## We now have to show that the probability of collision when
 ## compressing two blocks, a constant, is much smaller than
 ## the polynomial's, for reasonably sized $s$ (asymptotically,
-## that clearly holds).
+## this clearly holds).
 ##
-## Let's do so by casting the first-level block compressor as the XOR
+## Let's do so by casting the first-level block compressor as the `xor`
 ## composition of independently sampled mixers, one for each 16-byte
 ## chunk.  For any block, the last mixer is a member of the [`ENH` family](https://eprint.iacr.org/2004/319.pdf#page=4),
 ## and takes into account both the last 16-byte chunk, and the original
 ## (pre-extension) size of the block in bytes.
 ##
-## This ENH mixer is $2^{-64}-$almost-universal: the probability that
+## This `ENH` mixer is $2^{-64}-$almost-universal: the probability that
 ## two different tuples $(\texttt{chunk}, \texttt{size})$ mix to
 ## the same value is at most $2^{-64}$.
 ##
 ## All other chunks are mixed with [functions from the `PH` family](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf#page=3),
-## which is $2^{-64}$-almost-XOR-universal: not only will two
+## which is $2^{-64}$-almost-`xor`-universal: not only will two
 ## different chunks collide with probability at most $2^{-64}$,
-## but, in fact, the bitwise XOR of their mixed values will not take
+## but, in fact, the bitwise `xor` of their mixed values will not take
 ## any specific value with probability greater than $2^{-64}$.
 ##
-## We can snow show that xor-ing together the output of these mixers
-## is $2^{-64}-$almost-universal, by induction on the number of
-## chunks.  Clearly, that's the case for blocks of one chunk: the ENH
-## mixer is $2^{-64}-$almost-universal.  Assume two blocks $x$ and $y$
-## of $n > 1$ chunks differ.  If their first chunk is identical, they
-## only collide if xoring the mixers for the remaining chunks (and
-## length tag) collides, and the induction hypothesis says that
-## happens with probability at most $2^{-64}.$ If their first chunk
-## differs, they'll be mixed with a `PH` function $g$, and they will
-## only collide if $g(x_1) \oplus g(y_1)$ matches the difference
-## between the hash for the remainder of the chunks.  We know `PH` is
-## $2^{-64}-$almost-XOR-universal, so that happens with probability at
-## most $2^{-64}.$
+## We can show that `xor`ing together the output of these PH and
+## `ENH` mixers is $2^{-63}-$almost-universal by analysing three cases:
+##
+## 1. the two input blocks have the same length and different contents
+## 2. the blocks are identical after expansion, and only differ in the
+##    length tag
+## 3. the blocks differ in length.
+##
+## We shall handle the first case, two different input blocks of
+## identical length (same number of chunks), by induction on the
+## number of chunks.  Clearly, that's the case for blocks of one
+## chunk: the `ENH` mixer is $2^{-64}-$almost-universal.  Assume two
+## blocks $x$ and $y$ of $n > 1$ chunks differ.  If their first chunks
+## are identical, they only collide if `xor`ing the mixers for the
+## remaining chunks (and length tag) collides, and the induction
+## hypothesis says that happens with probability at most $2^{-64}.$ If
+## their first chunks differ, they'll be mixed with a `PH` function
+## $g$ and will only collide if $g(x_1) \oplus g(y_1)$ matches
+## the difference between the hash for the remainder of the chunks.
+## We know `PH` is $2^{-64}-$almost-`xor`-universal, so that happens
+## with probability at most $2^{-64}.$
 ##
 ## If the blocks are identical except for the length tag, the inputs
-## to the ENH mixer still differ, so the proof of
-## $2^{-64}-$almost-universality holds.
+## to the `ENH` mixer still differ, so $2^{-64}-$almost-universality
+## holds.
 ##
-## Finally, if one block contains more chunks than the other, the two
-## blocks only collide if the longer block's final `ENH` hash matches
-## exactly the difference between the two compressed outputs so far.
-## This happens for only one `NH` value $x$, and any one value
-## occurs with probability at most $2^{-63}$ ($x=0$, the worst case).
-## Collisions thus occur between blocks with different chunk counts
-## with probability at most $2^{-63}$.
+## Finally, when one block contains more chunks than the other, the
+## two blocks only collide if the longer block's final `ENH` hash
+## matches exactly the difference between the two compressed outputs
+## so far.  This happens for only one `NH` value $x$, and any one
+## value occurs with probability at most $2^{-63}$ ($x=0$, the worst
+## case).  Two blocks with different chunk counts thus collide with
+## probability at most $2^{-63}$.
 ##
 ## In all cases, the probability of collisions between different blocks
 ## is at most $2^{-63}.$  However, we feed the 128-bit compressed output
-## to the polynomial hash as two values in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z},$
-## which loses less than 7 bits of entropy.  In short, the first-level
-## block compressor introduces collisions with probability less than
-## $2^{-56}.$
+## to the polynomial hash as two values in
+## $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z},$
+## which loses slightly more than 6 bits of entropy.  In total, the
+## first-level block compressor introduces collisions with probability
+## less than $\approx 2^{-57}.$
 ##
 ## The second-level polynomial hash starts with collision probability
 ## $\approx 2^{-60},$ but, already at 16 blocks (4096 bytes), we find
-## $d = 32,$ and thus a collision probability $\varepsilon_{poly} <
-## 2^{-56};$ let's conservatively bump that to $\varepsilon < 2^{-55}$
-## to take the block compressor's collisions into account.  Longer
-## strings will follow the same progression, so we can claim a
-## collision probability $\varepsilon < \lceil s/4096\rceil \cdot 2^{-55}.$
+## $d = 32,$ and thus a collision probability
+## $\varepsilon_{poly} = \frac{32}{2^{61} - 1} \approx 2^{-56};$
+## let's conservatively bump that to $\varepsilon < 2^{-55}$
+## to take into account the block compressor's collisions and the
+## rounding error from $2^{61} - 1 < 2^{61}.$ Longer strings will
+## follow the same progression, so we can claim a collision
+## probability $\varepsilon < \lceil s/4096\rceil \cdot 2^{-55}.$
 ##
 ## # What if that's not enough?
 ##
-## We could use a Toeplitz extension to reuse most of the random
-## parameters.  However, we don't actually need double the
-## entropy: in practice, anything stronger than $\approx 2^{-70}$ is
-## dominated by hardware failure, incinerated datacenters, or war.
+## It's always possible to compute a second independent hash value by
+## passing a fresh set of parameters to the same UMASH code.  In fact,
+## we could take a page from [UMAC and recycle most of the
+## parameters](https://www.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf#page=17).
+## However, we may not actually need double the collision resistance:
+## for many applications (e.g., in-memory caches in front of complex
+## computations), there is a threshold (e.g., $2^{-80}$---$2^{-70}$, or
+## $10^{-24}$---$10^{-21}$) after which collision rates are dominated
+## by the probability of hardware failure or data center incineration.
 ##
-## The plan is to apply nearly-reversible *public* shufflers $xs_i$ to
-## each `PH` output, and to generate an additional chunk for each
-## block by xoring together the chunks and the corresponding `PH`
-## parameters.  In other words, we will derive an additional
-## "checksum" chunk for each block with $\bigoplus m_i \oplus k_i.$
-## This checksum ensures that any two blocks that differ now differ in
-## at least two chunks, and is mixed with
-## $\mathtt{PH}_{\mathrm{checksum}}$ (i.e., parameterised with an
-## independently sampled 128-bit value) before xoring it in the
-## secondary compressor's output.
+## For such applications, UMASH's fingerprinting mode wrings a few
+## more independent bits out of the `PH` and `ENH` values already
+## computed for each chunk in a block, merges them into a secondary
+## compressed value for each block, and feeds that to an independent
+## Carter-Wegman polynomial string hash function to obtain a secondary
+## 64-bit hash value.  Combined with the primary UMASH hash value, the
+## probability of collisions for the resulting 128-bit fingerprint
+## shrinks to
+## $\varepsilon_{fp} < \left\lceil s / 2^{26} \right\rceil^2\cdot 2^{-83}:$
+## less than $2^{-83}$ for strings up to 64 MB, and less than
+## $2^{-70}$ at 5 GB.
 ##
-## The shuffler $xs$ is the identity for the `ENH` value, and for the
-## checksum `PH` mixed value.  For the last `PH` value in a block of $n$ chunks,
-## $xs_{n - 1}(x) = x \texttt{<<} 1,$ where the bit shift is computed
-## independently over $x$'s two 64-bit halves.  For other `PH`
-## values, $xs_{n - i}(x) = (x \texttt{<<} 1) \oplus (x \texttt{<<} i).$
+## In fingerprinting mode, UMASH generates inputs for a secondary
+## Carter-Wegman polynomial hash function by deriving an additional
+## chunk for each block as the `xor` of the input chunks and their
+## corresponding `OH` parameters, and by applying nearly-reversible
+## *public* shufflers $s_{n,i}$ to each `PH` output
+## $\texttt{PH}_{k_i}(m_i).$ In other words, we derive an additional
+## "checksum" chunk for each block as
+## $\bigoplus_{i=1}^n m_i \oplus k_i$, and modify the primary UMASH
+## function's mixed `PH` values before `xor`ing everything them
+## together.
 ##
-## What's the quality of this secondary compressor?
+## The checksum ensures that any two blocks that differ now differ in
+## at least two chunks. Before `xor`ing it in the secondary `OH'`
+## compressor's output, it is mixed with
+## $\mathtt{PH}_{\mathrm{checksum}}$ (parameterised with an
+## independently sampled 128-bit value).
 ##
-## The $xs$ shufflers are *nearly* reversible: they only lose two bits to
-## the $\texttt{<<} 1$ (a plain xor-shift is fully reversible).  The
-## composition of $xs$ and `PH` is thus
-## $2^{-62}-$almost-XOR-universal.  The checksum's plain `PH` is
-## $2^{-64}-$almost-XOR-universal, and the `ENH` mixer is still
-## $2^{-64}-$almost-universal (and still collides blocks of different
-## length with probability at most $2^{-63}$).
+## With the additional checksum chunk, it becomes very unlikely that
+## two blocks that differ only differ in one mixed value. The
+## shufflers $s_{n,i}$ help reduce the probability that differences in
+## the mixed values for two pairs of chunks fully cancel each other
+## out: they now have to simultaneously cancel out in the primary
+## UMASH value (i.e., when `xor`ed together), and in the secondary one
+## (`xor`ed after applying $s_{n,i}$).
+##
+## The idea of deriving an additional checksum chunk and shuffling
+## mixed values to make cancellation unlikely came from discussion
+## with Jim Apple, [who fully exploits the concept in Halftime Hash](https://arxiv.org/abs/2104.08865).
+## Apple builds on [Nandi's](https://eprint.iacr.org/2013/574.pdf)
+## and [Ishai et al's](https://web.cs.ucla.edu/~rafail/PUBLIC/91.pdf)
+## analyses of "Encode, Hash, Combine" and "Expand, Randomise,
+## Shrink."  Unfortunately for us, UMASH's secondary hash is too
+## simplistic for these analyses to apply directly.  We have to
+## analyse our weaker construction the hard way.
+##
+## We only shuffle the `PH` values inherited from the primary UMASH
+## computation.  For the last `PH` value in a block of $n$ chunks,
+## $s_{n, n - 1}(x) = x \texttt{<<} 1,$ where the bit shift is
+## computed independently over $x$'s two 64-bit halves.  For other
+## `PH` values,
+## $s_{n, i}(x) = (x \texttt{<<} 1) \oplus (x \texttt{<<} (n - i));$
+## again, the left shift $\texttt{<<}$ operates on the two 64-bit
+## lanes independently.
+##
+## ```{.graphviz caption="The structure of UMASH's secondary hash function"}
+## digraph hash_funnel {
+## 	rankdir=BT;
+## 	size="10,5";
+##      input [shape = none, width = 1, label = "input bytes:"];
+##      block_1 [shape = box, width = 1, label = "block 1\n(256 B)"];
+##      block_2 [shape = box, width = 1, label = "block 2\n(256 B)"];
+##      block_dot [shape = none, width = 1, label = "..."];
+##      block_n [shape = box, width = 1, label = "block n\n(≤256 B)"];
+##      { rank = same; input -> block_1 -> block_2 -> block_dot -> block_n [style = invis] }
+##
+##      chunk_1 [shape = box, label = "chunk 1\n(16 B)"];
+##      chunk_2 [shape = box, label = "chunk 2\n(16 B)"];
+##      chunk_dot [shape = none, label = "..."];
+##      chunk_n_1 [shape = box, label = "chunk n-1\n(16 B)"];
+##      chunk_n [shape = box, label = "chunk n\n(≤16 B)"];
+##      chunk_checksum [shape = box, label = "checksum\n(16 B)"];
+##      { rank = same; chunk_1 -> chunk_2 -> chunk_dot -> chunk_n_1 -> chunk_n, chunk_checksum [style = invis] }
+##
+##      block_1 -> chunk_1;
+##      block_1 -> chunk_2;
+##      block_1 -> chunk_n_1;
+##      block_1 -> chunk_n;
+##      block_1 -> chunk_checksum;
+##
+##      xor [shape = none, label = "⊕", fontsize = 40];
+##      chunk_1 -> xor [label = "s(PH)" ];
+##      chunk_2 -> xor [label = "s(PH)" ];
+##      chunk_n_1 -> xor [label = "s(PH)" ];
+##      chunk_n -> xor [label = "ENH" ];
+##      chunk_checksum -> xor [label = "PH" ];
+##
+##      OH_1 [label = "OH' 1\n(16 B)"];
+##      OH_2 [label = "OH' 2\n(16 B)"];
+##      OH_dot [shape = none, label = "..."];
+##      OH_n [label = "OH' n\n(16 B)"];
+##      { rank = same; OH_1 -> OH_2 -> OH_dot -> OH_n [style = invis] }
+##
+##      xor -> OH_1;
+##      block_2 -> OH_2;
+##      block_n -> OH_n;
+##
+##      CW [label = "CW'\n(8 B)"];
+##
+##      OH_1 -> CW;
+##      OH_1 -> CW;
+##      OH_2 -> CW;
+##      OH_2 -> CW;
+##      OH_n -> CW;
+##      OH_n -> CW;
+##
+##      UMASH [label = "UMASH'\n(8B)"];
+##      CW -> UMASH [label = "Finalizer"];
+## }
+## ```
+##
+## The shuffling functions are linear over bitvectors and easy to
+## implement with vectorised additions or shifts that operate on
+## independent 64-bit lanes.  The computational core of the
+## compression function `OH` consists of the `PH` and `ENH` mixers.
+## Computing a fingerprint only adds one `PH` per block to that core
+## cost (compare Figure 2 with Figure 1): UMASH's block compressor
+##
+## $$
+## \texttt{OH}_k(m) = \left(\bigoplus_{i=1}^{n - 1} \texttt{PH}_{k_i}(m_i) \right) \oplus (\texttt{NH}_{k_n}(m_n) +_{128} t)
+## $$
+##
+## turns into
+##
+## $$
+## \texttt{OH}^\prime_k(m) = \left(\bigoplus_{i=1}^{n - 1} s_{n, i}(\texttt{PH}_{k_i}(m_i)) \right) \oplus (\texttt{NH}_{k_n}(m_n) +_{128} t) \oplus \texttt{PH}_{\mathrm{checksum}}\left(\bigoplus_{i=1}^n k_i \oplus m_i\right),
+## $$
+##
+## where the additional `PH` mixes the checksum derived from all
+## input chunks.
+##
+## Sharing this core between the primary and secondary hash functions
+## means that the overhead of computing both their values, compared to
+## computing only the primary 64-bit hash value, consists of one more
+## `PH` plus some vectorisable left shifts (or additions) and `xor`s
+## for each block.
+##
+## The shuffling functions ($s_{n, n - 1}(x) = x \texttt{<<} 1$,
+## and $s_{n, i}(x) = (x \texttt{<<} 1) \oplus (x \texttt{<<} (n - i))$
+## when $0 < i < n - 1$) exhibit three crucial properties for our
+## collision bounds:
+##
+## 1. for all $0 < i < n,$ $s_{n,i}(x) \oplus s_{n,i}(y) = s_{n,i}(x \oplus y)$
+## 2. for all $0 < i < n,$ $f(x) = x \oplus s_{n, i}(x)$ is invertible
+## 3. for any two distinct $0 < i < j < n,$ `xor`ing the two shufflers
+##    $s_{n, i}$ and $s_{j,n}$ together yields a function
+##    $h(x) = s_{n, i}(x) \oplus s_{j,n}(x)$ with a small (low rank)
+##    null space.  In other words, while $h$ isn't invertible, it's
+##    "pretty close."
+##
+## ## What's the quality of this secondary compressor?
+##
+## The shufflers $s_{n, i}$ are *nearly* reversible: they only lose
+## two bits to $\texttt{<<} 1$ (one for each 64-bit half, the
+## remaining identity or `xor`-shift is reversible).  In fact, `PH`'s
+## output always fits in 127 bits (the carryless multiplication of two
+## 64-bit values always has a 0 in the most significant bit of
+## the 128-bit result), so the composition of $s$ and `PH` is
+## $2^{-63}-$almost-`xor`-universal.  The checksum's plain `PH` is
+## $2^{-64}-$almost-`xor`-universal, and the `ENH` mixer is still
+## $2^{-64}-$almost-universal.
 ##
 ## After accounting for the bits lost when converting each 64-bit half
 ## to $\mathbb{F}$ for the polynomial hash, the new block compressor
-## collides different blocks with probability at most $2^{-55}.$  Combined
+## collides different blocks with probability $< 2^{-56}.$  Combined
 ## with an independently sampled second-level polynomial string hash,
 ## we find an end-to-end collision probability
 ## $\varepsilon_{\mathrm{secondary}} < \lceil s/8192\rceil \cdot 2^{-54}.$
-## For large enough strings, the new secondary hash is just as good as
+## For long enough strings, the new secondary hash is just as good as
 ## the original UMASH.
 ##
-## However, the real question is what's the probability of collision
-## for the secondary UMASH hash when the original collides?  The two
-## hashes clearly aren't independent, since the secondary hash reuses
-## *all* the `PH` and `ENH` outputs, and merely shuffles some of them
-## before xoring with each other and with the new checksum chunk's own
-## `PH` value.
+## The real question is what happens to the probability of collision
+## for the secondary UMASH hash function when the primary one
+## collides?  The two functions clearly aren't independent: the
+## secondary one reuses all the primary's `PH` and `ENH` outputs, and
+## merely shuffles some of them *deterministically* before `xor`ing
+## everything together and with the new checksum chunk's `PH` value.
 ##
-## In the common case, the collision in the primary UMASH is
+## In the common case, the collision in the primary UMASH function is
 ## introduced by the polynomial hash (i.e., the block compressor
-## doesn't collide).  In that case, the secondary UMASH's polynomial
-## hash is fully independent, so the probability of a collision
-## in the secondary hash is still $\varepsilon_{\mathrm{secondary}} < \lceil s/8192\rceil \cdot 2^{-54}.$
+## doesn't collide).  Since the secondary function's polynomial is
+## completely independent, the probability of a collision in the
+## secondary hash function is still
+## $\varepsilon_{\mathrm{secondary}} < \lceil s/8192\rceil \cdot 2^{-54}.$
 ##
-## Now, what's the probability that both the secondary block compressor
-## collides when the primary compressor already collides?
+## Now, what's the probability that both block compressors collide
+## simultaneously, for a given pair of distinct blocks?  We will
+## examine three cases in order to show that this happens with
+## probability at most $2^{-99}$:
+##
+## 1. the additional checksum chunks differ between the two blocks
+## 2. the chunk counts differ
+## 3. the chunk counts and the checksum chunks are both identical, so the
+##    blocks must differ in at least two original (non-checksum)
+##    chunks.
+##
+## The first two cases are easy.  We shall further split the
+## last in two subcases:
+##
+## a. The blocks are identical except for two chunks, one of which
+##     is the final `ENH`-mixed chunk
+## b. The blocks differ in at least two `PH`-mixed chunks.
+##
+## ### The two easy cases
 ##
 ## When the derived checksums differ, `PH`'s
-## $2^{-64}-$almost-XOR-universality means that the secondary compressor
+## $2^{-64}-$almost-`xor`-universality means that the secondary compressor
 ## collides with probability at most $2^{-64},$ regardless of what
-## happened to the primary compressor.
+## happens in the primary compressor.
 ##
 ## For blocks of different chunk counts, the checksums match with
-## probability at most $2^{-128}$: the checksums $\bigoplus m_i
-## \oplus k_i$ include different random 128-bit parameters $k_i$ (the longer
-## block includes more random parameters). This leaves
-## a collision probability less than $2^{-63}$ for the secondary
-## compressor, even when the primary compressor collides.
+## probability at most $2^{-128}$: the checksums
+## $\bigoplus m_i \oplus k_i$ include different random 128-bit
+## parameters $k_i$ (the longer block includes more random
+## parameters). This leaves a collision probability $\approx 2^{-64}$
+## for the secondary compressor, even when the primary compressor
+## collides.
+##
+## In both easy cases, we find a probability of simultaneous collisions
+## in the primary and second block compressors less than $2^{-126}.$
+##
+## ### The last, harder case (subcase a)
 ##
 ## Otherwise, we have two blocks with identical chunk count $n$, and
-## matching checksums.  That can only happen if at least *two* other
-## chunks differ.  We must analyse two cases: either they differ in
-## exactly two (original) chunks, one of which is the last one,
-## mixed with `ENH`, or they differ in at least two chunks that are
-## mixed with `PH`.
+## matching checksums.  This can only happen if at least *two*
+## original chunks differ.  We must analyse two subcases: either
+## they differ in exactly two original chunks, one of which is the
+## last chunk (mixed with `ENH`), or they differ in at least two
+## original chunks that are mixed with `PH`.
 ##
-## In the first case, where the two blocks differ in the $j$th and the
-## $n$th chunks, let $h_j$ be the `PH` output for the $j$th chunk, and
-## $h_j^\prime$ that for the second block, and let $h_n$ be the `ENH`
-## output for the first block, and $h_n^\prime$ that for the second.
+## Let's handle the first subcase, where the two blocks differ in the
+## $j$th and the $n$th chunks. Let $h_j$ be the `PH` output for the
+## $j$th chunk, and $h_j^\prime$ that for the second block, and let
+## $h_n$ be the `ENH` output for the first block, and $h_n^\prime$
+## that for the second.
 ##
 ## What's the probability that both compressors collide on that input?
-## The primary compressor collides when
-## $h_j \oplus h_n = h_j^\prime \oplus h_n^\prime,$
-## and the secondary compressor when
-## $xs_j(h_j)\oplus h_n = xs_j(h_j^\prime) \oplus h_n^\prime.$
+## Assume the primary compressor collides, i.e.
+## $h_j \oplus h_n = h_j^\prime \oplus h_n^\prime.$
+## The secondary compressor collides iff
+## $s_{n,j}(h_j)\oplus h_n = s_{n,j}(h_j^\prime) \oplus h_n^\prime.$
 ##
-## If we xor the two equations together, we find
-## $xs_j(h_j)\oplus h_j = xs_j(h^\prime_j) \oplus h^\prime_j,$
+## `Xor`ing the two equations together shows that a collision
+## in both compressors implies
+## $$
+## s_{n,j}(h_j)\oplus h_j = s_{n,j}(h^\prime_j) \oplus h^\prime_j.
+## $$
 ##
-## The structure of $xs_j$ is such that $xs_j(h_j) \oplus h_j$
-## is invertible (equivalent to a xor-shift-shift expression),
-## and thus invertible.  The two compressors collide only when
-## $h_j = h^\prime_j$; since $h_j \oplus h_n = h_j^\prime \oplus h_n^\prime,$,
-## this also implies $h_n = h^\prime_n$.
+## The structure of the shufflers $s$ is such that
+## $s_{n,j}(h_j) \oplus h_j$ is invertible (equivalent to a
+## `xor`-shift-shift expression).  The two compressors thus collide
+## only when $h_j = h^\prime_j$.  Since
+## $h_j \oplus h_n = h_j^\prime \oplus h_n^\prime$
+## (we assumed the primary compressor collided), this also implies
+## $h_n = h^\prime_n$.
 ##
-## By $2^{-64}-$almost-universality, both equalityies happen
-## simultaneously with probability at most $2^{-128}.$ Thus, even if
-## we assume the primary compressor collides, the secondary collides with
-## probability at most $2^{-64},$ for this penultimate case.
+## By $2^{-64}-$almost-universality, both equalities happen
+## simultaneously with probability at most $2^{-128}.$ In this
+## penultimate subcase, the probability of simultaneous collisions
+## in the primary and secondary block compressors is $2^{-128}.$
 ##
-## In the last case, we have two blocks that differ in at least two
-## `PH`-mixed chunks $i$ and $j$ ($i < j$).  Let's find the condition
-## that both compressors collide.
+## ### The last, harder case (subcase b)
 ##
-## We can simplify the collision condition to
-## $h_i\oplus h_j = h^\prime_i \oplus h^\prime_j \oplus y,$
+## In this final subcase, we have two blocks that differ in at
+## least two `PH`-mixed chunks $i$ and $j$ ($0 < i < j < n$).  Let's
+## find the probability that both compressors collide in this manner.
+##
+## We can simplify the collision conditions to
+##
+## $$
+## h_i\oplus h_j = h^\prime_i \oplus h^\prime_j \oplus y,
+## $$
 ## and
-## $xs_i(h_i) \oplus xs_j(h_j) = xs_i(h^\prime_i) \oplus xs_j(h^\prime_j) \oplus z,$
+## $$
+## s_{n,i}(h_i) \oplus s_{n,j}(h_j) = s_{n,i}(h^\prime_i) \oplus s_{n,j}(h^\prime_j) \oplus z,
+## $$
 ## where $y$ and $z$ are constants generated adversarially, but
-## without knowing anything about the random parameters.
+## without any knowledge of the random parameters.
 ##
-## Let $\Delta_i = h_i \oplus h^\prime_i$, and $\Delta_j = h_j \oplus h^\prime_j$
+## Let $\Delta_i = h_i \oplus h^\prime_i$, and $\Delta_j = h_j \oplus h^\prime_j.$
+## We have
+## $$
+## \Delta_i \oplus \Delta_j = y,
+## $$
+## and
+## $$
+## s_{n,i}(\Delta_i) \oplus s_{n,j}(\Delta_j) = z.
+## $$
 ##
-## We have $\Delta_i \oplus \Delta_j = y,$ and $xs_i(\Delta_i) \oplus xs_j(\Delta_j) = z.$
+## Applying the linear function $s_{n,i}$ to the first equation yields
+## the weaker
+## $$
+## s_{n,i}(\Delta_i) \oplus s_{n,i}(\Delta_j) = s_{n,i}(y).
+## $$
 ##
-## Let's apply $xs_i$ to the first condition: $xs_i(\Delta_i) \oplus xs_i(\Delta_j) = xs_i(y),$ since $xs_i$ is a linear function.
+## After `xor`ing that with the second equation,
+## $$
+## s_{n,i}(\Delta_i) \oplus s_{n,j}(\Delta_j) = z,
+## $$
+## we find
+## $$
+## s_{n,i}(\Delta_j) \oplus s_{n,j}(\Delta_j) = s_{n,i}(y)\oplus z.
+## $$
 ##
-## After xoring that with the second condition $xs_i(\Delta_i) \oplus xs_j(\Delta_j) = z,$ we find $xs_i(\Delta_j) \oplus xs_j(\Delta_j) = xs_i(y)\oplus z.$
+## We can expand the left-hand side to
+## $$
+## (\Delta_j \texttt{<<} (n - i)) \oplus (\Delta_j \texttt{<<} (n - j)) \quad\textrm{ if } j < n - 1, \textrm{ or}
+## $$
+## $$
+## \Delta_j \texttt{<<} (n - i)\quad\textrm{ if } j = n - 1.
+## $$
 ##
-## We can expand the left-hand side to $(\Delta_j \texttt{<<} (n - i)) \oplus (\Delta_j \texttt{<<} (n - j))$
-## or $\Delta_j \texttt{<<} (n - j)$ if $i = 1.$ In both cases,
-## we find an affine function of $\Delta_j$ with a small null space
-## (at most $2^{2j}$).
-##
-## There are thus at most $2^{2j} \leq 2^{2(n - 1)} = 2^{30}$ values
-## in that null space, so at most $2^{30}$ values of $\Delta_j$
-## can satisfy $xs_i(\Delta_j) \oplus xs_j(\Delta_j) = xs_i(y)\oplus z,$
+## In both cases, we find a linear function of $\Delta_j$ with a
+## small null space (at most $2^{2(n-i)}$, because the shifts operate on
+## independent 64-bit lanes). Since $i > 0$ and $n = 16$, there are at
+## most $2^{30}$ values in that null space, so at most $2^{30}$ values
+## of $\Delta_j$ can satisfy
+## $$
+## s_{n,i}(\Delta_j) \oplus s_{n,j}(\Delta_j) = s_{n,i}(y)\oplus z,
+## $$
 ## a necessary condition for a collision in both compressors.
 ##
-## By $2^{-64}-$almost-XOR-universality of `PH`, this happens with
-## probability at most $2^{-34}.$  Finally, for any given $\Delta_j,$
-## there is at most one $\Delta_i$ such that $\Delta_i \oplus \Delta_j = y,$
-## so the combined collision probability for *both* compressors is at
-## most $2^{-98}.$
+## By the $2^{-64}-$almost-`xor`-universality of `PH`, this happens with
+## probability at most $2^{-34}.$ We can improve that bound by one bit
+## because the output of `PH` only spans 127 bits: a carryless
+## multiplication of 64-bit values never populates the most
+## significant bit of its 128-bit output.  The left shifts thus
+## actually discard at most $2^{29}$ bits of $\Delta_j$ (half the null
+## space can't be generated by `PH`) which means the equality above
+## happens with probability at most $2^{-35}.$
 ##
-## When the first compressor collides, the probability that the second
-## collides as well is at most $2^{-34}.$
+## Finally, for any given $\Delta_j,$ there is one $\Delta_i$ such
+## that $\Delta_i \oplus \Delta_j = y,$ so, by
+## $2^{-64}$-almost-universality of `PH`, the combined collision
+## probability for *both* compressors is at most $2^{-99}.$
 ##
-## The probability that the secondary compressor collides when
-## the regular UMASH compressor does is thus at most $2^{-34},$ or
-## less than $2^{-27}$ once we take into account the entropy lost to
-## $\mathbb{F}.$
+## ### Collision bounds, assemble!
 ##
-## For long (more than 8 bytes) inputs, the combined collision
-## probability is as follows.
-##
-## The first block compression level collides with probability
-## at most $2^{-83}$  (comfortably less than $2^{-70}$).
-##
-## The first hash collides end-to-end with probability
-## $\varepsilon < \lceil s/4096\rceil 2^{-55}.$
-##
-## In the common case, that's because the compressed blocks differ,
-## but the polynomial hash collided anyway.  The secondary hash then
-## collides with probability $\varepsilon_{\mathrm{secondary}} < \lceil
-## s/8192\rceil \cdot 2^{-54}.$
-##
-## Otherwise, this happens because the compressed blocks collide.
-## The secondary block compressor then collides with probability
-## at most $2^{-34},$ and the whole thing thus collides with
-## probability $\varepsilon_{\mathrm{secondary}} \leq 2^{-33}$
-## for inputs shorter than 16 GB.
-##
-## The probability that *both* compressors collide is thus less than
-## $\lceil s/4096\rceil 2^{-88}$ for input sizes up to 16 GB, or
-## less than $2^{-70}$ for input size up to 1 GB.
-##
-## As for short inputs, we will use a shifted set of constants for the
-## random value injected in SplitMix64; since each modified SplitMix64
+## For short inputs (at most 8 bytes), the secondary SplitMix64s use a
+## different set of random constants.  Since each modified SplitMix64
 ## is a universal bijection, there is exactly one value for the random
 ## parameter that will let the longer value collide in the first
 ## UMASH, and again exactly one value for the other random parameter
 ## in the secondary UMASH.  This gets us a collision probability of
 ## $2^{-128}.$
+##
+## For longer inputs (more than 8 bytes), we just showed the
+## probability that both compressors collide is at most $2^{-99},$ or
+## $\approx 2^{-87}$ once we take into account the entropy lost to
+## $\mathbb{F}.$
+##
+## There are three scenarios under which collisions could happen
+## for the combined 128-bit fingerprint of long inputs:
+##
+## 1. both compressors collide simultaneously, $p \approx 2^{-87}$
+## 2. one compressor collides ($\approx 2^{-62}$), and the polynomial
+##    string hash collides for the other ($\approx 2^{-25}$ for $2^{36}$
+##    blocks, i.e., 16 TB), so $p \approx 2^{-87}$ for strings up to 16 TB
+## 3. neither compressor collides, but both polynomial hashes do, the
+##    asymptotically more likely option by far.  This case also covers
+##    collisions between long and short values.
+##
+## The two independent string hashes collide with probability
+## $\approx d^2\cdot 2^{-122},$ for two polynomials of degree $d,$
+## i.e., $\lceil s/256\rceil^2 \cdot 2^{-120}$ for strings of $s$
+## or fewer bytes.
+##
+## At $2^{18}$ blocks (i.e., $s = 2^{26}$), we find the two string
+## hashes collide with probability at most
+## $\varepsilon_{poly^2} \approx 2^{-84}.$ Let's conservatively
+## bump that to $\varepsilon_{fp} < 2^{-83}$ to take into account
+## the other collision scenarios and the rounding errors from
+## $2^{61} - 1 < 2^{61}.$ Longer strings will follow the same
+## progression, so we can claim a combined collision probability
+## $\varepsilon_{fp} < \left\lceil s / 2^{26} \right\rceil^2 \cdot 2^{-83}.$
+##
+## That's $2^{-83}$ for strings up to 64 MB, and less than
+## $2^{-70}$ at 5 GB.
 
 ## # Reference UMASH implementation in Python
 from collections import namedtuple
@@ -614,12 +912,12 @@ def vec_to_u64(buf):
 ## [SplitMix64 update function](http://xoshiro.di.unimi.it/splitmix64.c)
 ## by reversibly `xor`ing the state with a data-independent value in
 ## the middle of the function. This additional `xor` lets us take the
-## input `seed` into account, works around $\texttt{SplitMix64}(0) =
-## 0$, and adds unpredictable variability to inputs of different
-## lengths that `vec_to_u64` might convert to the same 64-bit integer.
-## It comes in after one round of `xor-shift-multiply` has mixed the
-## data around: moving it earlier fails SMHasher's Avalanche and
-## Differential Distribution tests.
+## input `seed` into account, works around
+## $\texttt{SplitMix64}(0) = 0$, and adds unpredictable variability to
+## inputs of different lengths that `vec_to_u64` might convert to the
+## same 64-bit integer.  It comes in after one round of
+## `xor-shift-multiply` has mixed the data around: moving it earlier
+## fails SMHasher's Avalanche and Differential Distribution tests.
 ##
 ## Every step after `vec_to_u64` is reversible, so inputs of the same
 ## byte length $\leq 8$ will never collide. Moreover, a random value
@@ -634,10 +932,11 @@ def vec_to_u64(buf):
 ## with probability $2^{-64}.$
 ##
 ## When we compute the secondary UMASH, collisions for the first and
-## second hashes are independent: $k_{\texttt{len}(x)} \oplus
-## k_{\texttt{len}(y)}$ and $k_{\texttt{len}(x) + S} \oplus
-## k_{\texttt{len}(y) + S}$ are independent for chunk shift constant
-## $S \geq 2$ (we use $S = 2$, i.e., four 64-bit words).
+## second hashes are independent:
+## $k_{\texttt{len}(x)} \oplus k_{\texttt{len}(y)}$ and
+## $k_{\texttt{len}(x) + S} \oplus k_{\texttt{len}(y) + S}$
+## are independent for chunk shift constant $S \geq 2$ (we use
+## $S = 2$, i.e., four 64-bit words).
 
 
 def umash_short(key, seed, buf):
@@ -704,10 +1003,10 @@ def umash_short(key, seed, buf):
 ## size modulo the maximum block size, with the seed to generate each
 ## block's tag.
 ##
-## Tags are 128-bit values, and `xor`ing a 64-bit seed with $s\bmod
-## 256$ yields a 64-bit value.  We avoid a carry in the `NH` step
-## by letting the tag be equal to the `xor`ed value shifted left by
-## 64 bits (i.e., we only populate the high 64-bit half).
+## Tags are 128-bit values, and `xor`ing a 64-bit seed with
+## $s\bmod 256$ yields a 64-bit value.  We avoid a carry in the `NH`
+## step by letting the tag be equal to the `xor`ed value shifted left
+## by 64 bits (i.e., we only populate the high 64-bit half).
 
 
 def chunk_bytes(buf):
@@ -779,11 +1078,12 @@ def blockify_chunks(chunks):
 ## by xoring together the input chunks and the corresponding `PH` and
 ## `NH` parameters.  That last checksum chunk is `PH`-mixed with the
 ## additional "twisting" parameters.  Finally, the original `ENH`
-## value is xored in with the checksum's `PH`, and shuffled versions
-## of the original `PH` values.
+## value is `xor`ed in with the checksum's `PH`, and with shuffled
+## versions of the original `PH` values.
 ##
-## Computing the secondary hsh on top of the primary one only incurs one
-## more carryless multiplication (the core of the block compressor)!
+## Computing this secondary hash on top of the primary one only incurs
+## one more carryless multiplication (the computational core of the
+## block compressor)!
 
 
 def oh_mix_one_block(key, block, tag, secondary=False):
@@ -804,12 +1104,12 @@ def oh_mix_one_block(key, block, tag, secondary=False):
             enh = ((xa * xb) + tag) % (W * W)
             enh ^= (enh % W) * W
             mixed.append(enh)
-    if secondary:  # We only use the checksum chunk in the secondary hash
+    if secondary:  # We use the checksum chunk only in the secondary hash
         mixed.append(gfmul(lrc[0] ^ key[-2], lrc[1] ^ key[-1]))
     return mixed
 
 
-def xs(x, i, n):
+def shuffle(x, i, n):
     """Computes our almost-xor-shift of x, on parallel 64-bit halves.
 
     If i == n, this function is the identity
@@ -845,7 +1145,7 @@ def oh_compress_one_block(key, block, tag, secondary=False):
     acc = mixed[-1]
     n = len(mixed) - 1
     for i, mixed_chunk in enumerate(mixed[:-1]):
-        acc ^= xs(mixed_chunk, i + 1, n)
+        acc ^= shuffle(mixed_chunk, i + 1, n)
     return acc
 
 
@@ -884,10 +1184,10 @@ def oh_compress(key, seed, blocks, secondary):
 ## where the last decrement accounts for our disqualifying $0$ from
 ## the set of multipliers.
 ##
-## Note that the Horner update increments before multiplying: this
-## does not impact the degree of the hash polynomial, nor its
-## collisions probability since its inputs are randomised by `OH`, but
-## having the last step be a multiplication improves distribution.
+## The Horner update increments before multiplying: this does not
+## impact the degree of the hash polynomial, nor its collisions
+## probability since its inputs are randomised by `OH`, but having the
+## last step be a multiplication helps satisfy SMHasher.
 
 
 def poly_reduce(multiplier, input_size, compressed_values):
@@ -923,14 +1223,14 @@ def poly_reduce(multiplier, input_size, compressed_values):
 ## Mere universality does not guarantee good distribution; in
 ## particular, bit avalanche tests tend to fail.  In the case of
 ## UMASH, the modulus, $2^{64} - 8$ also creates obvious patterns:
-## the low 3 bits end up being a $\bmod\ 8$ version of the $\bmod\
-## 2^{61} - 1$ polynomial hash.
+## the low 3 bits end up being a $\bmod\ 8$ version of the
+## $\bmod\ 2^{61} - 1$ polynomial hash.
 ##
 ## This predictability does not impact our collision bounds (they
 ## already assume the hash outputs are modulo $2^{61} - 1$), but could
 ## create clumping in data structures.  We address that with an
 ## invertible
-## [xor-rotate](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
+## [`xor`-rotate](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
 ## transformation.  Rotating before `xor` mixes both the low and high
 ## bits around, and `xor`ing a pair of bit-rotated values guarantees
 ## invertibility (`xor`ing a single rotate would irreversibly map both
@@ -966,28 +1266,6 @@ def finalize(x):
 ## to 128 bits with `OH`. A polynomial hash function
 ## in $\mathbb{F} = \mathbb{Z}/(2^{61} - 1)\mathbb{Z}$ reduces that
 ## stream of compressed outputs to a single machine word.
-##
-## Two short inputs never collide if they have the same length; in
-## general the probability that they collide satisfies
-## $\varepsilon_{\textrm{short}} \leq 2^{-64}.$
-##
-## The probability of collision for longer inputs is the sum of the
-## collision probability for one `PH` block after truncation to
-## $\mathbb{F}^2$,
-## $\varepsilon_{\texttt{PH}} < 9^2\cdot 2^{-63} \approx 0.64\cdot 2^{-56},$
-## and that of the polynomial hash,
-## $\varepsilon_{\mathbb{F}} \approx d \cdot 2^{-61},$ where
-## $d = 2\lceil s / 256 \rceil$ is twice the number of `PH` blocks for
-## an input length $s > 8.$ Together, this yields
-## $\varepsilon_{\textrm{long}} \approx 2\lceil s / 256\rceil \cdot 2^{-61} + 0.64\cdot 2^{-56} < \lceil s / 4096\rceil \cdot 2^{-55}.$
-##
-## The short input hash is independent of the polynomial hash
-## multiplier, and can thus be seen as a degree-0 polynomial. Any
-## collision between short and long inputs is subject to the same
-## $\varepsilon_{\textrm{long}}$ collision bound. The total collision
-## probability for strings of $s$ bytes or fewer (with expectation
-## taken over the generated key) thus adds up to $\varepsilon < \lceil
-## s / 4096\rceil \cdot 2^{-55}.$
 
 
 def umash_long(key, seed, buf, secondary):
@@ -1021,11 +1299,11 @@ def umash(key, seed, buf, secondary):
 ## multiplier in five instructions, and re-normalize the accumulator to
 ## the modulus range with two instructions followed by a predictable branch.
 ##
-## It's also convenient that the range for fast multipliers, $[0,
-## 2^{61})$, is as wide as the theoretical modulus: we can precompute
-## the square of the polynomial multipliers and perform a double
-## Horner update with two independent multiplications, which exposes
-## more instruction-level parallelism than individual Horner
+## It's also convenient that the range for fast multipliers,
+## $[0, 2^{61})$, is as wide as the theoretical modulus: we can
+## precompute the square of the polynomial multipliers and perform a
+## double Horner update with two independent multiplications, which
+## exposes more instruction-level parallelism than individual Horner
 ## updates.
 ##
 ## For longer inputs, we can micro-optimise the `PH` bulk of the `OH`
@@ -1047,15 +1325,21 @@ def umash(key, seed, buf, secondary):
 ## compute a secondary hash by reusing all the `PH` and `ENH` values,
 ## for each block, and only computing one more `PH` value based on a
 ## [LRC checksum](https://en.wikipedia.org/wiki/Longitudinal_redundancy_check).
-## The new block compressed values are fed to an independent
-## polynomial hash, so we obtain a combined collision probability
-## less than $2^{-70}$ for inputs up to 1 GB.
+## The secondary block compressor can be computed with
+## accumulators, one of which is shifted for each chunk.
+## The additional block-compressed values are fed to an independent
+## polynomial hash, and yields a combined collision probability
+## less than $2^{-70}$ for inputs up to 5 GB.
 ##
 ##
 ## # Acknowledgements
 ##
 ## Any error in the analysis or the code is mine, but a few people
 ## helped improve UMASH and its presentation.
+##
+## Thomas Ahle pointed out issues in the presentation of the new
+## fingerprinting algorithm, and rightfully called for more
+## attribution of prior work.
 ##
 ## Colin Percival scanned an earlier version of this document for
 ## obvious issues, encouraged me to simplify the parameter generation
@@ -1073,7 +1357,36 @@ def umash(key, seed, buf, secondary):
 ## tricks borrowed from VHASH after replacing the `NH` compression
 ## function with `PH`.
 ##
+## # References
+##
+## Apple. [HalftimeHash: Modern Hashing without 64-bit Multipliers or Finite Fields, 2021](https://arxiv.org/abs/2104.08865).
+##
+## Bernstein. [Polynomial evaluation and message authentication, 2007](http://cr.yp.to/antiforgery/pema-20071022.pdf).
+##
+## Black, Halevi, Krawczyk, Krovetz, and Rogaway. [UMAC: Fast and Secure Message Authentication, 1999](https://web.cs.ucdavis.edu/~rogaway/papers/umac-full.pdf).
+##
+## Boesgaard, Scavenius, Pedersen, Christensen, and Zenner. [Badger - A Fast and Provably Secure MAC, 2004](https://eprint.iacr.org/2004/319.pdf).
+##
+## Carter and Wegman. [Universal Classes of Hash Functions, 1979](https://www.cs.princeton.edu/courses/archive/fall09/cos521/Handouts/universalclasses.pdf).
+##
+## Dai and Krovetz. [VHASH Security, 2007](https://eprint.iacr.org/2007/338.pdf).
+##
+## Handschuh and Preneel. [Key-Recovery Attacks on Universal Hash Function based MAC Algorithms, 2008](https://www.esat.kuleuven.be/cosic/publications/article-1150.pdf).
+##
+## Ishai, Kushilevitz, Ostrovsky, and Sahai. [Cryptography with Constant Computational Overhead, 2008](https://web.cs.ucla.edu/~rafail/PUBLIC/91.pdf).
+##
+## Lemire and Kaser. [Faster 64-bit universal hashing using carry-less multiplications, 2015](https://arxiv.org/abs/1503.03465).
+##
+## Nandi. [On the Minimum Number of Multiplications Necessary for Universal Hash Functions, 2013](https://eprint.iacr.org/2013/574.pdf).
+##
+## Reynolds. [Basic XOR-rotates and their inverse, 2017](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html).
+##
+## Yuksel, Kaps, and Sunar. [Universal Hash Functions for Emerging Ultra-Low-Power Networks, 2004](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.105.9929&rep=rep1&type=pdf).
+##
 ## # Change log
+##
+## 2022-02-14: Clarify the presentation of the fingerprinting algorithm,
+## and tighten its analysis.
 ##
 ## 2021-06-29: simplify secondary OH compression loop.
 ##
