@@ -8,10 +8,10 @@ from umash import C, FFI
 from umash_reference import umash, UmashKey
 
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 
-FIELD = 2 ** 61 - 1
+FIELD = 2**61 - 1
 
 
 OH_COUNT = C.UMASH_OH_PARAM_COUNT + C.UMASH_OH_TWISTING_COUNT
@@ -72,8 +72,7 @@ def test_public_multiplier_reduction(multipliers, random):
     random=st.randoms(note_method_calls=True, use_true_random=True),
 )
 def test_public_bad_oh(oh, random):
-    """When the OH values repeat, we should replace them if we can.
-    """
+    """When the OH values repeat, we should replace them if we can."""
     repeated_values = len(oh) - len(set(oh))
 
     params = FFI.new("struct umash_params[1]")
@@ -122,7 +121,10 @@ def test_public_smoke_matches(random, seed, data):
     assert C.umash_full(params, seed, 0, data, len(data)) == expected0
 
     expected1 = umash(
-        UmashKey(params[0].poly[1][1], [params[0].oh[i] for i in range(OH_COUNT)],),
+        UmashKey(
+            params[0].poly[1][1],
+            [params[0].oh[i] for i in range(OH_COUNT)],
+        ),
         seed,
         data,
         secondary=True,

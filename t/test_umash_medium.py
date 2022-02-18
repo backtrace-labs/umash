@@ -7,10 +7,10 @@ from umash import C, FFI
 from umash_reference import umash, UmashKey
 
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 
-FIELD = 2 ** 61 - 1
+FIELD = 2**61 - 1
 
 
 @given(
@@ -31,7 +31,7 @@ def test_umash_medium(seed, multiplier, key, data):
     block = FFI.new("char[]", n_bytes)
     FFI.memmove(block, data, n_bytes)
     poly = FFI.new("uint64_t[2]")
-    poly[0] = (multiplier ** 2) % FIELD
+    poly[0] = (multiplier**2) % FIELD
     poly[1] = multiplier
     params = FFI.new("struct umash_params[1]")
     for i, param in enumerate(key):

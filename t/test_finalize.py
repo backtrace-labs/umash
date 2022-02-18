@@ -7,7 +7,7 @@ from umash import C
 from umash_reference import finalize, rotl
 
 
-@given(x=st.integers(min_value=0, max_value=2 ** 64 - 1))
+@given(x=st.integers(min_value=0, max_value=2**64 - 1))
 def test_finalize(x):
     assert C.finalize(x) == finalize(x)
 
@@ -22,7 +22,7 @@ def xor_rot2_inv(x, a=8, b=33):
     return x
 
 
-@given(x=st.integers(min_value=0, max_value=2 ** 64 - 1))
+@given(x=st.integers(min_value=0, max_value=2**64 - 1))
 def test_finalize_inverse(x):
     """Confirm that the finalizer is invertible, by composing it with
     its purported inverse function."""

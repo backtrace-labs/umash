@@ -1,11 +1,11 @@
 # The versions here aren't anything special, they just happened to
 # work on one machine.
 
-cffi~=1.13.2
-hypothesis~=5.19.3
-pytest~=5.3.2
-pytest-xdist~=1.31.0
-pycryptodome~=3.9.8
+cffi~=1.15
+hypothesis~=6.37
+pytest~=7.0
+pytest-xdist~=2.5
+pycryptodome~=3.14
 
 # Development helpers
-black~=19.10b0
+black~=22.1

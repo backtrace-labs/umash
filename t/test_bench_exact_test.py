@@ -41,11 +41,11 @@ def u63_lists(min_size=0):
         make_list,
         st.integers(min_value=min_size, max_value=1000),
         st.just(0),
-        st.just(2 ** 63 - 1),
+        st.just(2**63 - 1),
         st.randoms(use_true_random=True),
     )
     return (
-        st.lists(st.integers(min_value=0, max_value=2 ** 63 - 1), min_size=min_size)
+        st.lists(st.integers(min_value=0, max_value=2**63 - 1), min_size=min_size)
         | long_lists
         | dense_lists
         | sparse_lists

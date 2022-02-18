@@ -9,7 +9,7 @@ from umash import C, FFI
 
 
 @given(
-    bits=st.integers(min_value=0, max_value=2 ** 64 - 1),
+    bits=st.integers(min_value=0, max_value=2**64 - 1),
     key=st.none() | st.binary(min_size=32, max_size=32),
 )
 def test_public_params_derive(bits, key):

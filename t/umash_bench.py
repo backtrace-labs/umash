@@ -54,10 +54,14 @@ def compare_inputs(
     with shuffled versions of the list.
     """
     current_lib, ffi, current_suffix = bench_loader.build_and_load(
-        current, cflags=cflags, cc=cc,
+        current,
+        cflags=cflags,
+        cc=cc,
     )
     baseline_lib, baseline_ffi, baseline_suffix = bench_loader.build_and_load(
-        baseline, cflags=cflags, cc=cc,
+        baseline,
+        cflags=cflags,
+        cc=cc,
     )
     max_len = max(length_arguments)
 

@@ -14,10 +14,10 @@ import hypothesis.strategies as st
 from umash import C, FFI
 from umash_reference import umash, UmashKey
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 
-FIELD = 2 ** 61 - 1
+FIELD = 2**61 - 1
 
 
 def umash_params():
@@ -26,7 +26,7 @@ def umash_params():
     def make_params(multipliers, oh):
         params = FFI.new("struct umash_params[1]")
         for i, multiplier in enumerate(multipliers):
-            params[0].poly[i][0] = (multiplier ** 2) % FIELD
+            params[0].poly[i][0] = (multiplier**2) % FIELD
             params[0].poly[i][1] = multiplier
         for i, param in enumerate(oh):
             params[0].oh[i] = param
@@ -136,7 +136,10 @@ class IncrementalHasher(IncrementalUpdater):
 
     def reference_value(self):
         return umash(
-            UmashKey(poly=self.multipliers[self.which], oh=self.oh,),
+            UmashKey(
+                poly=self.multipliers[self.which],
+                oh=self.oh,
+            ),
             self.seed,
             self.acc,
             secondary=(self.which == 1),
@@ -171,7 +174,10 @@ class IncrementalFprinter(IncrementalUpdater):
     def reference_value(self):
         return [
             umash(
-                UmashKey(poly=self.multipliers[which], oh=self.oh,),
+                UmashKey(
+                    poly=self.multipliers[which],
+                    oh=self.oh,
+                ),
                 self.seed,
                 self.acc,
                 secondary=(which == 1),

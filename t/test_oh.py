@@ -7,7 +7,7 @@ from umash import C, FFI
 from umash_reference import chunk_bytes, blockify_chunks, oh_compress_one_block
 
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 BLOCK_SIZE = 8 * C.UMASH_OH_PARAM_COUNT
 

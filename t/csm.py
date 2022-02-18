@@ -315,7 +315,7 @@ def sum_up(*values: float) -> float:
 
 
 # Smallest double precision value > - log sqrt(2 pi)
-MINUS_LOG_SQRT_2PI = -8277062471433908.0 * (2 ** -53)
+MINUS_LOG_SQRT_2PI = -8277062471433908.0 * (2**-53)
 
 
 def robbins_log_choose(n: int, s: int) -> float:

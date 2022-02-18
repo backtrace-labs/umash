@@ -7,13 +7,13 @@ import hypothesis.strategies as st
 from umash import C
 
 # We work mod 2**64 - 8.
-MODULO = 2 ** 64 - 8
+MODULO = 2**64 - 8
 
 # And the underlying prime field is 2**61 - 1
-FIELD = 2 ** 61 - 1
+FIELD = 2**61 - 1
 
 # And assume a 64-bit word size.
-W = 2 ** 64
+W = 2**64
 
 
 def modint(modulo):
@@ -40,7 +40,7 @@ def test_add_mod_fast(x, y):
 @given(x=modint(W), y=modint(W))
 def test_add_mod_fast_general(x, y):
     """Exercise the fast modular addition interface's claimed precondition."""
-    assume(x + y < 2 ** 65 - 8)
+    assume(x + y < 2**65 - 8)
     assert C.add_mod_fast(x, y) % MODULO == (x + y) % MODULO
 
 
@@ -59,7 +59,7 @@ def test_mul_mod_fast(m, x):
 @given(m=modint(W), x=modint(W))
 def test_mul_mod_fast_general(m, x):
     """Check fast modular multiplication, for the case we about."""
-    assume(m * x < 2 ** 125)
+    assume(m * x < 2**125)
     assert C.mul_mod_fast(m, x) % MODULO == (m * x) % MODULO
 
 

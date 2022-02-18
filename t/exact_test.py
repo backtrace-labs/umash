@@ -206,7 +206,11 @@ def _significance_test(
 
 
 def exact_test(
-    a, b, statistics, eps=1e-4, log=sys.stderr,
+    a,
+    b,
+    statistics,
+    eps=1e-4,
+    log=sys.stderr,
 ):
     """Performs an exact significance test for every statistic in
     `statistics`, on u63-valued observations in a and b, with false

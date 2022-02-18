@@ -7,10 +7,12 @@ from umash import C, FFI
 from umash_reference import vec_to_u64, umash, UmashKey
 
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 
-@given(data=st.binary(min_size=0, max_size=8),)
+@given(
+    data=st.binary(min_size=0, max_size=8),
+)
 def test_vec_to_u64(data):
     """Make sure we expand to a uint64 correctly."""
     n_bytes = len(data)

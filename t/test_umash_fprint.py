@@ -7,10 +7,10 @@ from umash import C, FFI
 from umash_reference import umash, UmashKey
 
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 
-FIELD = 2 ** 61 - 1
+FIELD = 2**61 - 1
 
 
 def repeats(min_size):
@@ -45,7 +45,7 @@ def test_public_umash_fprint(seed, multipliers, key, data):
     FFI.memmove(block, data, n_bytes)
     params = FFI.new("struct umash_params[1]")
     for i, multiplier in enumerate(multipliers):
-        params[0].poly[i][0] = (multiplier ** 2) % FIELD
+        params[0].poly[i][0] = (multiplier**2) % FIELD
         params[0].poly[i][1] = multiplier
     for i, param in enumerate(key):
         params[0].oh[i] = param
@@ -72,7 +72,7 @@ def test_public_umash_fprint_repeated(seed, multipliers, key, byte):
     repetitions of the input byte."""
     params = FFI.new("struct umash_params[1]")
     for i, multiplier in enumerate(multipliers):
-        params[0].poly[i][0] = (multiplier ** 2) % FIELD
+        params[0].poly[i][0] = (multiplier**2) % FIELD
         params[0].poly[i][1] = multiplier
     for i, param in enumerate(key):
         params[0].oh[i] = param

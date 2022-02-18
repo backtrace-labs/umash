@@ -7,10 +7,10 @@ from umash import C, FFI
 from umash_reference import umash, UmashKey
 
 
-U64S = st.integers(min_value=0, max_value=2 ** 64 - 1)
+U64S = st.integers(min_value=0, max_value=2**64 - 1)
 
 
-FIELD = 2 ** 61 - 1
+FIELD = 2**61 - 1
 
 
 @given(
@@ -31,7 +31,7 @@ def test_public_umash_full(seed, multiplier, key, data):
     block = FFI.new("char[]", n_bytes)
     FFI.memmove(block, data, n_bytes)
     params = FFI.new("struct umash_params[1]")
-    params[0].poly[0][0] = (multiplier ** 2) % FIELD
+    params[0].poly[0][0] = (multiplier**2) % FIELD
     params[0].poly[0][1] = multiplier
     for i, param in enumerate(key):
         params[0].oh[i] = param
@@ -57,7 +57,7 @@ def test_public_umash_full_shifted(seed, multiplier, key, data):
     block = FFI.new("char[]", n_bytes)
     FFI.memmove(block, data, n_bytes)
     params = FFI.new("struct umash_params[1]")
-    params[0].poly[1][0] = (multiplier ** 2) % FIELD
+    params[0].poly[1][0] = (multiplier**2) % FIELD
     params[0].poly[1][1] = multiplier
     for i, param in enumerate(key):
         params[0].oh[i] = param
