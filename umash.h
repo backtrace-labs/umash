@@ -18,8 +18,8 @@
  *
  * When that's not enough, UMASH can also generate a pair of 64-bit
  * hashes in a single traversal.  The resulting fingerprint reduces
- * the collision probability to less than ceil(s / 2^{26})^2 *
- * 2^{-83}; the probability that two distinct inputs receive the same
+ * the collision probability to less than [ceil(s / 2^{26})^2 * 2^{-83}];
+ * the probability that two distinct inputs receive the same
  * fingerprint is less 2^{-83} for inputs up to 64 MB, and less than
  * 2^{-70} as long as the inputs are shorter than 5 GB each.  This
  * expectation is taken over the randomly generated `umash_params`.
