@@ -40,30 +40,19 @@ uint64_t horner_double_update(
     uint64_t acc, uint64_t m0, uint64_t m1, uint64_t x, uint64_t y);
 
 /**
- * Compresses one OH block of 256 bytes.
+ * Compress one OH block of up to 256 bytes.  `block + n_bytes - 16`
+ * must contain input data (i.e., the function will read behind to
+ * backfill to a round 16 bytes).
  */
-struct umash_oh oh_one_block(const uint64_t *params, uint64_t tag, const void *block);
-
-/**
- * Compresses one OH block of 256 bytes with the primary and secondary
- * compressors.
- */
-void oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
-    uint64_t tag, const void *restrict block);
-
-/**
- * Compress the last OH block of up to 256 bytes.  `block + n_bytes -
- * 16` must contain input data.
- */
-struct umash_oh oh_last_block(
+struct umash_oh oh_varblock(
     const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes);
 
 /**
- * Compress the last OH block of up to 256 bytes with the primary and
+ * Compress one OH block of up to 256 bytes with the primary and
  * secondary compressors.  `block + n_bytes - 16` must contain input
- * data.
+ * data (i.e., the function will read behind to backfill to 16 bytes).
  */
-void oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
+void oh_varblock_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes);
 
 /**

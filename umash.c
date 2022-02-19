@@ -415,123 +415,7 @@ salsa20_stream(
  * OH block compression.
  */
 TEST_DEF struct umash_oh
-oh_one_block(const uint64_t *params, uint64_t tag, const void *block)
-{
-	struct umash_oh ret;
-	v128 acc = V128_ZERO;
-	size_t i;
-
-	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
-		v128 x, k;
-
-		memcpy(&x, block, sizeof(x));
-		block = (const char *)block + sizeof(x);
-
-		memcpy(&k, &params[i], sizeof(k));
-		x ^= k;
-		acc ^= v128_clmul_cross(x);
-	}
-
-	memcpy(&ret, &acc, sizeof(ret));
-
-	/* Final `ENH` iteration */
-	{
-		__uint128_t enh = (__uint128_t)tag << 64;
-		uint64_t x, y;
-
-		memcpy(&x, block, sizeof(x));
-		block = (const char *)block + sizeof(x);
-		memcpy(&y, block, sizeof(y));
-		x += params[i];
-		y += params[i + 1];
-		enh += (__uint128_t)x * y;
-
-		ret.bits[0] ^= (uint64_t)enh;
-		ret.bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
-	}
-
-	return ret;
-}
-
-TEST_DEF void
-oh_one_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
-    uint64_t tag, const void *restrict block)
-{
-	v128 acc = V128_ZERO; /* Base umash */
-	v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
-	v128 lrc;
-	v128 prev = V128_ZERO;
-	size_t i;
-
-	lrc = v128_create(params[UMASH_OH_PARAM_COUNT], params[UMASH_OH_PARAM_COUNT + 1]);
-	for (i = 0; i < UMASH_OH_PARAM_COUNT - 2; i += 2) {
-		v128 x, k;
-
-		memcpy(&x, block, sizeof(x));
-		block = (const char *)block + sizeof(x);
-
-		memcpy(&k, &params[i], sizeof(k));
-
-		x ^= k;
-		lrc ^= x;
-
-		x = v128_clmul_cross(x);
-
-		acc ^= x;
-
-		acc_shifted ^= prev;
-		acc_shifted = v128_shift(acc_shifted);
-
-		prev = x;
-	}
-
-	/*
-	 * Update the LRC for the last chunk before treating it
-	 * specially.
-	 */
-	{
-		v128 x, k;
-
-		memcpy(&x, block, sizeof(x));
-		memcpy(&k, &params[i], sizeof(k));
-
-		lrc ^= x ^ k;
-	}
-
-	acc_shifted ^= acc;
-	acc_shifted = v128_shift(acc_shifted);
-
-	acc_shifted ^= v128_clmul_cross(lrc);
-
-	memcpy(&dst[0], &acc, sizeof(dst[0]));
-	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
-
-	{
-		__uint128_t enh;
-		uint64_t x, y, kx, ky;
-
-		memcpy(&x, block, sizeof(x));
-		block = (const char *)block + sizeof(x);
-		memcpy(&y, block, sizeof(y));
-
-		enh = (__uint128_t)tag << 64;
-		kx = x + params[i];
-		ky = y + params[i + 1];
-		enh += (__uint128_t)kx * ky;
-
-		enh ^= enh << 64;
-		dst[0].bits[0] ^= (uint64_t)enh;
-		dst[0].bits[1] ^= (uint64_t)(enh >> 64);
-
-		dst[1].bits[0] ^= (uint64_t)enh;
-		dst[1].bits[1] ^= (uint64_t)(enh >> 64);
-	}
-
-	return;
-}
-
-TEST_DEF struct umash_oh
-oh_last_block(const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes)
+oh_varblock(const uint64_t *params, uint64_t tag, const void *block, size_t n_bytes)
 {
 	struct umash_oh ret;
 	v128 acc = V128_ZERO;
@@ -576,7 +460,7 @@ oh_last_block(const uint64_t *params, uint64_t tag, const void *block, size_t n_
 }
 
 TEST_DEF void
-oh_last_block_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
+oh_varblock_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes)
 {
 	v128 acc = V128_ZERO; /* Base umash */
@@ -868,7 +752,7 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t se
 	while (n_bytes > BLOCK_SIZE) {
 		struct umash_oh compressed;
 
-		compressed = oh_one_block(oh, seed, data);
+		compressed = oh_varblock(oh, seed, data, BLOCK_SIZE);
 		data = (const char *)data + BLOCK_SIZE;
 		n_bytes -= BLOCK_SIZE;
 
@@ -881,7 +765,7 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t se
 		struct umash_oh compressed;
 
 		seed ^= (uint8_t)n_bytes;
-		compressed = oh_last_block(oh, seed, data, n_bytes);
+		compressed = oh_varblock(oh, seed, data, n_bytes);
 		acc = horner_double_update(acc, multipliers[0], multipliers[1],
 		    compressed.bits[0], compressed.bits[1]);
 	}
@@ -898,13 +782,11 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint6
 	uint64_t acc[2] = { 0, 0 };
 
 	while (n_bytes > BLOCK_SIZE) {
-		oh_one_block_fprint(compressed, oh, seed, data);
+		oh_varblock_fprint(compressed, oh, seed, data, BLOCK_SIZE);
 
-#define UPDATE(i)                                                                     \
-	do {                                                                          \
-		acc[i] = horner_double_update(acc[i], multipliers[i][0],              \
-		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]); \
-	} while (0)
+#define UPDATE(i)                                                                   \
+	acc[i] = horner_double_update(acc[i], multipliers[i][0], multipliers[i][1], \
+	    compressed[i].bits[0], compressed[i].bits[1])
 
 		UPDATE(0);
 		UPDATE(1);
@@ -914,7 +796,7 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint6
 		n_bytes -= BLOCK_SIZE;
 	}
 
-	oh_last_block_fprint(compressed, oh, seed ^ (uint8_t)n_bytes, data, n_bytes);
+	oh_varblock_fprint(compressed, oh, seed ^ (uint8_t)n_bytes, data, n_bytes);
 
 #define FINAL(i)                                                                      \
 	do {                                                                          \
@@ -1171,11 +1053,13 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 		if (sink->hash_wanted != 0) {
 			struct umash_oh hashes[2];
 
-			oh_one_block_fprint(hashes, sink->oh, sink->seed, data);
+			oh_varblock_fprint(
+			    hashes, sink->oh, sink->seed, data, BLOCK_SIZE);
 			sink->oh_acc = hashes[0];
 			sink->oh_twisted.acc = hashes[1];
 		} else {
-			sink->oh_acc = oh_one_block(sink->oh, sink->seed, data);
+			sink->oh_acc =
+			    oh_varblock(sink->oh, sink->seed, data, BLOCK_SIZE);
 		}
 
 		sink_update_poly(sink);

@@ -27,7 +27,7 @@ def split_block(data):
     ),
     data=st.binary(min_size=BLOCK_SIZE, max_size=BLOCK_SIZE),
 )
-def test_oh_one_block(tag, key, data):
+def test_oh_full_block(tag, key, data):
     """Compare OH compression for full blocks."""
     # The C-side implicit accepts the high half of the tag, and leaves
     # the low half zeroed out.
@@ -40,7 +40,7 @@ def test_oh_one_block(tag, key, data):
     for i, param in enumerate(key):
         params[0].oh[i] = param
 
-    actual = C.oh_one_block(params[0].oh, tag, block)
+    actual = C.oh_varblock(params[0].oh, tag, block, BLOCK_SIZE)
     assert expected == actual.bits[0] + (actual.bits[1] << 64), (
         actual.bits[0],
         actual.bits[1],
@@ -56,7 +56,7 @@ def test_oh_one_block(tag, key, data):
     ),
     data=st.binary(min_size=BLOCK_SIZE, max_size=BLOCK_SIZE),
 )
-def test_oh_one_block_fprint(tag, key, data):
+def test_oh_full_block_fprint(tag, key, data):
     """Compare combined OH compression for full blocks."""
     expected = [
         oh_compress_one_block(key, split_block(data), tag << 64),
@@ -71,7 +71,7 @@ def test_oh_one_block_fprint(tag, key, data):
         params[0].oh[i] = param
 
     actual = FFI.new("struct umash_oh[2]")
-    C.oh_one_block_fprint(actual, params[0].oh, tag, block)
+    C.oh_varblock_fprint(actual, params[0].oh, tag, block, BLOCK_SIZE)
     assert expected == [
         (actual[0].bits[0] + (actual[0].bits[1] << 64)),
         (actual[1].bits[0] + (actual[1].bits[1] << 64)),
@@ -103,7 +103,7 @@ def test_oh_tail_large(tag, key, data):
     for i, param in enumerate(key):
         params[0].oh[i] = param
 
-    actual = C.oh_last_block(params[0].oh, tag, block, n_bytes)
+    actual = C.oh_varblock(params[0].oh, tag, block, n_bytes)
     assert expected == actual.bits[0] + (actual.bits[1] << 64), (
         actual.bits[0],
         actual.bits[1],
@@ -137,7 +137,7 @@ def test_oh_tail_large_fprint(tag, key, data):
         params[0].oh[i] = param
 
     actual = FFI.new("struct umash_oh[2]")
-    C.oh_last_block_fprint(actual, params[0].oh, tag, block, n_bytes)
+    C.oh_varblock_fprint(actual, params[0].oh, tag, block, n_bytes)
     assert expected == [
         (actual[0].bits[0] + (actual[0].bits[1] << 64)),
         (actual[1].bits[0] + (actual[1].bits[1] << 64)),
@@ -173,7 +173,7 @@ def test_oh_tail_short(tag, key, prefix, data):
     for i, param in enumerate(key):
         params[0].oh[i] = param
 
-    actual = C.oh_last_block(params[0].oh, tag, block + offset, n_bytes)
+    actual = C.oh_varblock(params[0].oh, tag, block + offset, n_bytes)
     assert expected == actual.bits[0] + (actual.bits[1] << 64), (
         actual.bits[0],
         actual.bits[1],
@@ -215,7 +215,7 @@ def test_oh_tail_short_fprint(tag, key, prefix, data):
         params[0].oh[i] = param
 
     actual = FFI.new("struct umash_oh[2]")
-    C.oh_last_block_fprint(actual, params[0].oh, tag, block + offset, n_bytes)
+    C.oh_varblock_fprint(actual, params[0].oh, tag, block + offset, n_bytes)
     assert expected == [
         (actual[0].bits[0] + (actual[0].bits[1] << 64)),
         (actual[1].bits[0] + (actual[1].bits[1] << 64)),
