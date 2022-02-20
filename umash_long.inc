@@ -21,20 +21,30 @@ TEST_DEF HOT uint64_t
 umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
-	uint64_t params[UMASH_OH_PARAM_COUNT] __attribute__((__aligned__(16)));
 	const uint64_t m0 = multipliers[0];
 	const uint64_t m1 = multipliers[1];
+	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
+	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
 	uint64_t ret = initial;
+	size_t block_count = 1;
 
-	memcpy(params, oh_ptr, sizeof(params));
+	assert(n_blocks > 0);
 
-	for (size_t block_count = 0; block_count < n_blocks; block_count++) {
+	do {
 		const void *data = blocks;
 		struct umash_oh oh;
 		v128 acc = V128_ZERO;
 
 		blocks = (const char *)blocks + BLOCK_SIZE;
 
+		/*
+		 * FORCE() makes sure the compiler computes the value
+		 * of `acc` at that program points.  Forcing a full
+		 * computation prevents the compiler from evaluating
+		 * the inner loop's xor-reduction tree widely: the
+		 * bottleneck is in the carryless multiplications.
+		 */
+#define FORCE() __asm__("" : "+x"(acc))
 #define PH(I)                                          \
 	do {                                           \
 		v128 x, k;                             \
@@ -42,28 +52,42 @@ umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
 		memcpy(&x, data, sizeof(x));           \
 		data = (const char *)data + sizeof(x); \
                                                        \
-		memcpy(&k, &params[I], sizeof(k));     \
+		memcpy(&k, &oh_ptr[I], sizeof(k));     \
 		x ^= k;                                \
 		acc ^= v128_clmul_cross(x);            \
 	} while (0)
 
 		PH(0);
 		PH(2);
+		FORCE();
+
 		PH(4);
 		PH(6);
+		FORCE();
+
 		PH(8);
 		PH(10);
+		FORCE();
+
 		PH(12);
 		PH(14);
+		FORCE();
+
 		PH(16);
 		PH(18);
+		FORCE();
+
 		PH(20);
 		PH(22);
+		FORCE();
+
 		PH(24);
 		PH(26);
-		PH(28);
+		FORCE();
 
+		PH(28);
 #undef PH
+#undef FORCE
 
 		memcpy(&oh, &acc, sizeof(oh));
 
@@ -77,8 +101,8 @@ umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
 			memcpy(&y, data, sizeof(y));
 			data = (const char *)data + sizeof(y);
 
-			x += params[30];
-			y += params[31];
+			x += kx;
+			y += ky;
 			enh += (__uint128_t)x * y;
 
 			oh.bits[0] ^= (uint64_t)enh;
@@ -86,7 +110,7 @@ umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
 		}
 
 		ret = horner_double_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
-	}
+	} while (block_count++ < n_blocks);
 
 	return ret;
 }
