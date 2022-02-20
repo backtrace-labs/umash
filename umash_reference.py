@@ -1149,7 +1149,7 @@ def oh_compress_one_block(key, block, tag, secondary=False):
     return acc
 
 
-def oh_compress(key, seed, blocks, secondary):
+def oh_compress(key, seed, blocks, secondary=False):
     """Applies the `OH` compression function to each block; generates
     a stream of compressed values"""
     for block, block_size in blocks:
@@ -1190,13 +1190,13 @@ def oh_compress(key, seed, blocks, secondary):
 ## last step be a multiplication helps satisfy SMHasher.
 
 
-def poly_reduce(multiplier, input_size, compressed_values):
+def poly_reduce(multiplier, input_size, compressed_values, initial=0):
     """Updates a polynomial hash with the `OH` compressed outputs."""
     # Square the multiplier and fully reduce it. This does not affect
     # the result modulo 2**61 - 1, but does differ from a
     # direct evaluation modulo 2**64 - 8.
     mulsq = (multiplier ** 2) % (2 ** 61 - 1)
-    acc = [0]
+    acc = [initial]
 
     def update(y0, y1):
         """Double-pumped Horner update (mostly) modulo 8 * (2**61 - 1)."""
