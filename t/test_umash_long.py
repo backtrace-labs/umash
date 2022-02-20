@@ -17,7 +17,7 @@ def repeats(min_size):
     """Repeats one byte n times."""
     return st.builds(
         lambda count, binary: binary * count,
-        st.integers(min_value=min_size, max_value=1024),
+        st.integers(min_value=min_size, max_value=2048),
         st.binary(min_size=1, max_size=1),
     )
 

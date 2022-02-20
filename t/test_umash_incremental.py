@@ -96,7 +96,7 @@ class IncrementalUpdater(RuleBasedStateMachine):
 
     @precondition(lambda self: self.state)
     @rule(
-        num=st.integers(min_value=1, max_value=1024),
+        num=st.integers(min_value=1, max_value=2048),
         byte=st.binary(min_size=1, max_size=1),
     )
     def update_repeat(self, num, byte):
@@ -105,7 +105,17 @@ class IncrementalUpdater(RuleBasedStateMachine):
 
     @precondition(lambda self: self.state)
     @rule(
-        length=st.integers(min_value=1, max_value=1024),
+        n_blocks=st.integers(min_value=4, max_value=8),
+        byte=st.binary(min_size=1, max_size=1),
+    )
+    def update_long_repeat(self, n_blocks, byte):
+        num = n_blocks * 256
+        buf = byte * num
+        self._update(buf)
+
+    @precondition(lambda self: self.state)
+    @rule(
+        length=st.integers(min_value=1, max_value=2048),
         random=st.randoms(use_true_random=True),
     )
     def update_long(self, length, random):
