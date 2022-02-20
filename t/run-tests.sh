@@ -4,7 +4,8 @@ BASE=$(dirname $(readlink -f "$0"))
 PYTHON=${PYTHON3:-python3}
 
 (cd "${BASE}/../";
- ${CC:-cc} ${CFLAGS:- -g -O2 -std=c99 -W -Wall -mpclmul} -DUMASH_TEST_ONLY umash.c \
+ ${CC:-cc} ${CFLAGS:- -g -O2 -std=c99 -W -Wall -mpclmul} \
+           -DUMASH_TEST_ONLY -DUMASH_LONG_INPUTS=0 umash.c \
            '-DUMASH_SECTION="umash_text"' \
 	   -fPIC --shared -o umash_test_only.so;
  ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} -c example.c -o /dev/null;

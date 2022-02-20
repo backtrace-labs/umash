@@ -55,6 +55,9 @@ struct umash_oh oh_varblock(
 void oh_varblock_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes);
 
+uint64_t umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
+    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks);
+
 /**
  * Converts a buffer of <= 8 bytes to a 64-bit integers.
  */

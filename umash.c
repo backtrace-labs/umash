@@ -4,6 +4,23 @@
 #define NDEBUG
 #endif
 
+/**
+ * -DUMASH_LONG_INPUTS=0 to disable the routine specialised for long
+ * inputs, and -DUMASH_LONG_INPUTS=1 to enable it.  If the variable
+ * isn't defined, we try to probe for `umash_long.c`.
+ */
+#ifndef UMASH_LONG_INPUTS
+#ifdef __has_include
+#if __has_include("umash_long.inc")
+#define UMASH_LONG_INPUTS 1
+#endif /* __has_include() */
+#endif /* __has_include */
+
+#ifndef UMASH_LONG_INPUTS
+#define UMASH_LONG_INPUTS 0
+#endif /* !UMASH_LONG_INPUTS */
+#endif /* !UMASH_LONG_INPUTS */
+
 #include <assert.h>
 #include <string.h>
 
@@ -148,9 +165,11 @@ v128_clmul_cross(v128 x)
 #ifdef __GNUC__
 #define LIKELY(X) __builtin_expect(!!(X), 1)
 #define UNLIKELY(X) __builtin_expect(!!(X), 0)
+#define HOT __attribute__((__hot__))
 #else
 #define LIKELY(X) X
 #define UNLIKELY(X) X
+#define HOT
 #endif
 
 #define ARRAY_SIZE(ARR) (sizeof(ARR) / sizeof(ARR[0]))
@@ -410,6 +429,10 @@ salsa20_stream(
 
 	return;
 }
+
+#if defined(UMASH_TEST_ONLY) || UMASH_LONG_INPUTS
+#include "umash_long.inc"
+#endif
 
 /**
  * OH block compression.
@@ -749,6 +772,33 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t se
 {
 	uint64_t acc = 0;
 
+	/*
+	 * umash_long.inc defines this variable when the long input
+	 * routine is enabled.
+	 */
+#ifdef UMASH_MULTIPLE_BLOCKS_THRESHOLD
+	if (UNLIKELY(n_bytes >= UMASH_MULTIPLE_BLOCKS_THRESHOLD)) {
+		size_t n_block = n_bytes / BLOCK_SIZE;
+		const void *remaining;
+
+		n_bytes %= BLOCK_SIZE;
+		remaining = (const char *)data + (n_block * BLOCK_SIZE);
+		acc = umash_multiple_blocks(acc, multipliers, oh, seed, data, n_block);
+
+		data = remaining;
+		if (n_bytes == 0)
+			goto finalize;
+
+		goto last_block;
+	}
+#else
+	/* Avoid warnings about the unused labels. */
+	if (0) {
+		goto last_block;
+		goto finalize;
+	}
+#endif
+
 	while (n_bytes > BLOCK_SIZE) {
 		struct umash_oh compressed;
 
@@ -760,6 +810,7 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t se
 		    compressed.bits[0], compressed.bits[1]);
 	}
 
+last_block:
 	/* Do the final block. */
 	{
 		struct umash_oh compressed;
@@ -770,6 +821,7 @@ umash_long(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t se
 		    compressed.bits[0], compressed.bits[1]);
 	}
 
+finalize:
 	return finalize(acc);
 }
 
@@ -1039,11 +1091,26 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 {
 	size_t consumed = 0;
 
-	(void)n_bytes;
 	assert(n_bytes >= BLOCK_SIZE);
 	assert(sink->bufsz == 0);
 	assert(sink->block_size == 0);
 	assert(sink->oh_iter == 0);
+
+#ifdef UMASH_MULTIPLE_BLOCKS_THRESHOLD
+	if (UNLIKELY(
+		n_bytes > UMASH_MULTIPLE_BLOCKS_THRESHOLD && sink->hash_wanted == 0)) {
+		/*
+		 * We leave the last block (partial or not) for the
+		 * caller: incremental hashing must save some state
+		 * at the end of a block.
+		 */
+		size_t n_blocks = (n_bytes - 1) / BLOCK_SIZE;
+
+		sink->poly_state[0].acc = umash_multiple_blocks(sink->poly_state[0].acc,
+		    sink->poly_state[0].mul, sink->oh, sink->seed, data, n_blocks);
+		return n_blocks * BLOCK_SIZE;
+	}
+#endif
 
 	while (n_bytes > BLOCK_SIZE) {
 		/*

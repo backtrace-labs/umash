@@ -5,7 +5,7 @@ PYTHON=${PYTHON3:-python3}
 
 (cd "${BASE}/../";
  ${CC:-cc} ${CFLAGS:- -O2 -std=c99 -W -Wall -mpclmul} umash.c \
-           '-DUMASH_SECTION="umash_text"' \
+            -DUMASH_LONG_INPUTS=1 '-DUMASH_SECTION="umash_text"' \
 	   -fPIC --shared -o libumash.so)
 
 OUT_OF_SECTION_SYMS=$(
