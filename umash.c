@@ -21,6 +21,18 @@
 #endif /* !UMASH_LONG_INPUTS */
 #endif /* !UMASH_LONG_INPUTS */
 
+/*
+ * Default to dynamically dispatching implementations on x86-64
+ * (there's nothing to dispatch on aarch64).
+ */
+#ifndef UMASH_DYNAMIC_DISPATCH
+#ifdef __x86_64__
+#define UMASH_DYNAMIC_DISPATCH 1
+#else
+#define UMASH_DYNAMIC_DISPATCH 0
+#endif
+#endif
+
 #include <assert.h>
 #include <string.h>
 
@@ -166,10 +178,12 @@ v128_clmul_cross(v128 x)
 #define LIKELY(X) __builtin_expect(!!(X), 1)
 #define UNLIKELY(X) __builtin_expect(!!(X), 0)
 #define HOT __attribute__((__hot__))
+#define COLD __attribute__((__cold__))
 #else
 #define LIKELY(X) X
 #define UNLIKELY(X) X
 #define HOT
+#define COLD
 #endif
 
 #define ARRAY_SIZE(ARR) (sizeof(ARR) / sizeof(ARR[0]))
