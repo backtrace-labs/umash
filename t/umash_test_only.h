@@ -55,8 +55,22 @@ struct umash_oh oh_varblock(
 void oh_varblock_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
     uint64_t tag, const void *restrict block, size_t n_bytes);
 
+/**
+ * Updates the 64-bit UMASH state for `n_blocks` full 256-byte blocks:
+ * accepts the `initial` state as an argument, and returns the updated
+ * value.
+ *
+ * The block count `n_blocks` must be strictly positive.
+ */
 uint64_t umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks);
+
+/**
+ * Generic (fallback) implementation of `umash_multiple_blocks`.
+ */
+uint64_t umash_multiple_blocks_generic(uint64_t initial,
+    const uint64_t multipliers[static 2], const uint64_t *oh_ptr, uint64_t seed,
+    const void *blocks, size_t n_blocks);
 
 /**
  * Converts a buffer of <= 8 bytes to a 64-bit integers.

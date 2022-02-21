@@ -70,6 +70,9 @@ def test_umash_multiple_blocks(initial, seed, multiplier, key, data):
         C.umash_multiple_blocks(
             initial, poly, params[0].oh, seed, block, n_bytes // 256
         )
+        == C.umash_multiple_blocks_generic(
+            initial, poly, params[0].oh, seed, block, n_bytes // 256
+        )
         == expected
     )
 
@@ -107,6 +110,9 @@ def test_umash_multiple_blocks_repeat(initial, seed, multiplier, key, data):
 
     assert (
         C.umash_multiple_blocks(
+            initial, poly, params[0].oh, seed, block, n_bytes // 256
+        )
+        == C.umash_multiple_blocks_generic(
             initial, poly, params[0].oh, seed, block, n_bytes // 256
         )
         == expected

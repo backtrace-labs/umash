@@ -14,11 +14,59 @@
 #define UMASH_MULTIPLE_BLOCKS_THRESHOLD 1024
 #endif
 
+typedef uint64_t umash_multiple_blocks_fn(uint64_t initial,
+    const uint64_t multipliers[static 2], const uint64_t *oh_ptr, uint64_t seed,
+    const void *blocks, size_t n_blocks);
+
 /**
  * Updates a 64-bit UMASH state for `n_blocks` 256-byte blocks in data.
  */
-TEST_DEF HOT uint64_t
+TEST_DEF umash_multiple_blocks_fn umash_multiple_blocks_generic;
+
+/**
+ * Runtime dispatch logic.  When dynamic dispatch is enabled,
+ * `umash_multiple_blocks` just forwards the call to
+ * `umash_multiple_blocks_impl`, a function pointer.  That pointer is
+ * initialised with a function that updates
+ * `umash_multiple_blocks_impl` with an implementation appropriate for
+ * the current CPU and tail-calls to that chosen implementation.
+ *
+ * When dynamic dispatch is disabled, `umash_multiple_blocks` just
+ * always forwards to `umash_multiple_blocks_generic`.
+ */
+#if defined(__x86_64__) && UMASH_DYNAMIC_DISPATCH
+static umash_multiple_blocks_fn umash_multiple_blocks_pick;
+
+static umash_multiple_blocks_fn *umash_multiple_blocks_impl = umash_multiple_blocks_pick;
+
+static COLD FN uint64_t
+umash_multiple_blocks_pick(uint64_t initial, const uint64_t multipliers[static 2],
+    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
+{
+	umash_multiple_blocks_impl = umash_multiple_blocks_generic;
+	return umash_multiple_blocks_impl(
+	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
+}
+
+TEST_DEF inline uint64_t
 umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
+    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
+{
+	return umash_multiple_blocks_impl(
+	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
+}
+#else
+TEST_DEF inline uint64_t
+umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
+    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
+{
+	return umash_multiple_blocks_generic(
+	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
+}
+#endif
+
+TEST_DEF HOT uint64_t
+umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
 	const uint64_t m0 = multipliers[0];
