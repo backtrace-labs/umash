@@ -117,7 +117,12 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		 * the inner loop's xor-reduction tree widely: the
 		 * bottleneck is in the carryless multiplications.
 		 */
+#if UMASH_INLINE_ASM
 #define FORCE() __asm__("" : "+x"(acc))
+#else
+#define FORCE() ((void)0)
+#endif
+
 #define PH(I)                                          \
 	do {                                           \
 		v128 x, k;                             \
@@ -197,14 +202,6 @@ TEST_DEF HOT __attribute__((__target__(("avx2,vpclmulqdq")))) uint64_t
 umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
-	/*
-	 * This type represents unaligned AVX2-sized regions of
-	 * memory.
-	 */
-	struct b256 {
-		char bytes[32];
-	};
-
 	const uint64_t m0 = multipliers[0];
 	const uint64_t m1 = multipliers[1];
 	__m256i k0, k4, k8, k12, k16, k20, k24;
@@ -215,8 +212,20 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 
 	assert(n_blocks > 0);
 
+#if UMASH_INLINE_ASM
+	/*
+	 * This type represents unaligned AVX2-sized regions of
+	 * memory.
+	 */
+	struct b256 {
+		char bytes[32];
+	};
+
 #define LOADU(DST, PTR) \
 	__asm__("vmovdqu %1, %0" : "=x"(DST) : "m"(*(const struct b256 *)PTR))
+#else
+#define LOADU(DST, PTR) ((DST) = _mm256_loadu_si256((void *)(PTR)))
+#endif
 
 	LOADU(k0, &oh_ptr[0]);
 	LOADU(k4, &oh_ptr[4]);

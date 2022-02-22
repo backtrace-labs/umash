@@ -33,6 +33,19 @@
 #endif
 #endif
 
+/*
+ * Enable inline assembly by default when building with GCC or
+ * compatible compilers.  It should always be safe to disable this
+ * option, although there may be a performance cost.
+ */
+#ifndef UMASH_INLINE_ASM
+#ifdef __GNUC__
+#define UMASH_INLINE_ASM 1
+#else
+#define UMASH_INLINE_ASM 0
+#endif
+#endif
+
 #include <assert.h>
 #include <string.h>
 
@@ -207,7 +220,7 @@ v128_clmul_cross(v128 x)
  * support for other compilers.
  */
 
-#ifndef __x86_64__
+#if !defined(__x86_64__) || !UMASH_INLINE_ASM
 static inline void
 mul128(uint64_t x, uint64_t y, uint64_t *hi, uint64_t *lo)
 {
@@ -612,14 +625,14 @@ select_ptr(bool cond, const void *then, const void *otherwise)
 {
 	const char *ret;
 
-#ifdef __GNUC__
+#if UMASH_INLINE_ASM
 	/* Force strict evaluation of both arguments. */
 	__asm__("" ::"r"(then), "r"(otherwise));
 #endif
 
 	ret = (cond) ? then : otherwise;
 
-#ifdef __GNUC__
+#if UMASH_INLINE_ASM
 	/* And also force the result to be materialised with a blackhole. */
 	__asm__("" : "+r"(ret));
 #endif
