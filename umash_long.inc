@@ -166,8 +166,7 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 
 		/* Final ENH chunk. */
 		{
-			__uint128_t enh = (__uint128_t)seed << 64;
-			uint64_t x, y;
+			uint64_t x, y, enh_hi, enh_lo;
 
 			memcpy(&x, data, sizeof(x));
 			data = (const char *)data + sizeof(x);
@@ -176,10 +175,12 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 
 			x += kx;
 			y += ky;
-			enh += (__uint128_t)x * y;
 
-			oh.bits[0] ^= (uint64_t)enh;
-			oh.bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+			mul128(x, y, &enh_hi, &enh_lo);
+			enh_hi += seed;
+
+			oh.bits[0] ^= enh_lo;
+			oh.bits[1] ^= enh_hi ^ enh_lo;
 		}
 
 		ret = horner_double_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
@@ -272,8 +273,7 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 
 		/* Final ENH chunk. */
 		{
-			__uint128_t enh = (__uint128_t)seed << 64;
-			uint64_t x, y;
+			uint64_t x, y, enh_hi, enh_lo;
 
 			memcpy(&x, data, sizeof(x));
 			data = (const char *)data + sizeof(x);
@@ -282,10 +282,11 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 
 			x += kx;
 			y += ky;
-			enh += (__uint128_t)x * y;
+			mul128(x, y, &enh_hi, &enh_lo);
+			enh_hi += seed;
 
-			oh.bits[0] ^= (uint64_t)enh;
-			oh.bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+			oh.bits[0] ^= enh_lo;
+			oh.bits[1] ^= enh_hi ^ enh_lo;
 		}
 
 		ret = horner_double_update(ret, m0, m1, oh.bits[0], oh.bits[1]);

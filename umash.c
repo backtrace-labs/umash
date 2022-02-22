@@ -206,6 +206,17 @@ v128_clmul_cross(v128 x)
  * The code below uses GCC extensions.  It should be possible to add
  * support for other compilers.
  */
+static inline void
+mul128(uint64_t x, uint64_t y, uint64_t *hi, uint64_t *lo)
+{
+	__uint128_t product = x;
+
+	product *= y;
+	*hi = product >> 64;
+	*lo = product;
+	return;
+}
+
 TEST_DEF inline uint64_t
 add_mod_fast(uint64_t x, uint64_t y)
 {
@@ -254,10 +265,10 @@ add_mod_slow(uint64_t x, uint64_t y)
 TEST_DEF inline uint64_t
 mul_mod_fast(uint64_t m, uint64_t x)
 {
-	__uint128_t product = m;
+	uint64_t hi, lo;
 
-	product *= x;
-	return add_mod_fast((uint64_t)product, 8 * (uint64_t)(product >> 64));
+	mul128(m, x, &hi, &lo);
+	return add_mod_fast(lo, 8 * hi);
 }
 
 TEST_DEF inline uint64_t
@@ -478,8 +489,7 @@ oh_varblock(const uint64_t *params, uint64_t tag, const void *block, size_t n_by
 
 	/* Compress the final (potentially partial) pair. */
 	{
-		__uint128_t enh = (__uint128_t)tag << 64;
-		uint64_t x, y;
+		uint64_t x, y, enh_hi, enh_lo;
 
 		memcpy(&x, last_ptr, sizeof(x));
 		last_ptr = (const char *)last_ptr + sizeof(x);
@@ -487,10 +497,11 @@ oh_varblock(const uint64_t *params, uint64_t tag, const void *block, size_t n_by
 
 		x += params[i];
 		y += params[i + 1];
-		enh += (__uint128_t)x * y;
+		mul128(x, y, &enh_hi, &enh_lo);
+		enh_hi += tag;
 
-		ret.bits[0] ^= (uint64_t)enh;
-		ret.bits[1] ^= (uint64_t)(enh >> 64) ^ (uint64_t)enh;
+		ret.bits[0] ^= enh_lo;
+		ret.bits[1] ^= enh_hi ^ enh_lo;
 	}
 
 	return ret;
@@ -554,24 +565,24 @@ oh_varblock_fprint(struct umash_oh dst[static 2], const uint64_t *restrict param
 	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
 
 	{
-		__uint128_t enh;
-		uint64_t x, y, kx, ky;
+		uint64_t x, y, kx, ky, enh_hi, enh_lo;
 
 		memcpy(&x, last_ptr, sizeof(x));
 		last_ptr = (const char *)last_ptr + sizeof(x);
 		memcpy(&y, last_ptr, sizeof(y));
 
-		enh = (__uint128_t)tag << 64;
 		kx = x + params[end_full_pairs];
 		ky = y + params[end_full_pairs + 1];
-		enh += (__uint128_t)kx * ky;
 
-		enh ^= enh << 64;
-		dst[0].bits[0] ^= (uint64_t)enh;
-		dst[0].bits[1] ^= (uint64_t)(enh >> 64);
+		mul128(kx, ky, &enh_hi, &enh_lo);
+		enh_hi += tag;
 
-		dst[1].bits[0] ^= (uint64_t)enh;
-		dst[1].bits[1] ^= (uint64_t)(enh >> 64);
+		enh_hi ^= enh_lo;
+		dst[0].bits[0] ^= enh_lo;
+		dst[0].bits[1] ^= enh_hi;
+
+		dst[1].bits[0] ^= enh_lo;
+		dst[1].bits[1] ^= enh_hi;
 	}
 
 	return;
@@ -714,10 +725,7 @@ TEST_DEF uint64_t
 umash_medium(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_bytes)
 {
-	union {
-		__uint128_t h;
-		uint64_t u64[2];
-	} acc = { .h = (__uint128_t)(seed ^ n_bytes) << 64 };
+	uint64_t enh_hi, enh_lo;
 
 	{
 		uint64_t x, y;
@@ -727,12 +735,13 @@ umash_medium(const uint64_t multipliers[static 2], const uint64_t *oh, uint64_t 
 		x += oh[0];
 		y += oh[1];
 
-		acc.h += (__uint128_t)x * y;
+		mul128(x, y, &enh_hi, &enh_lo);
+		enh_hi += seed ^ n_bytes;
 	}
 
-	acc.u64[1] ^= acc.u64[0];
+	enh_hi ^= enh_lo;
 	return finalize(horner_double_update(
-	    /*acc=*/0, multipliers[0], multipliers[1], acc.u64[0], acc.u64[1]));
+	    /*acc=*/0, multipliers[0], multipliers[1], enh_lo, enh_hi));
 }
 
 static FN struct umash_fp
@@ -741,10 +750,7 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *oh,
 {
 	struct umash_fp ret;
 	const uint64_t offset = seed ^ n_bytes;
-	union {
-		__uint128_t h;
-		uint64_t u64[2];
-	} hash;
+	uint64_t enh_hi, enh_lo;
 	union {
 		v128 v;
 		uint64_t u64[2];
@@ -764,18 +770,18 @@ umash_fp_medium(const uint64_t multipliers[static 2][2], const uint64_t *oh,
 	lrc[1] ^= y ^ b;
 	mixed_lrc.v = v128_clmul(lrc[0], lrc[1]);
 
-	hash.h = (__uint128_t)offset << 64;
 	a += x;
 	b += y;
-	hash.h += (__uint128_t)a * b;
-	hash.u64[1] ^= hash.u64[0];
+
+	mul128(a, b, &enh_hi, &enh_lo);
+	enh_hi += offset;
+	enh_hi ^= enh_lo;
 
 	ret.hash[0] = finalize(horner_double_update(
-	    /*acc=*/0, multipliers[0][0], multipliers[0][1], hash.u64[0], hash.u64[1]));
+	    /*acc=*/0, multipliers[0][0], multipliers[0][1], enh_lo, enh_hi));
 
-	ret.hash[1] =
-	    finalize(horner_double_update(/*acc=*/0, multipliers[1][0], multipliers[1][1],
-		hash.u64[0] ^ mixed_lrc.u64[0], hash.u64[1] ^ mixed_lrc.u64[1]));
+	ret.hash[1] = finalize(horner_double_update(/*acc=*/0, multipliers[1][0],
+	    multipliers[1][1], enh_lo ^ mixed_lrc.u64[0], enh_hi ^ mixed_lrc.u64[1]));
 
 	return ret;
 }
@@ -1040,13 +1046,13 @@ sink_consume_buf(
 		memcpy(&sink->oh_twisted.acc, &twisted_acc, sizeof(twisted_acc));
 		memcpy(&sink->oh_twisted.prev, &h, sizeof(h));
 	} else {
-		__uint128_t enh;
 		/* The last chunk is combined with the size tag with ENH. */
 		uint64_t tag = sink->seed ^ (uint8_t)(sink->block_size + sink->bufsz);
+		uint64_t enh_hi, enh_lo;
 
-		enh = (__uint128_t)tag << 64;
-		enh += (__uint128_t)(x + k0) * (y + k1);
-		enh ^= enh << 64;
+		mul128(x + k0, y + k1, &enh_hi, &enh_lo);
+		enh_hi += tag;
+		enh_hi ^= enh_lo;
 
 		if (sink->hash_wanted != 0) {
 			union {
@@ -1073,12 +1079,12 @@ sink_consume_buf(
 
 			oh0 ^= lrc_hash.h[0];
 			oh1 ^= lrc_hash.h[1];
-			sink->oh_twisted.acc.bits[0] = oh0 ^ (uint64_t)enh;
-			sink->oh_twisted.acc.bits[1] = oh1 ^ (uint64_t)(enh >> 64);
+			sink->oh_twisted.acc.bits[0] = oh0 ^ enh_lo;
+			sink->oh_twisted.acc.bits[1] = oh1 ^ enh_hi;
 		}
 
-		sink->oh_acc.bits[0] ^= (uint64_t)enh;
-		sink->oh_acc.bits[1] ^= (uint64_t)(enh >> 64);
+		sink->oh_acc.bits[0] ^= enh_lo;
+		sink->oh_acc.bits[1] ^= enh_hi;
 	}
 
 next:
