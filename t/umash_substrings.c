@@ -23,6 +23,9 @@ bench_throughput_1(const void *buf, size_t len)
 	double elapsed;
 	int r;
 
+	/* Prevent the compiler from noticing the redundancy. */
+	__asm__("" : "+m"(bufs));
+
 	r = gettimeofday(&begin, NULL);
 	assert(r == 0);
 
