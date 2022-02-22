@@ -206,6 +206,8 @@ v128_clmul_cross(v128 x)
  * The code below uses GCC extensions.  It should be possible to add
  * support for other compilers.
  */
+
+#ifndef __x86_64__
 static inline void
 mul128(uint64_t x, uint64_t y, uint64_t *hi, uint64_t *lo)
 {
@@ -216,6 +218,18 @@ mul128(uint64_t x, uint64_t y, uint64_t *hi, uint64_t *lo)
 	*lo = product;
 	return;
 }
+#else
+static inline void
+mul128(uint64_t x, uint64_t y, uint64_t *hi, uint64_t *lo)
+{
+	uint64_t mulhi, mullo;
+
+	__asm__("mul %3" : "=a"(mullo), "=d"(mulhi) : "%a"(x), "r"(y) : "cc");
+	*hi = mulhi;
+	*lo = mullo;
+	return;
+}
+#endif
 
 TEST_DEF inline uint64_t
 add_mod_fast(uint64_t x, uint64_t y)
