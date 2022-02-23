@@ -38,14 +38,10 @@ rationale about the design, and a proof sketch for the collision bound.
 The [blog post announcing UMASH](https://engineering.backtrace.io/2020-08-24-umash-fast-enough-almost-universal-fingerprinting/)
 includes a higher level overview and may also provide useful context.
 
-There has been a major change to the algorithm since that post; the
-[new fingerprinting algorithm is described in this post](https://pvk.ca/Blog/2020/10/31/nearly-double-the-ph-bits-with-one-more-clmul/)
-but some documentation and comments still have to be overhauled.
-However, the reference implementation and tests do reflect this new
-algorithm.
-
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
+For extra speed (at the expense of code size) add `umash_long.inc` as
+well, also distributed in the MIT license.
 
 The current implementation only build with gcc-compatible compilers
 that support the [integer overflow builtins](https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html)
@@ -54,8 +50,7 @@ introduced by GCC 5 (April 2015) and targets x86-64 machines with the
 (available since 2011 on Intel and AMD), or aarch64 with the "crypto"
 extension (for `VMULL`).  We only test the performance of UMASH on
 x86-64 because that's the platform where hashing performance matters
-at [Backtrace](https://backtrace.io/); however, thanks to travis-ci,
-we do automatically run our correctness tests on x86-64 and aarch64.
+at [Backtrace](https://backtrace.io/).
 
 Quick start
 -----------
@@ -109,10 +104,6 @@ We can confirm that the parameters are constructed deterministically,
 and that calling `umash_full` with `which = 0` or `which = 1` gets us
 the two halves of the `umash_fprint` fingerprint.
 
-Please note that UMASH is still not fully finalised; while the source
-code should be deterministic for a given revision, different revisions
-may compute different values for the exact same inputs.
-
 Hacking on UMASH
 ----------------
 
@@ -132,9 +123,6 @@ sticks to something similar to the
 [FreeBSD KNF](https://www.freebsd.org/cgi/man.cgi?query=style&sektion=9);
 when in doubt, whatever `t/format.sh` does is good enough.
 
-See `smhasher/HOWTO-SMHASHER.md` for patches to easily integrate UMASH
-in the SMHasher hash performance and quality test suite.
-
 We are also setting up Jupyter notebooks to make it easier to compare
 different implementations, to visualise the results, and to
 automatically run a set of statistical tests on that data. See
@@ -151,8 +139,7 @@ left:
 2. We currently only use incremental and one-shot hashing
    interfaces. If someone needs parallel hashing, we can collaborate
    to find out what that interface should look like.
-3. A size-optimised implementation could be helpful.
-4. How fast could we go on a GPU?
+3. How fast could we go on a GPU?
 
 And of course, portability to other C compilers or platforms is
 interesting.
