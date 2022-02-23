@@ -1,6 +1,6 @@
 ## % UMASH: a fast almost universal 64-bit string hash
 ## % Paul Khuong, [Backtrace I/O](https://backtrace.io)
-## % 2022-02-18
+## % 2022-02-23
 ## <!--- Format with sed -E -e 's/^/    /' -e 's/^    ## ?//' | \
 ##     pandoc --lua-filter=t/diagram-generator.lua -M colorlinks \
 ##       -o umash.pdf -  # TY lukego
@@ -1385,6 +1385,8 @@ def umash(key, seed, buf, secondary):
 ##
 ## # Change log
 ##
+## 2022-02-23: Link to the blog posts in this section.
+##
 ## 2022-02-14: Clarify the presentation of the fingerprinting algorithm,
 ## and tighten its analysis.
 ##
@@ -1393,15 +1395,18 @@ def umash(key, seed, buf, secondary):
 ## 2021-06-28: actually document the new fingerprinting algorithm
 ## inspired by [Nandi's "On the Minimum Number of Multiplications Necessary for Universal Hash Functions"](https://link.springer.com/chapter/10.1007/978-3-662-46706-0_25)
 ##
-## 2020-08-27: use $s$ for the input byte length parameter, which
-## renders less confusingly than $l$ (ell) in the face of font issues.
-##
-## 2020-09-13: use an [invertible xor-rot](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
-## finalizer, instead of multiply xorshift.
+## 2020-10-13: replace `PH` with `OH`, a variant that uses `NH` for the
+## last 16-byte chunk.  Analysis shows we can make every block benefit
+## from the improved latency of `NH`, not just short 9-16 byte blocks.
+## [Also described on pvk.ca](https://web.archive.org/web/20210116023416/https://pvk.ca/Blog/2020/10/31/nearly-double-the-ph-bits-with-one-more-clmul/).
 ##
 ## 2020-09-20: mix 9-16 byte inputs with `NH` instead of `PH`, before
 ## passing to the same polynomial hash and finalisation.
 ##
-## 2020-10-13: replace `PH` with `OH`, a variant that uses `NH` for the
-## last 16-byte chunk.  Analysis shows we can make every block benefit
-## from the improved latency of `NH`, not just short 9-16 byte blocks.
+## 2020-09-13: use an [invertible xor-rot](https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html)
+## finalizer, instead of multiply xorshift.
+##
+## 2020-08-27: use $s$ for the input byte length parameter, which
+## renders less confusingly than $l$ (ell) in the face of font issues.
+##
+## 2020-08-24: [Initial public release](https://web.archive.org/web/20211219144349/https://engineering.backtrace.io/2020-08-24-umash-fast-enough-almost-universal-fingerprinting/).
