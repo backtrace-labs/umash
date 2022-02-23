@@ -4,7 +4,7 @@ Test suite for modular arithmetic, specialised on 2**64 - 8 = 8(2**61 - 1).
 import math
 from hypothesis import assume, given
 import hypothesis.strategies as st
-from umash import C
+from umash import C, FFI
 
 # We work mod 2**64 - 8.
 MODULO = 2**64 - 8
@@ -50,6 +50,15 @@ def test_add_mod_slow(x, y):
     assert C.add_mod_slow(x, y) == (x + y) % MODULO
 
 
+@given(
+    x=st.integers(min_value=W // 2 - 32, max_value=W // 2 + 32),
+    y=st.integers(min_value=W // 2 - 32, max_value=W // 2 + 32),
+)
+def test_add_mod_slow_slow_path(x, y):
+    """Exercise the slow path of `add_mod_slow`."""
+    assert C.add_mod_slow(x, y) == (x + y) % MODULO
+
+
 @given(m=modint(FIELD), x=modint(W))
 def test_mul_mod_fast(m, x):
     """Check fast modular multiplication, for the case we about."""
@@ -67,3 +76,40 @@ def test_mul_mod_fast_general(m, x):
 def test_horner_double_update(acc, m0, m1, x, y):
     expected = (m0 * (acc + x) + m1 * y) % MODULO
     assert C.horner_double_update(acc, m0, m1, x, y) == expected
+
+
+SPLIT_ACCUMULATOR_MAX_FIXUP = 3
+
+
+@given(
+    base=modint(W),
+    fixup=st.integers(min_value=0, max_value=SPLIT_ACCUMULATOR_MAX_FIXUP),
+)
+def test_split_accumulator_eval(base, fixup):
+    expected = (base + 8 * fixup) % MODULO
+    accumulator = FFI.new("struct split_accumulator[1]")
+    accumulator[0].base = base
+    accumulator[0].fixup = fixup
+
+    assert C.split_accumulator_eval(accumulator[0]) == expected
+
+
+@given(
+    base=modint(W),
+    fixup=st.integers(min_value=0, max_value=SPLIT_ACCUMULATOR_MAX_FIXUP),
+    m0=modint(FIELD),
+    m1=modint(FIELD),
+    h0=modint(W) | st.integers(min_value=2**64 - 5, max_value=2**64 - 1),
+    h1=modint(W),
+)
+def test_split_accumulator_update(base, fixup, m0, m1, h0, h1):
+    expected = (m0 * (base + 8 * fixup + h0) + m1 * h1) % MODULO
+
+    accumulator = FFI.new("struct split_accumulator[1]")
+    accumulator[0].base = base
+    accumulator[0].fixup = fixup
+
+    actual = C.split_accumulator_update(accumulator[0], m0, m1, h0, h1)
+    assert 0 <= actual.fixup <= SPLIT_ACCUMULATOR_MAX_FIXUP
+
+    assert C.split_accumulator_eval(actual) == expected

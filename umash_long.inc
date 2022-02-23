@@ -100,6 +100,78 @@ umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
 }
 #endif
 
+#define SPLIT_ACCUMULATOR_MAX_FIXUP 3
+
+/**
+ * A split accumulator represents a value (mod 2**64 - 8) as the
+ * evaluated sum `base + 8 * fixup`, where `fixup <=
+ * SPLIT_ACCUMULATOR_MAX_FIXUP`
+ */
+#ifndef UMASH_TEST_ONLY /* Also defined in `umash_test_only.h` */
+struct split_accumulator {
+	uint64_t base;
+	uint64_t fixup;
+};
+#endif
+
+/**
+ * Reduces the split accumulator's value to a value < 2**64 - 8.
+ */
+TEST_DEF inline uint64_t
+split_accumulator_eval(struct split_accumulator acc)
+{
+	return add_mod_slow(acc.base, 8 * acc.fixup);
+}
+
+/**
+ * Returns the updated version of `acc` after a double-pumped Horner
+ * update: acc = m0 * (acc + h0) + m1 * h1 (mod 2**64 - 8).
+ */
+TEST_DEF inline struct split_accumulator
+split_accumulator_update(const struct split_accumulator acc, const uint64_t m0,
+    const uint64_t m1, uint64_t h0, const uint64_t h1)
+{
+	uint64_t partial;
+	uint64_t lo0, hi0, lo1, hi1;
+	uint64_t hi;
+	unsigned long long sum;
+	int8_t fixup;
+
+	mul128(m1, h1, &hi1, &lo1);
+
+	/* partial \eqv (acc.base + h0 + 8 * acc.fixup)  mod 2**64 - 8 */
+	if (UNLIKELY(h0 > -8ULL * (SPLIT_ACCUMULATOR_MAX_FIXUP + 1))) {
+		h0 = add_mod_slow(h0, 8 * acc.fixup);
+	} else {
+		/*
+		 * h0 is a hash value, so it's unlikely to be
+		 * extremely high.  In the common case, this addition
+		 * doesn't overflows.
+		 */
+		h0 += 8 * acc.fixup;
+	}
+
+	partial = add_mod_fast(acc.base, h0);
+
+	mul128(partial, m0, &hi0, &lo0);
+
+	fixup = __builtin_uaddll_overflow(lo0, lo1, &sum);
+
+	assert(hi0 < (1UL << 61));
+	assert(hi1 < (1UL << 61));
+	/* hi0 and hi1 < 2**61, so this addition never overflows. */
+	hi = hi0 + hi1;
+
+	fixup += (hi & (1ULL << 61)) != 0;
+	hi *= 8;
+
+	fixup += __builtin_uaddll_overflow(sum, hi, &sum);
+	return (struct split_accumulator) {
+		.base = sum,
+		.fixup = fixup,
+	};
+}
+
 TEST_DEF HOT uint64_t
 umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
@@ -108,7 +180,7 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 	const uint64_t m1 = multipliers[1];
 	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
 	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
-	uint64_t ret = initial;
+	struct split_accumulator ret = { .base = initial };
 
 	assert(n_blocks > 0);
 
@@ -197,10 +269,10 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 			oh.bits[1] ^= enh_hi ^ enh_lo;
 		}
 
-		ret = horner_double_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
+		ret = split_accumulator_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
 	} while (--n_blocks);
 
-	return ret;
+	return split_accumulator_eval(ret);
 }
 
 #if defined(__x86_64__) && UMASH_DYNAMIC_DISPATCH
@@ -217,7 +289,7 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 	v128 k28;
 	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
 	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
-	uint64_t ret = initial;
+	struct split_accumulator ret = { .base = initial };
 
 	assert(n_blocks > 0);
 
@@ -307,9 +379,9 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 			oh.bits[1] ^= enh_hi ^ enh_lo;
 		}
 
-		ret = horner_double_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
+		ret = split_accumulator_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
 	} while (--n_blocks);
 
-	return ret;
+	return split_accumulator_eval(ret);
 }
 #endif
