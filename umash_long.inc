@@ -36,16 +36,19 @@ TEST_DEF umash_multiple_blocks_fn umash_multiple_blocks_generic;
  */
 #if defined(__x86_64__) && UMASH_DYNAMIC_DISPATCH
 #include <cpuid.h>
+#include <stdatomic.h>
 
 static umash_multiple_blocks_fn umash_multiple_blocks_pick,
     umash_multiple_blocks_vpclmulqdq;
 
-static umash_multiple_blocks_fn *umash_multiple_blocks_impl = umash_multiple_blocks_pick;
+static umash_multiple_blocks_fn *_Atomic umash_multiple_blocks_impl =
+    umash_multiple_blocks_pick;
 
 static COLD FN uint64_t
 umash_multiple_blocks_pick(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
+	umash_multiple_blocks_fn *impl;
 	bool has_vpclmulqdq = false;
 
 	{
@@ -64,19 +67,26 @@ umash_multiple_blocks_pick(uint64_t initial, const uint64_t multipliers[static 2
 	}
 
 	if (has_vpclmulqdq) {
-		umash_multiple_blocks_impl = umash_multiple_blocks_vpclmulqdq;
+		impl = umash_multiple_blocks_vpclmulqdq;
 	} else {
-		umash_multiple_blocks_impl = umash_multiple_blocks_generic;
+		impl = umash_multiple_blocks_generic;
 	}
 
-	return umash_multiple_blocks_impl(
-	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
+	atomic_store_explicit(&umash_multiple_blocks_impl, impl, memory_order_relaxed);
+	return impl(initial, multipliers, oh_ptr, seed, blocks, n_blocks);
 }
 
 TEST_DEF inline uint64_t
 umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
+	/*
+	 * We should use a relaxed load here, but compilers have
+	 * trouble fusing that with the call.  Directly calling the
+	 * function pointer gets us a one-instruction memory indirect
+	 * CALL on x86-64, versus a load, and a roundtrip through the
+	 * stack if we use a discrete atomic load (on gcc 8).
+	 */
 	return umash_multiple_blocks_impl(
 	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
 }
