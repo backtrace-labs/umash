@@ -39,6 +39,23 @@ uint64_t mul_mod_fast(uint64_t m, uint64_t x);
 uint64_t horner_double_update(
     uint64_t acc, uint64_t m0, uint64_t m1, uint64_t x, uint64_t y);
 
+struct split_accumulator {
+	uint64_t base;
+	uint64_t fixup;
+};
+
+/**
+ * Reduces the split accumulator's value to a value < 2**64 - 8.
+ */
+uint64_t split_accumulator_eval(struct split_accumulator acc);
+
+/**
+ * Returns the updated version of `acc` after a double-pumped Horner
+ * update: acc = m0 * (acc + h0) + m1 * h1 (mod 2**64 - 8).
+ */
+struct split_accumulator split_accumulator_update(const struct split_accumulator acc,
+    const uint64_t m0, const uint64_t m1, uint64_t h0, const uint64_t h1);
+
 /**
  * Compress one OH block of up to 256 bytes.  `block + n_bytes - 16`
  * must contain input data (i.e., the function will read behind to
