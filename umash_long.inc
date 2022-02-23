@@ -109,7 +109,6 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
 	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
 	uint64_t ret = initial;
-	size_t block_count = 1;
 
 	assert(n_blocks > 0);
 
@@ -199,7 +198,7 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		}
 
 		ret = horner_double_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
-	} while (block_count++ < n_blocks);
+	} while (--n_blocks);
 
 	return ret;
 }
