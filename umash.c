@@ -253,7 +253,7 @@ add_mod_fast(uint64_t x, uint64_t y)
 	return (__builtin_uaddll_overflow(x, y, &sum) ? sum + 8 : sum);
 }
 
-static FN uint64_t
+static FN COLD uint64_t
 add_mod_slow_slow_path(uint64_t sum, uint64_t fixup)
 {
 	/* Reduce sum, mod 2**64 - 8. */
