@@ -427,6 +427,8 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
     const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_blocks)
 {
+	const v128 lrc_init =
+	    v128_create(oh[UMASH_OH_PARAM_COUNT], oh[UMASH_OH_PARAM_COUNT + 1]);
 	const uint64_t m00 = multipliers[0][0];
 	const uint64_t m01 = multipliers[0][1];
 	const uint64_t m10 = multipliers[1][0];
@@ -436,14 +438,98 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
 
 	do {
 		struct umash_oh compressed[2];
+		v128 acc = V128_ZERO; /* Base umash */
+		v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
+		v128 lrc = lrc_init;
+		v128 prev = V128_ZERO;
+		const void *block = data;
 
-		oh_varblock_fprint(compressed, oh, seed, data, BLOCK_SIZE);
+		data = (const char *)data + BLOCK_SIZE;
+
+#define FORCE() asm("" : "+x"(acc), "+x"(acc_shifted), "+x"(lrc), "+x"(prev))
+#define TWIST(I)                                         \
+	do {                                             \
+		v128 x, k;                               \
+                                                         \
+		memcpy(&x, block, sizeof(x));            \
+		block = (const char *)block + sizeof(x); \
+                                                         \
+		memcpy(&k, &oh[I], sizeof(k));           \
+                                                         \
+		x ^= k;                                  \
+		lrc ^= x;                                \
+                                                         \
+		x = v128_clmul_cross(x);                 \
+                                                         \
+		acc ^= x;                                \
+                                                         \
+		acc_shifted ^= prev;                     \
+		acc_shifted = v128_shift(acc_shifted);   \
+                                                         \
+		prev = x;                                \
+	} while (0)
+
+		TWIST(0);
+		TWIST(2);
+		TWIST(4);
+		TWIST(6);
+		TWIST(8);
+		TWIST(10);
+		TWIST(12);
+		TWIST(14);
+		TWIST(16);
+		TWIST(18);
+		TWIST(20);
+		TWIST(22);
+		TWIST(24);
+		TWIST(26);
+		TWIST(28);
+
+#undef TWIST
+#undef FORCE
+
+		{
+			v128 x, k;
+
+			memcpy(&x, block, sizeof(x));
+			memcpy(&k, &oh[30], sizeof(k));
+
+			lrc ^= x ^ k;
+		}
+
+		acc_shifted ^= acc;
+		acc_shifted = v128_shift(acc_shifted);
+
+		acc_shifted ^= v128_clmul_cross(lrc);
+
+		memcpy(&compressed[0], &acc, sizeof(compressed[0]));
+		memcpy(&compressed[1], &acc_shifted, sizeof(compressed[1]));
+
+		{
+			uint64_t x, y, kx, ky, enh_hi, enh_lo;
+
+			memcpy(&x, block, sizeof(x));
+			block = (const char *)block + sizeof(x);
+			memcpy(&y, block, sizeof(y));
+
+			kx = x + oh[30];
+			ky = y + oh[31];
+
+			mul128(kx, ky, &enh_hi, &enh_lo);
+			enh_hi += seed;
+
+			enh_hi ^= enh_lo;
+			compressed[0].bits[0] ^= enh_lo;
+			compressed[0].bits[1] ^= enh_hi;
+
+			compressed[1].bits[0] ^= enh_lo;
+			compressed[1].bits[1] ^= enh_hi;
+		}
+
 		acc0 = horner_double_update(
 		    acc0, m00, m01, compressed[0].bits[0], compressed[0].bits[1]);
 		acc1 = horner_double_update(
 		    acc1, m10, m11, compressed[1].bits[0], compressed[1].bits[1]);
-
-		data = (const char *)data + BLOCK_SIZE;
 	} while (--n_blocks);
 
 	return (struct umash_fp) {
