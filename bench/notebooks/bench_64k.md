@@ -14,8 +14,7 @@ jupyter:
 ---
 
 ```python
-# Latency test for input sizes >16 bytes.
-# In practice, input size > 512 bytes essentially never happen.
+# Latency test for input sizes = 64 KB.
 
 from collections import defaultdict
 import math
