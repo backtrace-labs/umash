@@ -873,7 +873,7 @@ finalize:
 	return finalize(acc);
 }
 
-static FN struct umash_fp
+TEST_DEF struct umash_fp
 umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_bytes)
 {
