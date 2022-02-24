@@ -18,10 +18,21 @@ typedef uint64_t umash_multiple_blocks_fn(uint64_t initial,
     const uint64_t multipliers[static 2], const uint64_t *oh_ptr, uint64_t seed,
     const void *blocks, size_t n_blocks);
 
+typedef struct umash_fp umash_fprint_multiple_blocks_fn(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks);
+
 /**
- * Updates a 64-bit UMASH state for `n_blocks` 256-byte blocks in data.
+ * Updates a 64-bit UMASH state for `n_blocks` 256-byte blocks in
+ * `data`.
  */
 TEST_DEF umash_multiple_blocks_fn umash_multiple_blocks_generic;
+
+/**
+ * Updates a 128-bit UMASH fingerprint state for `n_blocks` 256-byte
+ * blocks in `data`.
+ */
+TEST_DEF umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks;
 
 /**
  * Runtime dispatch logic.  When dynamic dispatch is enabled,
@@ -406,3 +417,36 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 	return split_accumulator_eval(ret);
 }
 #endif
+
+TEST_DEF void oh_varblock_fprint(struct umash_oh dst[static restrict 2],
+    const uint64_t *restrict params, uint64_t tag, const void *restrict block,
+    size_t n_bytes);
+
+TEST_DEF HOT struct umash_fp
+umash_fprint_multiple_blocks(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks)
+{
+	const uint64_t m00 = multipliers[0][0];
+	const uint64_t m01 = multipliers[0][1];
+	const uint64_t m10 = multipliers[1][0];
+	const uint64_t m11 = multipliers[1][1];
+	uint64_t acc0 = initial.hash[0];
+	uint64_t acc1 = initial.hash[1];
+
+	do {
+		struct umash_oh compressed[2];
+
+		oh_varblock_fprint(compressed, oh, seed, data, BLOCK_SIZE);
+		acc0 = horner_double_update(
+		    acc0, m00, m01, compressed[0].bits[0], compressed[0].bits[1]);
+		acc1 = horner_double_update(
+		    acc1, m10, m11, compressed[1].bits[0], compressed[1].bits[1]);
+
+		data = (const char *)data + BLOCK_SIZE;
+	} while (--n_blocks);
+
+	return (struct umash_fp) {
+                .hash = { acc0, acc1, },
+        };
+}

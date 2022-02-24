@@ -881,6 +881,34 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint6
 	struct umash_fp ret;
 	uint64_t acc[2] = { 0, 0 };
 
+#ifdef UMASH_MULTIPLE_BLOCKS_THRESHOLD
+	if (UNLIKELY(n_bytes >= UMASH_MULTIPLE_BLOCKS_THRESHOLD)) {
+		struct umash_fp poly = { .hash = { 0, 0 } };
+		size_t n_block = n_bytes / BLOCK_SIZE;
+		const void *remaining;
+
+		n_bytes %= BLOCK_SIZE;
+		remaining = (const char *)data + (n_block * BLOCK_SIZE);
+		poly = umash_fprint_multiple_blocks(
+		    poly, multipliers, oh, seed, data, n_block);
+
+		acc[0] = poly.hash[0];
+		acc[1] = poly.hash[1];
+
+		data = remaining;
+		if (n_bytes == 0)
+			goto finalize;
+
+		goto last_block;
+	}
+#else
+	/* Avoid warnings about the unused labels. */
+	if (0) {
+		goto last_block;
+		goto finalize;
+	}
+#endif
+
 	while (n_bytes > BLOCK_SIZE) {
 		oh_varblock_fprint(compressed, oh, seed, data, BLOCK_SIZE);
 
@@ -896,19 +924,22 @@ umash_fp_long(const uint64_t multipliers[static 2][2], const uint64_t *oh, uint6
 		n_bytes -= BLOCK_SIZE;
 	}
 
+last_block:
 	oh_varblock_fprint(compressed, oh, seed ^ (uint8_t)n_bytes, data, n_bytes);
 
 #define FINAL(i)                                                                      \
 	do {                                                                          \
 		acc[i] = horner_double_update(acc[i], multipliers[i][0],              \
 		    multipliers[i][1], compressed[i].bits[0], compressed[i].bits[1]); \
-		ret.hash[i] = finalize(acc[i]);                                       \
 	} while (0)
 
 	FINAL(0);
 	FINAL(1);
 #undef FINAL
 
+finalize:
+	ret.hash[0] = finalize(acc[0]);
+	ret.hash[1] = finalize(acc[1]);
 	return ret;
 }
 
@@ -1145,8 +1176,7 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 	assert(sink->oh_iter == 0);
 
 #ifdef UMASH_MULTIPLE_BLOCKS_THRESHOLD
-	if (UNLIKELY(
-		n_bytes > UMASH_MULTIPLE_BLOCKS_THRESHOLD && sink->hash_wanted == 0)) {
+	if (UNLIKELY(n_bytes > UMASH_MULTIPLE_BLOCKS_THRESHOLD)) {
 		/*
 		 * We leave the last block (partial or not) for the
 		 * caller: incremental hashing must save some state
@@ -1154,8 +1184,29 @@ block_sink_update(struct umash_sink *sink, const void *data, size_t n_bytes)
 		 */
 		size_t n_blocks = (n_bytes - 1) / BLOCK_SIZE;
 
-		sink->poly_state[0].acc = umash_multiple_blocks(sink->poly_state[0].acc,
-		    sink->poly_state[0].mul, sink->oh, sink->seed, data, n_blocks);
+		if (sink->hash_wanted != 0) {
+			const uint64_t multipliers[2][2] = {
+				[0][0] = sink->poly_state[0].mul[0],
+				[0][1] = sink->poly_state[0].mul[1],
+				[1][0] = sink->poly_state[1].mul[0],
+				[1][1] = sink->poly_state[1].mul[1],
+			};
+			struct umash_fp poly = {
+				.hash[0] = sink->poly_state[0].acc,
+				.hash[1] = sink->poly_state[1].acc,
+			};
+
+			poly = umash_fprint_multiple_blocks(
+			    poly, multipliers, sink->oh, sink->seed, data, n_blocks);
+
+			sink->poly_state[0].acc = poly.hash[0];
+			sink->poly_state[1].acc = poly.hash[1];
+		} else {
+			sink->poly_state[0].acc = umash_multiple_blocks(
+			    sink->poly_state[0].acc, sink->poly_state[0].mul, sink->oh,
+			    sink->seed, data, n_blocks);
+		}
+
 		return n_blocks * BLOCK_SIZE;
 	}
 #endif
