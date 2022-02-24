@@ -90,6 +90,16 @@ uint64_t umash_multiple_blocks_generic(uint64_t initial,
     const void *blocks, size_t n_blocks);
 
 /**
+ * Updates the 128-bit UMASH fingerprint state for `n_blocks` full
+ * 256-byte blocks: accepts the `initial` state as an argument and
+ * returns the update value.
+ *
+ * The block count `n_blocks` must be strictly positive.
+ */
+struct umash_fp umash_fprint_multiple_blocks(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks);
+/**
  * Converts a buffer of <= 8 bytes to a 64-bit integers.
  */
 uint64_t vec_to_u64(const void *data, size_t n_bytes);
