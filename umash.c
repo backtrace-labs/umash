@@ -1255,8 +1255,6 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
     size_t n_bytes)
 {
 
-	which = (which == 0) ? 0 : 1;
-
 	DTRACE_PROBE4(libumash, umash_full, params, which, data, n_bytes);
 
 	/*
@@ -1264,8 +1262,11 @@ umash_full(const struct umash_params *params, uint64_t seed, int which, const vo
 	 * second hash.  We don't currently use that logic, and it's
 	 * about to become a bit more complex, so let's just go for a
 	 * full fingerprint and take what we need.
+	 *
+	 * umash_full is also rarely used that way: usually we want
+	 * either the main hash, or the full fingerprint.
 	 */
-	if (which == 1) {
+	if (UNLIKELY(which != 0)) {
 		struct umash_fp fp;
 
 		fp = umash_fprint(params, seed, data, n_bytes);
