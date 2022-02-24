@@ -155,6 +155,25 @@ split_accumulator_update(const struct split_accumulator acc, const uint64_t m0,
 
 	mul128(partial, m0, &hi0, &lo0);
 
+#if defined(__x86_64__) && UMASH_INLINE_ASM
+	{
+		uint8_t cf0, cf1;
+
+		__asm__("addq %3, %0"
+			: "=r"(sum), "=@ccc"(cf0)
+			: "%0"(lo0), "r"(lo1)
+			: "cc");
+
+		hi = hi0 + hi1;
+
+		__asm__("shlq $3, %0" : "+r"(hi), "=@ccc"(cf1) : : "cc");
+		__asm__("addq %3, %0\n\t"
+			"adcb %5, %1"
+			: "=r"(sum), "=r"(fixup)
+			: "%0"(sum), "r"(hi), "%1"(cf0), "r"(cf1)
+			: "cc");
+	}
+#else
 	fixup = __builtin_uaddll_overflow(lo0, lo1, &sum);
 
 	assert(hi0 < (1UL << 61));
@@ -166,6 +185,8 @@ split_accumulator_update(const struct split_accumulator acc, const uint64_t m0,
 	hi *= 8;
 
 	fixup += __builtin_uaddll_overflow(sum, hi, &sum);
+#endif
+
 	return (struct split_accumulator) {
 		.base = sum,
 		.fixup = fixup,
