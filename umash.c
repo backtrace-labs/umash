@@ -590,7 +590,7 @@ oh_varblock_fprint(struct umash_oh dst[static restrict 2],
 	acc_shifted ^= v128_clmul_cross(lrc);
 
 	memcpy(&dst[0], &acc, sizeof(dst[0]));
-	memcpy(&dst[1], &acc_shifted, sizeof(dst[0]));
+	memcpy(&dst[1], &acc_shifted, sizeof(dst[1]));
 
 	{
 		uint64_t x, y, kx, ky, enh_hi, enh_lo;
