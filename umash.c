@@ -535,8 +535,9 @@ oh_varblock(const uint64_t *params, uint64_t tag, const void *block, size_t n_by
 }
 
 TEST_DEF void
-oh_varblock_fprint(struct umash_oh dst[static 2], const uint64_t *restrict params,
-    uint64_t tag, const void *restrict block, size_t n_bytes)
+oh_varblock_fprint(struct umash_oh dst[static restrict 2],
+    const uint64_t *restrict params, uint64_t tag, const void *restrict block,
+    size_t n_bytes)
 {
 	v128 acc = V128_ZERO; /* Base umash */
 	v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
