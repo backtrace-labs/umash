@@ -219,7 +219,11 @@ def _generate_in_parallel_worker(generator_fn, generator_args, max_results, max_
 # At first, return as soon as we have INITIAL_BATCH_SIZE results
 INITIAL_BATCH_SIZE = 10
 # And let that limit grow up to MAX_BATCH_SIZE
-MAX_BATCH_SIZE = 100 * 1000
+#
+# The maximum batch size grows with the CPU count because only one
+# coordinator process hands out work, so more workers means we need
+# larger batches to avoid turning the coordinator into a bottleneck.
+MAX_BATCH_SIZE = 100 * 1000 * (os.cpu_count() + 16) // 16
 # Growth rate for the batch size
 BATCH_SIZE_GROWTH_FACTOR = 2
 
