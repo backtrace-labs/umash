@@ -200,7 +200,8 @@ split_accumulator_update(const struct split_accumulator acc, const uint64_t m0,
 
 	return (struct split_accumulator) {
 		.base = sum,
-		.fixup = fixup,
+		/* Avoid sign extension: we know `fixup` is non-negative. */
+		.fixup = (uint8_t)fixup,
 	};
 }
 
