@@ -470,35 +470,35 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
 	} while (0)
 
 		TWIST(0);
-                FORCE();
+		FORCE();
 		TWIST(2);
-                FORCE();
+		FORCE();
 		TWIST(4);
-                FORCE();
+		FORCE();
 		TWIST(6);
-                FORCE();
+		FORCE();
 		TWIST(8);
-                FORCE();
+		FORCE();
 		TWIST(10);
-                FORCE();
+		FORCE();
 		TWIST(12);
-                FORCE();
+		FORCE();
 		TWIST(14);
-                FORCE();
+		FORCE();
 		TWIST(16);
-                FORCE();
+		FORCE();
 		TWIST(18);
-                FORCE();
+		FORCE();
 		TWIST(20);
-                FORCE();
+		FORCE();
 		TWIST(22);
-                FORCE();
+		FORCE();
 		TWIST(24);
-                FORCE();
+		FORCE();
 		TWIST(26);
-                FORCE();
+		FORCE();
 		TWIST(28);
-                FORCE();
+		FORCE();
 
 #undef TWIST
 #undef FORCE
