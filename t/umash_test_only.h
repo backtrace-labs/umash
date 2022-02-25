@@ -99,6 +99,14 @@ uint64_t umash_multiple_blocks_generic(uint64_t initial,
 struct umash_fp umash_fprint_multiple_blocks(struct umash_fp initial,
     const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_blocks);
+
+/**
+ * Generic (fallback) implementation of `umash_fprint_multiple_blocks`.
+ */
+struct umash_fp umash_fprint_multiple_blocks_generic(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks);
+
 /**
  * Converts a buffer of <= 8 bytes to a 64-bit integers.
  */
