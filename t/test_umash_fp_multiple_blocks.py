@@ -87,8 +87,15 @@ def test_umash_fprint_multiple_blocks(initials, seed, multipliers, key, data):
     actual = C.umash_fprint_multiple_blocks(
         poly[0], mul, params[0].oh, seed, block, n_bytes // 256
     )
+    generic = C.umash_fprint_multiple_blocks_generic(
+        poly[0], mul, params[0].oh, seed, block, n_bytes // 256
+    )
 
-    assert [actual.hash[0], actual.hash[1]] == expected
+    assert (
+        [actual.hash[0], actual.hash[1]]
+        == [generic.hash[0], generic.hash[1]]
+        == expected
+    )
 
 
 @given(
@@ -137,5 +144,12 @@ def test_umash_fprint_multiple_blocks_repeat(initials, seed, multipliers, key, d
     actual = C.umash_fprint_multiple_blocks(
         poly[0], mul, params[0].oh, seed, block, n_bytes // 256
     )
+    generic = C.umash_fprint_multiple_blocks_generic(
+        poly[0], mul, params[0].oh, seed, block, n_bytes // 256
+    )
 
-    assert [actual.hash[0], actual.hash[1]] == expected
+    assert (
+        [actual.hash[0], actual.hash[1]]
+        == [generic.hash[0], generic.hash[1]]
+        == expected
+    )

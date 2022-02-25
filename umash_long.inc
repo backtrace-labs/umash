@@ -32,7 +32,7 @@ TEST_DEF umash_multiple_blocks_fn umash_multiple_blocks_generic;
  * Updates a 128-bit UMASH fingerprint state for `n_blocks` 256-byte
  * blocks in `data`.
  */
-TEST_DEF umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks;
+TEST_DEF umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks_generic;
 
 /**
  * Runtime dispatch logic.  When dynamic dispatch is enabled,
@@ -52,13 +52,20 @@ TEST_DEF umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks;
 static umash_multiple_blocks_fn umash_multiple_blocks_initial,
     umash_multiple_blocks_vpclmulqdq;
 
+static umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks_initial,
+    umash_fprint_multiple_blocks_vpclmulqdq;
+
 static umash_multiple_blocks_fn *_Atomic umash_multiple_blocks_impl =
     umash_multiple_blocks_initial;
+
+static umash_fprint_multiple_blocks_fn *_Atomic umash_fprint_multiple_blocks_impl =
+    umash_fprint_multiple_blocks_initial;
 
 static COLD FN void
 umash_long_pick(void)
 {
-	umash_multiple_blocks_fn *impl;
+	umash_multiple_blocks_fn *umash;
+	umash_fprint_multiple_blocks_fn *fprint;
 	bool has_vpclmulqdq = false;
 
 	{
@@ -77,12 +84,16 @@ umash_long_pick(void)
 	}
 
 	if (has_vpclmulqdq) {
-		impl = umash_multiple_blocks_vpclmulqdq;
+		umash = umash_multiple_blocks_vpclmulqdq;
+		fprint = umash_fprint_multiple_blocks_vpclmulqdq;
 	} else {
-		impl = umash_multiple_blocks_generic;
+		umash = umash_multiple_blocks_generic;
+		fprint = umash_fprint_multiple_blocks_generic;
 	}
 
-	atomic_store_explicit(&umash_multiple_blocks_impl, impl, memory_order_relaxed);
+	atomic_store_explicit(&umash_multiple_blocks_impl, umash, memory_order_relaxed);
+	atomic_store_explicit(
+	    &umash_fprint_multiple_blocks_impl, fprint, memory_order_relaxed);
 	return;
 }
 
@@ -111,6 +122,36 @@ umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
 	return umash_multiple_blocks_impl(
 	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
 }
+
+static COLD FN struct umash_fp
+umash_fprint_multiple_blocks_initial(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks)
+{
+	umash_fprint_multiple_blocks_fn *impl;
+
+	umash_long_pick();
+	impl = atomic_load_explicit(
+	    &umash_fprint_multiple_blocks_impl, memory_order_relaxed);
+	return impl(initial, multipliers, oh, seed, data, n_blocks);
+}
+
+TEST_DEF inline struct umash_fp
+umash_fprint_multiple_blocks(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks)
+{
+
+	/*
+	 * We should use a relaxed load here, but compilers have
+	 * trouble fusing that with the call.  Directly calling the
+	 * function pointer gets us a one-instruction memory indirect
+	 * CALL on x86-64, versus a load, and a roundtrip through the
+	 * stack if we use a discrete atomic load (on gcc 8).
+	 */
+	return umash_fprint_multiple_blocks_impl(
+	    initial, multipliers, oh, seed, data, n_blocks);
+}
 #else
 TEST_DEF inline uint64_t
 umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
@@ -118,6 +159,16 @@ umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
 {
 	return umash_multiple_blocks_generic(
 	    initial, multipliers, oh_ptr, seed, blocks, n_blocks);
+}
+
+TEST_DEF inline struct umash_fp
+umash_fprint_multiple_blocks(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks)
+{
+
+	return umash_fprint_multiple_blocks_generic(
+	    initial, multipliers, oh, seed, data, n_blocks);
 }
 #endif
 
@@ -319,7 +370,7 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 }
 
 TEST_DEF HOT struct umash_fp
-umash_fprint_multiple_blocks(struct umash_fp initial,
+umash_fprint_multiple_blocks_generic(struct umash_fp initial,
     const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_blocks)
 {
@@ -559,5 +610,199 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 	} while (--n_blocks);
 
 	return split_accumulator_eval(ret);
+}
+
+TEST_DEF HOT __attribute__((__target__(("avx2,vpclmulqdq")))) struct umash_fp
+umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
+    const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
+    const void *data, size_t n_blocks)
+{
+	__m256i k0, k4, k8, k12, k16, k20, k24, k28;
+	const __m256i lrc_init = _mm256_set_epi64x(
+	    0, 0, oh[UMASH_OH_PARAM_COUNT + 1], oh[UMASH_OH_PARAM_COUNT]);
+	const uint64_t m00 = multipliers[0][0];
+	const uint64_t m01 = multipliers[0][1];
+	const uint64_t m10 = multipliers[1][0];
+	const uint64_t m11 = multipliers[1][1];
+	struct split_accumulator acc0 = { .base = initial.hash[0] };
+	struct split_accumulator acc1 = { .base = initial.hash[1] };
+
+#if UMASH_INLINE_ASM
+	/*
+	 * This type represents unaligned AVX2-sized regions of
+	 * memory.
+	 */
+	struct b256 {
+		char bytes[32];
+	};
+
+#define LOADU(DST, PTR) \
+	__asm__("vmovdqu %1, %0" : "=x"(DST) : "m"(*(const struct b256 *)PTR))
+#else
+#define LOADU(DST, PTR) ((DST) = _mm256_loadu_si256((void *)(PTR)))
+#endif
+
+	LOADU(k0, &oh[0]);
+	LOADU(k4, &oh[4]);
+	LOADU(k8, &oh[8]);
+	LOADU(k12, &oh[12]);
+	LOADU(k16, &oh[16]);
+	LOADU(k20, &oh[20]);
+	LOADU(k24, &oh[24]);
+	LOADU(k28, &oh[28]);
+
+	/*
+	 * A UMASH fingerprint combines a regular (primary) 64-bit
+	 * UMASH hash value with a secondary hash value that mostly
+	 * reuses the primary's OH-mixed values.
+	 *
+	 * The key differences are:
+	 *
+	 * 1. the secondary hash generates an additional chunk by
+	 *    xoring together all the input chunks, themselves xor-ed
+	 *    with the corresponding random bits in the OH key.
+	 * 2. the first 14 PH-mixed values are shifted by different
+	 *    values (the first one by 15, second by 14, etc.)
+	 * 3. the first 15 PH-mixed values are also shifted by 1
+	 * 4. the values obtained by 14 and 15 are xored together
+	 *    before xoring in the new chunk's PH-mixed value and
+	 *    the ENH value.
+	 *
+	 * This AVX2 implementation derives the additional chunk in a
+	 * 256-bit AVX register, and only xors its two halves together
+	 * before CLMUL.
+	 *
+	 * Similarly, the PH-mixed values that are only shifted by 1
+	 * are xored in an AVX register, and the two halves are only
+	 * xored together before shifting the 128-bit result by 1.
+	 *
+	 * As for the 14 PH values with distinct shifts, they too are
+	 * first accumulated in an AVX register, where each 128-bit
+	 * half is shifted by 2.  When merging the result in a 128-bit
+	 * result, the low half is shifted left (by 1) once more
+	 * before xoring the halves together.
+	 */
+	do {
+		struct umash_oh compressed[2];
+		__m256i acc2 = { 0 }; /* Base umash */
+		/*
+		 * Accumulates shifted values in odd/even pairs, so
+		 * each iteration must shift by two, until the final
+		 * merge.
+		 */
+		__m256i acc_shifted2 = { 0 };
+		__m256i lrc2 = lrc_init;
+		__m256i prev2 = { 0 };
+		v128 acc, acc_shifted, lrc;
+		const void *block = data;
+
+		data = (const char *)data + BLOCK_SIZE;
+
+#define FORCE() __asm__("" : "+x"(acc2), "+x"(acc_shifted2), "+x"(lrc2), "+x"(prev2))
+#define TWIST(I)                                                   \
+	do {                                                       \
+		__m256i x;                                         \
+                                                                   \
+		LOADU(x, block);                                   \
+		block = (const char *)block + sizeof(x);           \
+                                                                   \
+		x ^= k##I;                                         \
+		lrc2 ^= x;                                         \
+		x = _mm256_clmulepi64_epi128(x, x, 1);             \
+                                                                   \
+		acc2 ^= x;                                         \
+		acc_shifted2 ^= prev2;                             \
+		acc_shifted2 = _mm256_slli_epi64(acc_shifted2, 2); \
+		prev2 = x;                                         \
+	} while (0)
+
+		TWIST(0);
+		FORCE();
+		TWIST(4);
+		FORCE();
+		TWIST(8);
+		FORCE();
+		TWIST(12);
+		FORCE();
+		TWIST(16);
+		FORCE();
+		TWIST(20);
+		FORCE();
+		TWIST(24);
+		FORCE();
+
+#undef TWIST
+#undef FORCE
+
+		{
+			__m256i x;
+			v128 x_lo;
+
+			LOADU(x, block);
+			block = (const char *)block + sizeof(x_lo);
+
+			x ^= k28;
+			lrc2 ^= x;
+			lrc = _mm256_extracti128_si256(lrc2, 0) ^
+			    _mm256_extracti128_si256(lrc2, 1);
+
+			acc_shifted2 ^= prev2;
+			acc_shifted =
+			    v128_shift(_mm256_extracti128_si256(acc_shifted2, 0)) ^
+			    _mm256_extracti128_si256(acc_shifted2, 1);
+			acc_shifted = v128_shift(acc_shifted);
+
+			x_lo = _mm256_extracti128_si256(x, 0);
+			x_lo = v128_clmul_cross(x_lo);
+
+			acc = _mm256_extracti128_si256(acc2, 0) ^
+			    _mm256_extracti128_si256(acc2, 1);
+
+			acc ^= x_lo;
+		}
+
+#undef LOADU
+
+		acc_shifted ^= acc;
+		acc_shifted = v128_shift(acc_shifted);
+
+		acc_shifted ^= v128_clmul_cross(lrc);
+
+		memcpy(&compressed[0], &acc, sizeof(compressed[0]));
+		memcpy(&compressed[1], &acc_shifted, sizeof(compressed[1]));
+
+		{
+			uint64_t x, y, kx, ky, enh_hi, enh_lo;
+
+			memcpy(&x, block, sizeof(x));
+			block = (const char *)block + sizeof(x);
+			memcpy(&y, block, sizeof(y));
+
+			kx = x + oh[30];
+			ky = y + oh[31];
+
+			mul128(kx, ky, &enh_hi, &enh_lo);
+			enh_hi += seed;
+
+			enh_hi ^= enh_lo;
+			compressed[0].bits[0] ^= enh_lo;
+			compressed[0].bits[1] ^= enh_hi;
+
+			compressed[1].bits[0] ^= enh_lo;
+			compressed[1].bits[1] ^= enh_hi;
+		}
+
+		acc0 = split_accumulator_update(
+		    acc0, m00, m01, compressed[0].bits[0], compressed[0].bits[1]);
+		acc1 = split_accumulator_update(
+		    acc1, m10, m11, compressed[1].bits[0], compressed[1].bits[1]);
+	} while (--n_blocks);
+
+	return (struct umash_fp) {
+                .hash = {
+                        split_accumulator_eval(acc0),
+                        split_accumulator_eval(acc1),
+                },
+        };
 }
 #endif
