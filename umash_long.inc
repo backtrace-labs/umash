@@ -433,7 +433,7 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
 	const uint64_t m01 = multipliers[0][1];
 	const uint64_t m10 = multipliers[1][0];
 	const uint64_t m11 = multipliers[1][1];
-	uint64_t acc0 = initial.hash[0];
+	struct split_accumulator acc0 = { .base = initial.hash[0] };
 	uint64_t acc1 = initial.hash[1];
 
 	do {
@@ -541,13 +541,13 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
 			compressed[1].bits[1] ^= enh_hi;
 		}
 
-		acc0 = horner_double_update(
+		acc0 = split_accumulator_update(
 		    acc0, m00, m01, compressed[0].bits[0], compressed[0].bits[1]);
 		acc1 = horner_double_update(
 		    acc1, m10, m11, compressed[1].bits[0], compressed[1].bits[1]);
 	} while (--n_blocks);
 
 	return (struct umash_fp) {
-                .hash = { acc0, acc1, },
+                .hash = { split_accumulator_eval(acc0), acc1, },
         };
 }
