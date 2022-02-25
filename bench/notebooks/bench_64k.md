@@ -76,7 +76,7 @@ for sz in regrouped_keys:
                        barmode="overlay",
                        opacity=0.5,
                        marginal="box")
-    fig.update_xaxes(range=(12000, 18000))
+    fig.update_xaxes(range=(4000, 12000))
     fig.show()
 ```
 

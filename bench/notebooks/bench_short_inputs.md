@@ -74,7 +74,7 @@ for label, values in regrouped.items():
     print(label)
     for i in regrouped_keys:
         total = len(values[i])
-        kept = sum(x < 100 for x in values[i])
+        kept = sum(x < 1000 for x in values[i])
         print("\t%s: %i %i %f (%i %i)" % (i, total, kept, kept / total, min(values[i]), max(values[i])))
 ```
 
@@ -94,7 +94,7 @@ for sz in regrouped_keys:
                        barmode="overlay",
                        opacity=0.5,
                        marginal="box")
-    fig.update_xaxes(range=(0, 100))
+    fig.update_xaxes(range=(0, 200))
     fig.show()
 ```
 
