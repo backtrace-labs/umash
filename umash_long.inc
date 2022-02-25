@@ -318,121 +318,6 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 	return split_accumulator_eval(ret);
 }
 
-#if defined(__x86_64__) && UMASH_DYNAMIC_DISPATCH
-/**
- * Updates a 64-bit UMASH state for `n_blocks` 256-byte blocks in data.
- */
-TEST_DEF HOT __attribute__((__target__(("avx2,vpclmulqdq")))) uint64_t
-umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[static 2],
-    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
-{
-	const uint64_t m0 = multipliers[0];
-	const uint64_t m1 = multipliers[1];
-	__m256i k0, k4, k8, k12, k16, k20, k24;
-	v128 k28;
-	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
-	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
-	struct split_accumulator ret = { .base = initial };
-
-	assert(n_blocks > 0);
-
-#if UMASH_INLINE_ASM
-	/*
-	 * This type represents unaligned AVX2-sized regions of
-	 * memory.
-	 */
-	struct b256 {
-		char bytes[32];
-	};
-
-#define LOADU(DST, PTR) \
-	__asm__("vmovdqu %1, %0" : "=x"(DST) : "m"(*(const struct b256 *)PTR))
-#else
-#define LOADU(DST, PTR) ((DST) = _mm256_loadu_si256((void *)(PTR)))
-#endif
-
-	LOADU(k0, &oh_ptr[0]);
-	LOADU(k4, &oh_ptr[4]);
-	LOADU(k8, &oh_ptr[8]);
-	LOADU(k12, &oh_ptr[12]);
-	LOADU(k16, &oh_ptr[16]);
-	LOADU(k20, &oh_ptr[20]);
-	LOADU(k24, &oh_ptr[24]);
-	memcpy(&k28, &oh_ptr[28], sizeof(k28));
-
-	do {
-		const void *data = blocks;
-		struct umash_oh oh;
-		__m256i acc2 = _mm256_setzero_si256();
-
-		blocks = (const char *)blocks + BLOCK_SIZE;
-
-#define PH(I)                                          \
-	do {                                           \
-		__m256i x;                             \
-                                                       \
-		LOADU(x, data);                        \
-		data = (const char *)data + sizeof(x); \
-                                                       \
-		x = _mm256_xor_si256(x, k##I);         \
-		x = _mm256_clmulepi64_epi128(x, x, 1); \
-		acc2 = _mm256_xor_si256(acc2, x);      \
-	} while (0)
-
-		PH(0);
-		PH(4);
-		PH(8);
-		PH(12);
-		PH(16);
-		PH(20);
-		PH(24);
-
-#undef PH
-#undef LOADU
-
-		{
-			v128 x;
-
-			memcpy(&x, data, sizeof(x));
-			data = (const char *)data + sizeof(x);
-			x ^= k28;
-			x = v128_clmul_cross(x);
-
-			x ^= _mm256_extracti128_si256(acc2, 0) ^
-			    _mm256_extracti128_si256(acc2, 1);
-
-			memcpy(&oh, &x, sizeof(oh));
-		}
-
-		/* Final ENH chunk. */
-		{
-			uint64_t x, y, enh_hi, enh_lo;
-
-			memcpy(&x, data, sizeof(x));
-			data = (const char *)data + sizeof(x);
-			memcpy(&y, data, sizeof(y));
-			data = (const char *)data + sizeof(y);
-
-			x += kx;
-			y += ky;
-			mul128(x, y, &enh_hi, &enh_lo);
-			enh_hi += seed;
-
-			oh.bits[0] ^= enh_lo;
-			oh.bits[1] ^= enh_hi ^ enh_lo;
-		}
-
-		ret = split_accumulator_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
-	} while (--n_blocks);
-
-	return split_accumulator_eval(ret);
-}
-#endif
-
-TEST_DEF void oh_varblock_fprint(struct umash_oh dst[static restrict 2],
-    const uint64_t *restrict params, uint64_t tag, const void *restrict block,
-    size_t n_bytes);
-
 TEST_DEF HOT struct umash_fp
 umash_fprint_multiple_blocks(struct umash_fp initial,
     const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
@@ -565,3 +450,114 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
                 },
         };
 }
+
+#if defined(__x86_64__) && UMASH_DYNAMIC_DISPATCH
+/**
+ * Updates a 64-bit UMASH state for `n_blocks` 256-byte blocks in data.
+ */
+TEST_DEF HOT __attribute__((__target__(("avx2,vpclmulqdq")))) uint64_t
+umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[static 2],
+    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
+{
+	const uint64_t m0 = multipliers[0];
+	const uint64_t m1 = multipliers[1];
+	__m256i k0, k4, k8, k12, k16, k20, k24;
+	v128 k28;
+	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
+	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
+	struct split_accumulator ret = { .base = initial };
+
+	assert(n_blocks > 0);
+
+#if UMASH_INLINE_ASM
+	/*
+	 * This type represents unaligned AVX2-sized regions of
+	 * memory.
+	 */
+	struct b256 {
+		char bytes[32];
+	};
+
+#define LOADU(DST, PTR) \
+	__asm__("vmovdqu %1, %0" : "=x"(DST) : "m"(*(const struct b256 *)PTR))
+#else
+#define LOADU(DST, PTR) ((DST) = _mm256_loadu_si256((void *)(PTR)))
+#endif
+
+	LOADU(k0, &oh_ptr[0]);
+	LOADU(k4, &oh_ptr[4]);
+	LOADU(k8, &oh_ptr[8]);
+	LOADU(k12, &oh_ptr[12]);
+	LOADU(k16, &oh_ptr[16]);
+	LOADU(k20, &oh_ptr[20]);
+	LOADU(k24, &oh_ptr[24]);
+	memcpy(&k28, &oh_ptr[28], sizeof(k28));
+
+	do {
+		const void *data = blocks;
+		struct umash_oh oh;
+		__m256i acc2 = _mm256_setzero_si256();
+
+		blocks = (const char *)blocks + BLOCK_SIZE;
+
+#define PH(I)                                          \
+	do {                                           \
+		__m256i x;                             \
+                                                       \
+		LOADU(x, data);                        \
+		data = (const char *)data + sizeof(x); \
+                                                       \
+		x = _mm256_xor_si256(x, k##I);         \
+		x = _mm256_clmulepi64_epi128(x, x, 1); \
+		acc2 = _mm256_xor_si256(acc2, x);      \
+	} while (0)
+
+		PH(0);
+		PH(4);
+		PH(8);
+		PH(12);
+		PH(16);
+		PH(20);
+		PH(24);
+
+#undef PH
+#undef LOADU
+
+		{
+			v128 x;
+
+			memcpy(&x, data, sizeof(x));
+			data = (const char *)data + sizeof(x);
+			x ^= k28;
+			x = v128_clmul_cross(x);
+
+			x ^= _mm256_extracti128_si256(acc2, 0) ^
+			    _mm256_extracti128_si256(acc2, 1);
+
+			memcpy(&oh, &x, sizeof(oh));
+		}
+
+		/* Final ENH chunk. */
+		{
+			uint64_t x, y, enh_hi, enh_lo;
+
+			memcpy(&x, data, sizeof(x));
+			data = (const char *)data + sizeof(x);
+			memcpy(&y, data, sizeof(y));
+			data = (const char *)data + sizeof(y);
+
+			x += kx;
+			y += ky;
+			mul128(x, y, &enh_hi, &enh_lo);
+			enh_hi += seed;
+
+			oh.bits[0] ^= enh_lo;
+			oh.bits[1] ^= enh_hi ^ enh_lo;
+		}
+
+		ret = split_accumulator_update(ret, m0, m1, oh.bits[0], oh.bits[1]);
+	} while (--n_blocks);
+
+	return split_accumulator_eval(ret);
+}
+#endif
