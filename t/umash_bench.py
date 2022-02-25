@@ -53,15 +53,27 @@ def compare_inputs(
     If that list is too short to satisfy `min_count`, retry the experiment
     with shuffled versions of the list.
     """
+
+    def try_index(x, i):
+        """Returns x[i] if x is a list or a tuple, and x otherwise.
+
+        This is equivalent to broadcasting `x` to a repeated list
+        when it's an atom.
+        """
+        if isinstance(x, list) or isinstance(x, tuple):
+            return x[i]
+        else:
+            return x
+
     current_lib, ffi, current_suffix = bench_loader.build_and_load(
         current,
-        cflags=cflags,
-        cc=cc,
+        cflags=try_index(cflags, 0),
+        cc=try_index(cc, 0),
     )
     baseline_lib, baseline_ffi, baseline_suffix = bench_loader.build_and_load(
         baseline,
-        cflags=cflags,
-        cc=cc,
+        cflags=try_index(cflags, 1),
+        cc=try_index(cc, 1),
     )
     max_len = max(length_arguments)
 
