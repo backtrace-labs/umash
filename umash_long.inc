@@ -618,8 +618,7 @@ umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
     const void *data, size_t n_blocks)
 {
 	__m256i k0, k4, k8, k12, k16, k20, k24, k28;
-	const __m256i lrc_init = _mm256_set_epi64x(
-	    0, 0, oh[UMASH_OH_PARAM_COUNT + 1], oh[UMASH_OH_PARAM_COUNT]);
+	__m256i lrc_init = { 0 };
 	const uint64_t m00 = multipliers[0][0];
 	const uint64_t m01 = multipliers[0][1];
 	const uint64_t m10 = multipliers[1][0];
@@ -650,6 +649,13 @@ umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
 	LOADU(k20, &oh[20]);
 	LOADU(k24, &oh[24]);
 	LOADU(k28, &oh[28]);
+
+	{
+		__m128i lrc_key;
+
+		memcpy(&lrc_key, &oh[UMASH_OH_PARAM_COUNT], sizeof(lrc_key));
+		lrc_init = _mm256_insertf128_si256(lrc_init, lrc_key, 0);
+	}
 
 	/*
 	 * A UMASH fingerprint combines a regular (primary) 64-bit
