@@ -446,7 +446,7 @@ umash_fprint_multiple_blocks(struct umash_fp initial,
 
 		data = (const char *)data + BLOCK_SIZE;
 
-#define FORCE() asm("" : "+x"(acc), "+x"(acc_shifted), "+x"(lrc), "+x"(prev))
+#define FORCE() __asm__("" : "+x"(acc), "+x"(acc_shifted), "+x"(lrc), "+x"(prev))
 #define TWIST(I)                                         \
 	do {                                             \
 		v128 x, k;                               \
