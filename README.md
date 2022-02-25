@@ -131,15 +131,11 @@ automatically run a set of statistical tests on that data. See
 Help wanted
 -----------
 
-The UMASH algorithm is now frozen.  However, there's plenty of work
-left:
+The UMASH algorithm is now frozen, but the implementation isn't.  In
+addition to regular maintenance and portability work, we are open to
+expanding the library's capabilities. For example:
 
-1. The block fingerprinting loop could be vastly improved, especially
-   with AVX-256.
-2. We currently only use incremental and one-shot hashing
+1. We currently only use incremental and one-shot hashing
    interfaces. If someone needs parallel hashing, we can collaborate
    to find out what that interface should look like.
-3. How fast could we go on a GPU?
-
-And of course, portability to other C compilers or platforms is
-interesting.
+2. How fast could we go on a GPU?
