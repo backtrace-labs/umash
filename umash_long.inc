@@ -49,15 +49,14 @@ TEST_DEF umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks;
 #include <cpuid.h>
 #include <stdatomic.h>
 
-static umash_multiple_blocks_fn umash_multiple_blocks_pick,
+static umash_multiple_blocks_fn umash_multiple_blocks_initial,
     umash_multiple_blocks_vpclmulqdq;
 
 static umash_multiple_blocks_fn *_Atomic umash_multiple_blocks_impl =
-    umash_multiple_blocks_pick;
+    umash_multiple_blocks_initial;
 
-static COLD FN uint64_t
-umash_multiple_blocks_pick(uint64_t initial, const uint64_t multipliers[static 2],
-    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
+static COLD FN void
+umash_long_pick(void)
 {
 	umash_multiple_blocks_fn *impl;
 	bool has_vpclmulqdq = false;
@@ -84,6 +83,17 @@ umash_multiple_blocks_pick(uint64_t initial, const uint64_t multipliers[static 2
 	}
 
 	atomic_store_explicit(&umash_multiple_blocks_impl, impl, memory_order_relaxed);
+	return;
+}
+
+static COLD FN uint64_t
+umash_multiple_blocks_initial(uint64_t initial, const uint64_t multipliers[static 2],
+    const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
+{
+	umash_multiple_blocks_fn *impl;
+
+	umash_long_pick();
+	impl = atomic_load_explicit(&umash_multiple_blocks_impl, memory_order_relaxed);
 	return impl(initial, multipliers, oh_ptr, seed, blocks, n_blocks);
 }
 
