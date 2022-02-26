@@ -703,27 +703,25 @@ umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
 		 */
 		__m256i acc_shifted2 = { 0 };
 		__m256i lrc2 = lrc_init;
-		__m256i prev2 = { 0 };
 		v128 acc, acc_shifted, lrc;
 		const void *block = data;
 
 		data = (const char *)data + BLOCK_SIZE;
 
-#define TWIST(I)                                                   \
-	do {                                                       \
-		__m256i x;                                         \
-                                                                   \
-		LOADU(x, block);                                   \
-		block = (const char *)block + sizeof(x);           \
-                                                                   \
-		x ^= k##I;                                         \
-		lrc2 ^= x;                                         \
-		x = _mm256_clmulepi64_epi128(x, x, 1);             \
-                                                                   \
-		acc2 ^= x;                                         \
-		acc_shifted2 ^= prev2;                             \
-		acc_shifted2 = _mm256_slli_epi64(acc_shifted2, 2); \
-		prev2 = x;                                         \
+#define TWIST(I)                                         \
+	do {                                             \
+		__m256i x;                               \
+                                                         \
+		LOADU(x, block);                         \
+		block = (const char *)block + sizeof(x); \
+                                                         \
+		x ^= k##I;                               \
+		lrc2 ^= x;                               \
+		x = _mm256_clmulepi64_epi128(x, x, 1);   \
+                                                         \
+		acc2 ^= x;                               \
+		x = _mm256_slli_epi64(x, (24 - I) / 2);  \
+		acc_shifted2 ^= x;                       \
 	} while (0)
 
 		TWIST(0);
@@ -748,7 +746,6 @@ umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
 			lrc = _mm256_extracti128_si256(lrc2, 0) ^
 			    _mm256_extracti128_si256(lrc2, 1);
 
-			acc_shifted2 ^= prev2;
 			acc_shifted =
 			    v128_shift(_mm256_extracti128_si256(acc_shifted2, 0)) ^
 			    _mm256_extracti128_si256(acc_shifted2, 1);
