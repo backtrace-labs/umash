@@ -388,13 +388,12 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
 		v128 acc = V128_ZERO; /* Base umash */
 		v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
 		v128 lrc = lrc_init;
-		v128 prev = V128_ZERO;
 		const void *block = data;
 
 		data = (const char *)data + BLOCK_SIZE;
 
 #if UMASH_INLINE_ASM
-#define FORCE() __asm__("" : "+x"(acc), "+x"(acc_shifted), "+x"(lrc), "+x"(prev))
+#define FORCE() __asm__("" : "+x"(acc), "+x"(acc_shifted), "+x"(lrc))
 #else
 #define FORCE() ((void)0)
 #endif
@@ -415,10 +414,11 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
                                                          \
 		acc ^= x;                                \
                                                          \
-		acc_shifted ^= prev;                     \
-		acc_shifted = v128_shift(acc_shifted);   \
+		if (I == 28)                             \
+			break;                           \
                                                          \
-		prev = x;                                \
+		acc_shifted ^= x;                        \
+		acc_shifted = v128_shift(acc_shifted);   \
 	} while (0)
 
 		TWIST(0);
