@@ -704,7 +704,6 @@ umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
 
 		data = (const char *)data + BLOCK_SIZE;
 
-#define FORCE() __asm__("" : "+x"(acc2), "+x"(acc_shifted2), "+x"(lrc2), "+x"(prev2))
 #define TWIST(I)                                                   \
 	do {                                                       \
 		__m256i x;                                         \
@@ -723,22 +722,14 @@ umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
 	} while (0)
 
 		TWIST(0);
-		FORCE();
 		TWIST(4);
-		FORCE();
 		TWIST(8);
-		FORCE();
 		TWIST(12);
-		FORCE();
 		TWIST(16);
-		FORCE();
 		TWIST(20);
-		FORCE();
 		TWIST(24);
-		FORCE();
 
 #undef TWIST
-#undef FORCE
 
 		{
 			__m256i x;
