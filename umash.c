@@ -542,7 +542,6 @@ oh_varblock_fprint(struct umash_oh dst[static restrict 2],
 	v128 acc = V128_ZERO; /* Base umash */
 	v128 acc_shifted = V128_ZERO; /* Accumulates shifted values */
 	v128 lrc;
-	v128 prev = V128_ZERO;
 	/* The final block processes `remaining > 0` bytes. */
 	size_t remaining = 1 + ((n_bytes - 1) % sizeof(v128));
 	size_t end_full_pairs = (n_bytes - remaining) / sizeof(uint64_t);
@@ -564,11 +563,11 @@ oh_varblock_fprint(struct umash_oh dst[static restrict 2],
 		x = v128_clmul_cross(x);
 
 		acc ^= x;
+		if (i + 2 >= end_full_pairs)
+			break;
 
-		acc_shifted ^= prev;
+		acc_shifted ^= x;
 		acc_shifted = v128_shift(acc_shifted);
-
-		prev = x;
 	}
 
 	/*
