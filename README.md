@@ -8,30 +8,45 @@ is the mapping from `umash_params_derive` inputs to UMASH parameters.
 However, the ABI is not finalized; in particular, passing random bytes
 to `umash_params_prepare` may still result in different parameters.
 
-UMASH is a string hash function with throughput (22 GB/s on a 2.5 GHz
-Xeon 8175M) and latency (9-20 ns for input sizes up to 64 bytes on
-the same machine) comparable to that of performance-optimised hashes
-like [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3),
-[XXH3](https://github.com/Cyan4973/xxHash), or
-[farmhash](https://github.com/google/farmhash).  Its 64-bit output is
-almost universal, and it, as well as both its 32-bit halves, passes
-both [Reini Urban's fork of SMHasher](https://github.com/rurban/smhasher/)
-and [Yves Orton's extended version](https://github.com/demerphq/smhasher) 
-(after expanding each seed to a 320-byte key for the latter).
+UMASH is a string hash function with throughput (10.9 byte/cycle, or
+40.9 GB/s on an EPYC 7713) and latency (24 to 48 cycles for input
+sizes up to 64 bytes on the same machine) comparable to that of
+contemporary performance-optimised hashes like
+[XXH3](https://github.com/Cyan4973/xxHash),
+[HalftimeHash](https://github.com/jbapple/HalftimeHash),
+or
+[MeowHash](https://github.com/cmuratori/meow_hash)
+(or [aHash](https://github.com/tkaitchuck/aHash/) for
+[🦀 coders](https://github.com/backtrace-labs/umash-rs)).
+Its 64-bit output is almost universal, and it, as well as both its
+32-bit halves, passes both [Reini Urban's fork of
+SMHasher](https://github.com/rurban/smhasher/) and [Yves Orton's
+extended version](https://github.com/demerphq/smhasher) (after
+expanding each seed to a 320-byte key for the latter).
 
 Unlike most other non-cryptographic hash functions
-([CLHash](https://github.com/lemire/clhash) is a rare exception) which
+([CLHash](https://github.com/lemire/clhash) and
+[HalftimeHash](https://github.com/jbapple/HalftimeHash) are rare
+exceptions) which
 [do not prevent seed-independent collisions](https://github.com/Cyan4973/xxHash/issues/180#issuecomment-474100780)
 and thus [usually suffer from such weaknesses](https://www.131002.net/siphash/#at),
 UMASH provably avoids parameter-independent collisions.  For any two
 inputs of `s` bytes or fewer, the probability that a randomly
 parameterised UMASH assigns them the same 64 bit hash value is less
-than `ceil(s / 4096) 2**-55`.  UMASH also offers a fingerprinting mode
-that simply computes two nearly-independent hashes at the same time.
-The resulting [128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
-collides pairs of `s`-or-fewer-byte inputs with probability less than
-`ceil(s / 2**26)**2 * 2**-83`; that's less than `2**-70` (`1e-21`) for
-up to 5 GB of data.
+than `ceil(s / 4096) 2**-55`.
+
+UMASH also offers a fingerprinting function that computes a second
+64-bit hash concurrently with the regular UMASH value.  That
+function's throughput (7.5 byte/cycle, 27.7 GB/s on an EPYC 7713) and
+latency (37 to 74 cycles for inputs sizes up to 64 bytes on the same
+machine) comparable to that of classic hash functions like
+[MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3)
+or [farmhash](https://github.com/google/farmhash).
+Combining the two hashes yields a
+[128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
+that collides pairs of `s`-or-fewer-byte inputs with probability less
+than `ceil(s / 2**26)**2 * 2**-83`; that's less than `2**-70`
+(`1e-21`) for up to 5 GB of data.
 
 See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
 rationale about the design, and a proof sketch for the collision bound.
@@ -41,7 +56,7 @@ includes a higher level overview and may also provide useful context.
 If you're not into details, you can also just copy `umash.c` and
 `umash.h` in your project: they're distributed under the MIT license.
 For extra speed (at the expense of code size) add `umash_long.inc` as
-well, also distributed in the MIT license.
+well, also distributed under the MIT license.
 
 The current implementation only build with gcc-compatible compilers
 that support the [integer overflow builtins](https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html)
