@@ -8,7 +8,8 @@
  * # UMASH: a non-cryptographic hash function with collision bounds
  *
  * SPDX-License-Identifier: MIT
- * Copyright 2020 Backtrace I/O, Inc.
+ * Copyright 2020-2022 Backtrace I/O, Inc.
+ * Copyright 2022 Paul Khuong
  *
  * UMASH is a fast (9-22 ns latency for inputs of 1-64 bytes and 22
  * GB/s peak throughput, on a 2.5 GHz Intel 8175M) 64-bit hash
