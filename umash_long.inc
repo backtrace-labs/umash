@@ -393,7 +393,12 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
 
 		data = (const char *)data + BLOCK_SIZE;
 
+#if UMASH_INLINE_ASM
 #define FORCE() __asm__("" : "+x"(acc), "+x"(acc_shifted), "+x"(lrc), "+x"(prev))
+#else
+#define FORCE() ((void)0)
+#endif
+
 #define TWIST(I)                                         \
 	do {                                             \
 		v128 x, k;                               \
