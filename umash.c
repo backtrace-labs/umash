@@ -36,7 +36,8 @@
 /**
  * -DUMASH_LONG_INPUTS=0 to disable the routine specialised for long
  * inputs, and -DUMASH_LONG_INPUTS=1 to enable it.  If the variable
- * isn't defined, we try to probe for `umash_long.c`.
+ * isn't defined, we try to probe for `umash_long.inc`: that's where
+ * the long input routines are defined.
  */
 #ifndef UMASH_LONG_INPUTS
 #ifdef __has_include
