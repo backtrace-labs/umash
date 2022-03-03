@@ -64,16 +64,34 @@
 #endif
 
 /*
- * Enable inline assembly by default when building with GCC or
+ * Enable inline assembly by default when building with recent GCC or
  * compatible compilers.  It should always be safe to disable this
  * option, although there may be a performance cost.
  */
 #ifndef UMASH_INLINE_ASM
-#ifdef __GNUC__
+
+#if defined(__clang__)
+/*
+ * We need clang 8+ for output flags, and 10+ for relaxed vector
+ * constraints.
+ */
+#if __clang_major__ >= 10
 #define UMASH_INLINE_ASM 1
 #else
 #define UMASH_INLINE_ASM 0
+#endif /* __clang_major__ */
+
+#elif defined(__GNUC__)
+#if __GNUC__ >= 6
+#define UMASH_INLINE_ASM 1
+#else
+#define UMASH_INLINE_ASM 0
+#endif /* __GNUC__ */
+
+#else
+#define UMASH_INLINE_ASM 0
 #endif
+
 #endif
 
 #include <assert.h>
