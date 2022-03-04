@@ -540,7 +540,7 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
 /**
  * Updates a 64-bit UMASH state for `n_blocks` 256-byte blocks in data.
  */
-TEST_DEF HOT __attribute__((__target__(("avx2,vpclmulqdq")))) uint64_t
+TEST_DEF HOT __attribute__((__target__("avx2,vpclmulqdq"))) uint64_t
 umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
@@ -646,7 +646,7 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 	return split_accumulator_eval(ret);
 }
 
-TEST_DEF HOT __attribute__((__target__(("avx2,vpclmulqdq")))) struct umash_fp
+TEST_DEF HOT __attribute__((__target__("avx2,vpclmulqdq"))) struct umash_fp
 umash_fprint_multiple_blocks_vpclmulqdq(struct umash_fp initial,
     const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_blocks)
