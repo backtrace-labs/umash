@@ -75,7 +75,6 @@ TEST_DEF umash_fprint_multiple_blocks_fn umash_fprint_multiple_blocks_generic;
  * always forwards to `umash_multiple_blocks_generic`.
  */
 #if defined(__x86_64__) && UMASH_DYNAMIC_DISPATCH
-#include <cpuid.h>
 #include <stdatomic.h>
 
 static umash_multiple_blocks_fn umash_multiple_blocks_initial,
@@ -109,6 +108,23 @@ umash_long_pick(void)
 			ebx = ecx = edx = 0;
 			__asm__("cpuid" : "+a"(eax), "+b"(ebx), "+c"(ecx), "+d"(edx));
 			has_vpclmulqdq = (ecx & vpclmulqdq_bit) != 0;
+		}
+
+		/* Confirm OS support for AVX. */
+		if (has_vpclmulqdq) {
+			uint64_t feature_mask;
+			/* 1: XSAVE SSE; 2: AVX enabled. */
+			uint64_t avx_mask = (1UL << 1) | (1UL << 2);
+			uint64_t hi, lo;
+
+			__asm__("xgetbv"
+				: "=a"(lo), "=d"(hi)
+				: "c"(0));
+
+			feature_mask = (hi << 32) | lo;
+			/* If the OS doesn't save AVX registers, stick to SSE. */
+			if ((feature_mask & avx_mask) != avx_mask)
+				has_vpclmulqdq = false;
 		}
 	}
 
