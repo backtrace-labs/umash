@@ -306,6 +306,14 @@ add_mod_slow(uint64_t x, uint64_t y)
 	if (LIKELY(sum < (uint64_t)-16))
 		return sum + fixup;
 
+	/*
+	 * Some compilers like to compile the likely branch above with
+	 * conditional moves or predication.  Insert a compiler barrier
+	 * in the slow path here to force a branch.
+	 */
+#ifdef UMASH_INLINE_ASM
+	__asm__("" : "+r"(sum));
+#endif
 	return add_mod_slow_slow_path(sum, fixup);
 }
 
