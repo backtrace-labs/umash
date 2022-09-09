@@ -7,6 +7,7 @@
  *
  * Copyright 2020-2022 Backtrace I/O, Inc.
  * Copyright 2022 Paul Khuong
+ * Copyright 2022 Dougall Johnson
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -355,35 +356,34 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		acc ^= v128_clmul_cross(x);            \
 	} while (0)
 
-		PH(0);
-		PH(2);
+#define PH2(I, J) do { PH(I); PH(J); } while (0)
+#define PH2_START PH2
+
+		PH2_START(0, 2);
 		FORCE();
 
-		PH(4);
-		PH(6);
+		PH2(4, 6);
 		FORCE();
 
-		PH(8);
-		PH(10);
+		PH2(8, 10);
 		FORCE();
 
-		PH(12);
-		PH(14);
+		PH2(12, 14);
 		FORCE();
 
-		PH(16);
-		PH(18);
+		PH2(16, 18);
 		FORCE();
 
-		PH(20);
-		PH(22);
+		PH2(20, 22);
 		FORCE();
 
-		PH(24);
-		PH(26);
+		PH2(24, 26);
 		FORCE();
 
 		PH(28);
+
+#undef PH2_START
+#undef PH2
 #undef PH
 #undef FORCE
 
