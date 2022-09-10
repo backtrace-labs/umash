@@ -312,6 +312,23 @@ split_accumulator_update(const struct split_accumulator acc, const uint64_t m0,
 	};
 }
 
+#ifndef UMASH_LONG_PH_PARAMS_IN_REGS
+/*
+ * Cache hash parameters in SIMD registers if there's room. Neon on
+ * aarch64 has 32x128-bit, and AVX-512 VL extends SSE/AVX to 32
+ * registers (if AVX-512 VL is available, the compiler may silently
+ * use the additional registers, so we might as well optimise for
+ * their presence). Our 15x 128-bit PH parameters fit in 32 registers.
+ *
+ * Platform-specific routines make their own decision.
+ */
+#if defined(__aarch64__) || defined(__ARM_ARCH_ISA_A64) || defined(__AVX512VL__)
+#define UMASH_LONG_PH_PARAMS_IN_REGS 1
+#else
+#define UMASH_LONG_PH_PARAMS_IN_REGS 0
+#endif
+#endif
+
 TEST_DEF HOT uint64_t
 umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
@@ -321,6 +338,30 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 	const uint64_t kx = oh_ptr[UMASH_OH_PARAM_COUNT - 2];
 	const uint64_t ky = oh_ptr[UMASH_OH_PARAM_COUNT - 1];
 	struct split_accumulator ret = { .base = initial };
+
+#if UMASH_LONG_PH_PARAMS_IN_REGS
+#define K(N) v128 k##N; memcpy(&k##N, &oh_ptr[N], sizeof(k##N))
+	K(0);
+	K(2);
+	K(4);
+	K(6);
+	K(8);
+	K(10);
+	K(12);
+	K(14);
+	K(16);
+	K(18);
+	K(20);
+	K(22);
+	K(24);
+	K(26);
+	K(28);
+#undef K
+
+#define GET_PARAM(V, I) ((V) = k##I)
+#else
+#define GET_PARAM(V, I) memcpy(&(V), &oh_ptr[I], sizeof((V)))
+#endif
 
 	assert(n_blocks > 0);
 
@@ -347,11 +388,11 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 #define PH(I)                                          \
 	do {                                           \
 		v128 x, k;                             \
-                                                       \
+		                                       \
 		memcpy(&x, data, sizeof(x));           \
 		data = (const char *)data + sizeof(x); \
-                                                       \
-		memcpy(&k, &oh_ptr[I], sizeof(k));     \
+		                                       \
+		GET_PARAM(k, I);                       \
 		x ^= k;                                \
 		acc ^= v128_clmul_cross(x);            \
 	} while (0)
@@ -386,6 +427,7 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 #undef PH2
 #undef PH
 #undef FORCE
+#undef GET_PARAM
 
 		memcpy(&oh, &acc, sizeof(oh));
 
@@ -428,6 +470,31 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
 	struct split_accumulator acc0 = { .base = initial.hash[0] };
 	struct split_accumulator acc1 = { .base = initial.hash[1] };
 
+#if UMASH_LONG_PH_PARAMS_IN_REGS
+#define K(N) v128 k##N; memcpy(&k##N, &oh[N], sizeof(k##N))
+	K(0);
+	K(2);
+	K(4);
+	K(6);
+	K(8);
+	K(10);
+	K(12);
+	K(14);
+	K(16);
+	K(18);
+	K(20);
+	K(22);
+	K(24);
+	K(26);
+	K(28);
+	K(30);
+#undef K
+
+#define GET_PARAM(V, I) ((V) = k##I)
+#else
+#define GET_PARAM(V, I) memcpy(&(V), &oh[I], sizeof((V)))
+#endif
+
 	do {
 		struct umash_oh compressed[2];
 		v128 acc = V128_ZERO; /* Base umash */
@@ -446,22 +513,22 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
 #define TWIST(I)                                         \
 	do {                                             \
 		v128 x, k;                               \
-                                                         \
+		                                         \
 		memcpy(&x, block, sizeof(x));            \
 		block = (const char *)block + sizeof(x); \
-                                                         \
-		memcpy(&k, &oh[I], sizeof(k));           \
-                                                         \
+		                                         \
+		GET_PARAM(k, I);                         \
+		                                         \
 		x ^= k;                                  \
 		lrc ^= x;                                \
-                                                         \
+		                                         \
 		x = v128_clmul_cross(x);                 \
-                                                         \
+		                                         \
 		acc ^= x;                                \
-                                                         \
+		                                         \
 		if (I == 28)                             \
 			break;                           \
-                                                         \
+		                                         \
 		acc_shifted ^= x;                        \
 		acc_shifted = v128_shift(acc_shifted);   \
 	} while (0)
@@ -504,11 +571,12 @@ umash_fprint_multiple_blocks_generic(struct umash_fp initial,
 			v128 x, k;
 
 			memcpy(&x, block, sizeof(x));
-			memcpy(&k, &oh[30], sizeof(k));
+			GET_PARAM(k, 30);
 
 			lrc ^= x ^ k;
 		}
 
+#undef GET_PARAM
 		acc_shifted ^= acc;
 		acc_shifted = v128_shift(acc_shifted);
 
