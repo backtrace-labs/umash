@@ -405,8 +405,121 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		acc ^= v128_clmul_cross(x);            \
 	} while (0)
 
+#if defined(__ARM_FEATURE_CRYPTO)
+/*
+ * Specialised PH2 for the first iteration (overwrite the accumulator
+ * instead of `xor`ing into it).  We use inline assembly to issue
+ * instructions in pairs that work well on Apple ARMs.
+ */
+#if !UMASH_INLINE_ASM
+#define PH2_START_BODY                                                  \
+	do {                                                            \
+		v128 result;                                            \
+		result = vreinterpretq_u64_p128(                        \
+		        vmull_p64(vgetq_lane_u64(x1, 0),                \
+		                  vgetq_lane_u64(swapped, 0)));         \
+		                                                        \
+		acc = vreinterpretq_u64_p128(                           \
+		        vmull_high_p64(vreinterpretq_p64_u64(x2),       \
+		                       vreinterpretq_p64_u64(swapped))); \
+		acc ^= result;                                          \
+	} while (0)
+#elif defined(__clang__)
+#define PH2_START_BODY                                                  \
+	__asm__("pmull.1q   v0, %[swapped], %[x1]     \n\t"             \
+	        "pmull2.1q  %[acc], %[swapped], %[x2] \n\t"             \
+	        "eor.16b    %[acc], %[acc], v0        \n\t"             \
+	        : [acc] "=w"(acc)                                       \
+	        : [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)    \
+	        : "v0")
+#else
+/* Assume GCC syntax if !clang. */
+#define PH2_START_BODY                                                  \
+	__asm__("pmull   v0.1q, %[swapped].1d, %[x1].1d     \n\t"       \
+	        "pmull2  %[acc].1q, %[swapped].2d, %[x2].2d \n\t"       \
+	        "eor     %[acc].16b, %[acc].16b, v0.16b     \n\t"       \
+	        : [acc] "=w"(acc)                                       \
+	        : [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)    \
+	        : "v0")
+#endif
+#define PH2_START(I,J)                                                  \
+	do {                                                            \
+		v128 x1, x2;                                            \
+		v128 k;                                                 \
+		                                                        \
+		memcpy(&x1, data, sizeof(x1));                          \
+		data = (const char *)data + sizeof(x1);                 \
+		                                                        \
+		memcpy(&x2, data, sizeof(x2));                          \
+		data = (const char *)data + sizeof(x2);                 \
+		                                                        \
+		GET_PARAM(k, I);                                        \
+		x1 ^= k;                                                \
+		GET_PARAM(k, J);                                        \
+		x2 ^= k;                                                \
+		                                                        \
+		v128 swapped = vextq_u64(x1, x2, 1);                    \
+		PH2_START_BODY;                                         \
+	} while (0)
+
+/*
+ * Handle pairs of PH with a single `vextq` to transpose two 128-bit
+ * registers at once.  This lets us use `pmull` on the low and high
+ * lanes for the first and second PH.
+ */
+#if !UMASH_INLINE_ASM
+#define PH2_BODY                                                        \
+	do {                                                            \
+		acc ^= vreinterpretq_u64_p128(                          \
+		        vmull_p64(vgetq_lane_u64(x1, 0),                \
+		                  vgetq_lane_u64(swapped, 0)));         \
+		acc ^= vreinterpretq_u64_p128(                          \
+		        vmull_high_p64(vreinterpretq_p64_u64(x2),       \
+		                       vreinterpretq_p64_u64(swapped))); \
+	} while (0)
+#elif defined(__clang__)
+#define PH2_BODY                                                        \
+	__asm__("pmull.1q   v0, %[swapped], %[x1]     \n\t"             \
+	        "eor.16b    v0, v0, %[acc]            \n\t"             \
+	        "pmull2.1q  %[acc], %[swapped], %[x2] \n\t"             \
+	        "eor.16b    %[acc], %[acc], v0        \n\t"             \
+	        : [acc] "+w"(acc)                                       \
+	        : [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)    \
+	        : "v0")
+#else
+#define PH2_BODY                                                        \
+	__asm__("pmull   v0.1q, %[swapped].1d, %[x1].1d     \n\t"       \
+	        "eor     v0.16b, v0.16b, %[acc].16b         \n\t"       \
+	        "pmull2  %[acc].1q, %[swapped].2d, %[x2].2d \n\t"       \
+	        "eor     %[acc].16b, %[acc].16b, v0.16b     \n\t"       \
+	        : [acc] "+w"(acc)                                       \
+	        : [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)    \
+	        : "v0")
+#endif
+
+#define PH2(I,J)                                                        \
+	do {                                                            \
+		v128 x1, x2;                                            \
+		v128 k;                                                 \
+		                                                        \
+		memcpy(&x1, data, sizeof(x1));                          \
+		data = (const char *)data + sizeof(x1);                 \
+		                                                        \
+		memcpy(&x2, data, sizeof(x2));                          \
+		data = (const char *)data + sizeof(x2);                 \
+		                                                        \
+		GET_PARAM(k, I);                                        \
+		x1 ^= k;                                                \
+		GET_PARAM(k, J);                                        \
+		x2 ^= k;                                                \
+		                                                        \
+		v128 swapped = vextq_u64(x1, x2, 1);                    \
+		PH2_BODY;                                               \
+	} while (0)
+#else
 #define PH2(I, J) do { PH(I); PH(J); } while (0)
 #define PH2_START PH2
+#endif
 
 		PH2_START(0, 2);
 		FORCE();
@@ -430,6 +543,11 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		FORCE();
 
 		PH(28);
+
+#ifdef PH2_START_BODY
+#undef PH2_START_BODY
+#undef PH2_BODY
+#endif
 
 #undef PH2_START
 #undef PH2
