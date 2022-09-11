@@ -1,0 +1,78 @@
+---
+name: 'Run amd64/aarch64 test matrix'
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  amd64_job:
+    runs-on: ubuntu-latest
+    name: Test on amd64/linux
+    strategy:
+      matrix:
+        CC: [clang, gcc]
+        LONG_INPUTS: [UMASH_LONG_INPUTS=0, UMASH_LONG_INPUTS=1]
+        INLINE_ASM: [UMASH_INLINE_ASM=0, UMASH_INLINE_ASM=1]
+    concurrency:
+      group: amd64-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.CC }}-${{ matrix.LONG_INPUTS }}-${{ matrix.INLINE_ASM }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+           sudo apt update
+           sudo apt install -y build-essential gcc clang
+           python3 -m pip install --upgrade pip
+      - name: Output compiler version
+        run: ${{ matrix.CC }} -v
+      - name: Run tests
+        run: t/run-tests.sh
+        env:
+          CC: ${{ matrix.CC }}
+          CFLAGS: -g -O2 -std=c99 -W -Wall -mpclmul -D${{ matrix.LONG_INPUTS }} -D${{ matrix.INLINE_ASM }}
+      - name: Test public interface with regular build
+        run: t/run-tests-public.sh
+        env:
+          CC: ${{ matrix.CC }}
+          CFLAGS: -g -O2 -std=c99 -W -Wall -mpclmul -D${{ matrix.LONG_INPUTS }} -D${{ matrix.INLINE_ASM }}
+
+  arm64_job:
+    runs-on: ubuntu-latest
+    name: Test on arm64
+    concurrency:
+      group: qemu-arm64-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.CC }}-${{ matrix.LONG_INPUTS }}-${{ matrix.INLINE_ASM }}
+      cancel-in-progress: true
+    strategy:
+      matrix:
+        CC: [clang, gcc]
+        LONG_INPUTS: [UMASH_LONG_INPUTS=0, UMASH_LONG_INPUTS=1]
+        INLINE_ASM: [UMASH_INLINE_ASM=0, UMASH_INLINE_ASM=1]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: uraimo/run-on-arch-action@v2
+        name: Test on arm64 (qemu)
+        with:
+          arch: aarch64
+          distro: ubuntu_latest
+          githubToken: ${{ github.token }}
+
+          env: |
+            CC: ${{ matrix.CC }}
+            LONG_INPUTS: ${{ matrix.LONG_INPUTS }}
+            INLINE_ASM: ${{ matrix.INLINE_ASM }}
+
+          shell: /bin/sh
+          install: |
+            apt update
+            apt install -y build-essential gcc clang python3 python3-pip python3-venv
+
+          run: |
+            $CC -v
+            CFLAGS="-g -O2 -std=c99 -W -Wall -Werror -march=armv8-a+crypto -D$LONG_INPUTS -D$INLINE_ASM" t/run-tests.sh
