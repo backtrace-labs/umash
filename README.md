@@ -28,7 +28,7 @@ This C library has also been ported to little-endian aarch64 with the
 crypto extensions (`-march=armv8-a+crypto`).  On the Apple M1's 3.2
 GHz performance cores, the port computes the same function as the
 x86-64 implementation, at a peak throughput of 16 byte/cycle (49.2
-GiB/s).
+GiB/s), and 30 to 52 cycle latency for short input up to 64 bytes.
 
 Unlike most other non-cryptographic hash functions
 ([CLHash](https://github.com/lemire/clhash) and
@@ -151,7 +151,7 @@ automatically run a set of statistical tests on that data. See
 Help wanted
 -----------
 
-The UMASH algorithm is now frozen, but the implementation isn't.  In
+The UMASH function is now frozen, but the implementation isn't.  In
 addition to regular maintenance and portability work, we are open to
 expanding the library's capabilities. For example:
 
