@@ -1,5 +1,5 @@
 ---
-name: 'Run aarch64 test matrix'
+name: 'aarch64 build'
 
 on:
   push:

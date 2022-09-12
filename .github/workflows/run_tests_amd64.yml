@@ -1,5 +1,5 @@
 ---
-name: 'Run amd64 test matrix'
+name: 'amd64 build'
 
 on:
   push:
