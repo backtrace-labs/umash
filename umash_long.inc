@@ -154,7 +154,11 @@ umash_multiple_blocks_initial(uint64_t initial, const uint64_t multipliers[stati
 	return impl(initial, multipliers, oh_ptr, seed, blocks, n_blocks);
 }
 
-TEST_DEF inline uint64_t
+TEST_DEF
+#ifndef UMASH_TEST_ONLY
+inline  /* Can't have an extern inline refer to static data. */
+#endif
+uint64_t
 umash_multiple_blocks(uint64_t initial, const uint64_t multipliers[static 2],
     const uint64_t *oh_ptr, uint64_t seed, const void *blocks, size_t n_blocks)
 {
@@ -182,7 +186,11 @@ umash_fprint_multiple_blocks_initial(struct umash_fp initial,
 	return impl(initial, multipliers, oh, seed, data, n_blocks);
 }
 
-TEST_DEF inline struct umash_fp
+TEST_DEF
+#ifndef UMASH_TEST_ONLY
+inline  /* Can't have an extern inline refer to static data. */
+#endif
+struct umash_fp
 umash_fprint_multiple_blocks(struct umash_fp initial,
     const uint64_t multipliers[static 2][2], const uint64_t *oh, uint64_t seed,
     const void *data, size_t n_blocks)
