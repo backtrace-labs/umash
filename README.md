@@ -1,7 +1,7 @@
 UMASH: a fast almost universal 64-bit string hash
 =================================================
 
-[![Build Status](https://travis-ci.com/backtrace-labs/umash.svg?branch=master)](https://travis-ci.com/backtrace-labs/umash)
+[![amd64](https://github.com/backtrace-labs/umash/actions/workflows/run_tests_amd64.yml/badge.svg?event=push)](https://github.com/backtrace-labs/umash/actions/workflows/run_tests_amd64.yml) [![aarch64](https://github.com/backtrace-labs/umash/actions/workflows/run_tests_aarch64.yml/badge.svg?event=push)](https://github.com/backtrace-labs/umash/actions/workflows/run_tests_aarch64.yml)
 
 STATUS: the hash and fingerprint algorithms are finalized, and so
 is the mapping from `umash_params_derive` inputs to UMASH parameters.
@@ -23,6 +23,11 @@ Its 64-bit output is almost universal, and it, as well as both its
 SMHasher](https://github.com/rurban/smhasher/) and [Yves Orton's
 extended version](https://github.com/demerphq/smhasher) (after
 expanding each seed to a 320-byte key for the latter).
+
+This C library has also been ported to little-endian aarch64 with the
+crypto extensions (`-march=armv8-a+crypto`).  On the Apple M1's 3.2
+GHz performance cores, the port computes the same function as the
+x86-64 implementation at a peak throughput of 16 byte/cycle.
 
 Unlike most other non-cryptographic hash functions
 ([CLHash](https://github.com/lemire/clhash) and
