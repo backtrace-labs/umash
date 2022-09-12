@@ -9,7 +9,7 @@ However, the ABI is not finalized; in particular, passing random bytes
 to `umash_params_prepare` may still result in different parameters.
 
 UMASH is a string hash function with throughput (10.9 byte/cycle, or
-40.9 GB/s on an EPYC 7713) and latency (24 to 48 cycles for input
+39.5 GiB/s on an EPYC 7713) and latency (24 to 48 cycles for input
 sizes up to 64 bytes on the same machine) comparable to that of
 contemporary performance-optimised hashes like
 [XXH3](https://github.com/Cyan4973/xxHash),
@@ -27,7 +27,8 @@ expanding each seed to a 320-byte key for the latter).
 This C library has also been ported to little-endian aarch64 with the
 crypto extensions (`-march=armv8-a+crypto`).  On the Apple M1's 3.2
 GHz performance cores, the port computes the same function as the
-x86-64 implementation at a peak throughput of 16 byte/cycle.
+x86-64 implementation, at a peak throughput of 16 byte/cycle (49.2
+GiB/s).
 
 Unlike most other non-cryptographic hash functions
 ([CLHash](https://github.com/lemire/clhash) and
@@ -42,7 +43,7 @@ than `ceil(s / 4096) 2**-55`.
 
 UMASH also offers a fingerprinting function that computes a second
 64-bit hash concurrently with the regular UMASH value.  That
-function's throughput (7.5 byte/cycle, 27.7 GB/s on an EPYC 7713) and
+function's throughput (7.5 byte/cycle, 25.8 GiB/s on an EPYC 7713) and
 latency (37 to 74 cycles for inputs sizes up to 64 bytes on the same
 machine) comparable to that of classic hash functions like
 [MurmurHash3](https://github.com/aappleby/smhasher/wiki/MurmurHash3)
@@ -51,7 +52,7 @@ Combining the two hashes yields a
 [128-bit fingerprint](https://en.wikipedia.org/wiki/Fingerprint_(computing)#Virtual_uniqueness)
 that collides pairs of `s`-or-fewer-byte inputs with probability less
 than `ceil(s / 2**26)**2 * 2**-83`; that's less than `2**-70`
-(`1e-21`) for up to 5 GB of data.
+(`1e-21`) for up to 5 GiB of data.
 
 See `umash_reference.py` (pre-rendered in `umash.pdf`) for details and
 rationale about the design, and a proof sketch for the collision bound.
