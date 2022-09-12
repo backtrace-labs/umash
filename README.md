@@ -70,9 +70,7 @@ that support the [integer overflow builtins](https://gcc.gnu.org/onlinedocs/gcc/
 introduced by GCC 5 (April 2015) and targets x86-64 machines with the
 [CLMUL](https://en.wikipedia.org/wiki/CLMUL_instruction_set) extension
 (available since 2011 on Intel and AMD), or aarch64 with the "crypto"
-extension (for `VMULL`).  We only test the performance of UMASH on
-x86-64 because that's the platform where hashing performance matters
-at [Backtrace](https://backtrace.io/).
+extension (for `PMULL`).
 
 Quick start
 -----------
