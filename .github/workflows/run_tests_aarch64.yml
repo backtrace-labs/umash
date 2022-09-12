@@ -1,5 +1,5 @@
 ---
-name: 'aarch64 build'
+name: 'aarch64 (qemu) build'
 
 on:
   push:
