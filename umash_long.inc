@@ -413,8 +413,8 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
  * instructions in pairs that work well on Apple ARMs.
  */
 #if !UMASH_INLINE_ASM
-#define PH2_START_BODY                                                             \
-	do {                                                                       \
+#define PH2_START_BODY								   \
+	do {									   \
 		v128 result;                                                       \
 		result = vreinterpretq_u64_p128(                                   \
 		    vmull_p64(vgetq_lane_u64(x1, 0), vgetq_lane_u64(swapped, 0))); \
@@ -424,22 +424,26 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		acc ^= result;                                                     \
 	} while (0)
 #elif defined(__clang__)
-#define PH2_START_BODY                                               \
-	__asm__("pmull.1q   v0, %[swapped], %[x1]     \n\t"          \
-		"pmull2.1q  %[acc], %[swapped], %[x2] \n\t"          \
-		"eor.16b    %[acc], %[acc], v0        \n\t"          \
-		: [acc] "=w"(acc)                                    \
-		: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2) \
-		: "v0")
+#define PH2_START_BODY							\
+	do {								\
+		v128 tmp;						\
+		__asm__("pmull.1q   %[tmp], %[swapped], %[x1]  \n\t"	\
+			"pmull2.1q  %[acc], %[swapped], %[x2]  \n\t"	\
+			"eor.16b    %[acc], %[acc],     %[tmp] \n\t"	\
+			: [acc] "=w"(acc), [tmp]"=&w"(tmp)		\
+			: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)); \
+	} while (0)
 #else
 /* Assume GCC syntax if !clang. */
-#define PH2_START_BODY                                               \
-	__asm__("pmull   v0.1q, %[swapped].1d, %[x1].1d     \n\t"    \
-		"pmull2  %[acc].1q, %[swapped].2d, %[x2].2d \n\t"    \
-		"eor     %[acc].16b, %[acc].16b, v0.16b     \n\t"    \
-		: [acc] "=w"(acc)                                    \
-		: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2) \
-		: "v0")
+#define PH2_START_BODY							\
+	do {							        \
+		v128 tmp;						\
+		__asm__("pmull   %[tmp].1q,  %[swapped].1d, %[x1].1d    \n\t" \
+			"pmull2  %[acc].1q,  %[swapped].2d, %[x2].2d    \n\t" \
+			"eor     %[acc].16b, %[acc].16b,    %[tmp].16b  \n\t" \
+			: [acc] "=w"(acc), [tmp]"=&w"(tmp)		\
+			: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)); \
+	} while (0)
 #endif
 #define PH2_START(I, J)                                 \
 	do {                                            \
@@ -475,23 +479,27 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 		    vreinterpretq_p64_u64(x2), vreinterpretq_p64_u64(swapped)));   \
 	} while (0)
 #elif defined(__clang__)
-#define PH2_BODY                                                     \
-	__asm__("pmull.1q   v0, %[swapped], %[x1]     \n\t"          \
-		"eor.16b    v0, v0, %[acc]            \n\t"          \
-		"pmull2.1q  %[acc], %[swapped], %[x2] \n\t"          \
-		"eor.16b    %[acc], %[acc], v0        \n\t"          \
-		: [acc] "+w"(acc)                                    \
-		: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2) \
-		: "v0")
+#define PH2_BODY                                                        \
+	do {						                \
+		v128 tmp;						\
+		__asm__("pmull.1q   %[tmp], %[swapped], %[x1] \n\t"	\
+			"eor.16b    %[tmp], %[tmp], %[acc]    \n\t"	\
+			"pmull2.1q  %[acc], %[swapped], %[x2] \n\t"	\
+			"eor.16b    %[acc], %[acc], %[tmp]    \n\t"	\
+			: [acc] "+w"(acc), [tmp] "=&w"(tmp)		\
+			: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2)); \
+	} while (0)
 #else
-#define PH2_BODY                                                     \
-	__asm__("pmull   v0.1q, %[swapped].1d, %[x1].1d     \n\t"    \
-		"eor     v0.16b, v0.16b, %[acc].16b         \n\t"    \
-		"pmull2  %[acc].1q, %[swapped].2d, %[x2].2d \n\t"    \
-		"eor     %[acc].16b, %[acc].16b, v0.16b     \n\t"    \
-		: [acc] "+w"(acc)                                    \
-		: [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2) \
-		: "v0")
+#define PH2_BODY                                                        \
+	 do {						                \
+		 v128 tmp;						\
+		 __asm__("pmull   %[tmp].1q,  %[swapped].1d, %[x1].1d   \n\t" \
+			 "eor     %[tmp].16b, %[tmp].16b,    %[acc].16b \n\t" \
+			 "pmull2  %[acc].1q,  %[swapped].2d, %[x2].2d   \n\t" \
+			 "eor     %[acc].16b, %[acc].16b,    %[tmp].16b \n\t" \
+			 : [acc] "+w"(acc), [tmp]"=&w"(tmp)		\
+			 : [swapped] "w"(swapped), [x1] "w"(x1), [x2] "w"(x2));	\
+	} while (0)
 #endif
 
 #define PH2(I, J)                                       \
