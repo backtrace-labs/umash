@@ -574,6 +574,7 @@ umash_multiple_blocks_generic(uint64_t initial, const uint64_t multipliers[stati
 			data = (const char *)data + sizeof(x);
 			memcpy(&y, data, sizeof(y));
 			data = (const char *)data + sizeof(y);
+			(void)data;  /* last assignment only for clarity */
 
 			x += kx;
 			y += ky;
@@ -852,6 +853,7 @@ umash_multiple_blocks_vpclmulqdq(uint64_t initial, const uint64_t multipliers[st
 			data = (const char *)data + sizeof(x);
 			memcpy(&y, data, sizeof(y));
 			data = (const char *)data + sizeof(y);
+			(void)data;  /* last assignment only for clarity */
 
 			x += kx;
 			y += ky;
