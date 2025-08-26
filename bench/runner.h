@@ -20,6 +20,17 @@
  */
 struct bench_individual_options {
 	size_t size; /* sizeof(struct bench_individual_options) */
+
+	/*
+	 * When `flush_code` is non-zero, the benchmarking loop
+	 * CLFLUSHes out all umash code before every hash call.
+	 *
+	 * flush_code = 0: keep code hot in cache
+	 * flush_code = 1: try to move code back into L2
+	 * flush_code = 2: try to move code back into L3
+	 * flush_code >= 3: leave code fully flushed out.
+	 */
+	int flush_code;
 };
 
 /*

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <x86intrin.h>
 
 #include "umash.h"
 
@@ -28,6 +29,45 @@ setup_params(void)
 
 	for (size_t i = 0; i < 2; i++)
 		umash_params_derive(&params[i], 42 + i, NULL);
+	return;
+}
+
+static inline void
+cpuid_barrier(void)
+{
+
+	asm volatile("cpuid\n\t" ::: "%rax", "%rdx", "%rbx", "%rcx", "memory", "cc");
+	return;
+}
+
+static __attribute__((__noinline__)) void
+flush_code(int level)
+{
+	uintptr_t begin = (uintptr_t)ID(__start_umash_code);
+	uintptr_t end = (uintptr_t)ID(__stop_umash_code);
+
+	if (level == 0)
+		return;
+
+	for (uintptr_t addr = begin; addr < end; addr += 64)
+		_mm_clflush((void *)addr);
+
+	cpuid_barrier();
+
+	switch (level) {
+	case 1:
+		for (uintptr_t addr = begin; addr < end; addr += 64)
+			_mm_prefetch((void *)addr, _MM_HINT_T1);
+		break;
+	case 2:
+		for (uintptr_t addr = begin; addr < end; addr += 64)
+			_mm_prefetch((void *)addr, _MM_HINT_T2);
+		break;
+	default:
+		return;
+	}
+
+	cpuid_barrier();
 	return;
 }
 
@@ -140,15 +180,36 @@ uint64_t ID(umash_bench_fp_aggregate)(
 	return end - begin;
 }
 
-void ID(umash_bench_individual)(const struct bench_individual_options *options,
+static struct bench_individual_options
+normalize_options(const struct bench_individual_options *options)
+{
+	struct bench_individual_options ret = {
+		.size = sizeof(ret),
+	};
+
+	if (options == NULL)
+		return ret;
+
+	if (options->size < ret.size) {
+		memcpy(&ret, options, options->size);
+	} else {
+		memcpy(&ret, options, sizeof(ret));
+	}
+
+	ret.size = sizeof(ret);
+	return ret;
+}
+
+void ID(umash_bench_individual)(const struct bench_individual_options *options_ptr,
     uint64_t *restrict timings, const size_t *input_len, size_t num_trials,
     size_t max_len)
 {
+	struct bench_individual_options options;
 	size_t bufsz = ALLOC_ALIGNMENT * (1 + (max_len + JITTER_MASK) / ALLOC_ALIGNMENT);
 	char *buf;
 	uint64_t seed = 0;
 
-	(void)options;
+	options = normalize_options(options_ptr);
 	if (posix_memalign((void *)&buf, ALLOC_ALIGNMENT, bufsz) != 0)
 		assert(0 && "Failed to allocate buffer.");
 
@@ -158,6 +219,7 @@ void ID(umash_bench_individual)(const struct bench_individual_options *options,
 		uint64_t begin, end;
 		uint64_t hash;
 
+		flush_code(options.flush_code);
 		begin = get_ticks_begin(&seed);
 		seed += begin;
 
@@ -174,15 +236,16 @@ void ID(umash_bench_individual)(const struct bench_individual_options *options,
 	return;
 }
 
-void ID(umash_bench_fp_individual)(const struct bench_individual_options *options,
+void ID(umash_bench_fp_individual)(const struct bench_individual_options *options_ptr,
     uint64_t *restrict timings, const size_t *input_len, size_t num_trials,
     size_t max_len)
 {
+	struct bench_individual_options options;
 	size_t bufsz = ALLOC_ALIGNMENT * (1 + (max_len + JITTER_MASK) / ALLOC_ALIGNMENT);
 	char *buf;
 	uint64_t seed = 0;
 
-	(void)options;
+	options = normalize_options(options_ptr);
 	if (posix_memalign((void *)&buf, ALLOC_ALIGNMENT, bufsz) != 0)
 		assert(0 && "Failed to allocate buffer.");
 
@@ -193,6 +256,7 @@ void ID(umash_bench_fp_individual)(const struct bench_individual_options *option
 		uint64_t begin, end;
 		uint64_t hash;
 
+		flush_code(options.flush_code);
 		begin = get_ticks_begin(&seed);
 		seed += begin;
 
