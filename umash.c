@@ -483,7 +483,8 @@ TEST_DEF void
 salsa20_stream(
     void *dst, size_t len, const uint8_t nonce[static 8], const uint8_t key[static 32])
 {
-	static const uint8_t sigma[16] = "expand 32-byte k";
+	static const uint8_t sigma[16] = { 'e', 'x', 'p', 'a', 'n', 'd', ' ', '3', '2',
+		'-', 'b', 'y', 't', 'e', ' ', 'k' };
 	uint8_t in[16];
 
 	if (len == 0)
@@ -1042,7 +1043,9 @@ umash_params_prepare(struct umash_params *params)
 FN void
 umash_params_derive(struct umash_params *params, uint64_t bits, const void *key)
 {
-	uint8_t umash_key[32] = "Do not use UMASH VS adversaries.";
+	uint8_t umash_key[32] = { 'D', 'o', ' ', 'n', 'o', 't', ' ', 'u', 's', 'e', ' ',
+		'U', 'M', 'A', 'S', 'H', ' ', 'V', 'S', ' ', 'a', 'd', 'v', 'e', 'r', 's',
+		'a', 'r', 'i', 'e', 's', '.' };
 
 	if (key != NULL)
 		memcpy(umash_key, key, sizeof(umash_key));
