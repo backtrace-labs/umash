@@ -76,7 +76,8 @@ run_range(const char *buf, size_t start_offset, size_t len)
 	static const uint64_t seeds[] = { 0, 123 };
 	const void *start = buf + start_offset;
 
-	for (size_t seed_idx = 0; seed_idx < sizeof(seeds) / sizeof(seeds[0]); seed_idx++) {
+	for (size_t seed_idx = 0; seed_idx < sizeof(seeds) / sizeof(seeds[0]);
+	    seed_idx++) {
 		struct umash_fp fprint;
 		const uint64_t seed = seeds[seed_idx];
 		uint64_t low, high;
@@ -87,15 +88,16 @@ run_range(const char *buf, size_t start_offset, size_t len)
 
 		if (fprint.hash[0] != low || fprint.hash[1] != high) {
 			fprintf(stderr,
-				"Obvious mismatch len=%zu offset=%zu seed=%"PRIu64": "
-				"%016" PRIx64 " %016" PRIx64 " %016" PRIx64 " %016" PRIx64 "\n",
-				len, start_offset, seed,
-				fprint.hash[0], fprint.hash[1], low, high);
+			    "Obvious mismatch len=%zu offset=%zu seed=%" PRIu64 ": "
+			    "%016" PRIx64 " %016" PRIx64 " %016" PRIx64 " %016" PRIx64
+			    "\n",
+			    len, start_offset, seed, fprint.hash[0], fprint.hash[1], low,
+			    high);
 		}
 
 		/* Lower case hex, left 0-padded to 16 characters. */
 		printf("%016" PRIx64 " %016" PRIx64 " %016" PRIx64 " %016" PRIx64 "\n",
-		       fprint.hash[0], fprint.hash[1], low, high);
+		    fprint.hash[0], fprint.hash[1], low, high);
 	}
 
 	return;
@@ -105,7 +107,7 @@ static int
 run_test_set(void)
 {
 	static const char expected_sum[] =
-		"50fff4f41f27a3464445e47bb270c3e027388198aed8734efdba6460d04a3624";
+	    "50fff4f41f27a3464445e47bb270c3e027388198aed8734efdba6460d04a3624";
 	static const size_t padding = 512;
 	static const size_t max_len = 4 * 256 * 1024;
 	static const size_t num_bytes = max_len + padding;
@@ -116,8 +118,8 @@ run_test_set(void)
 		buf[i] = next();
 
 	fprintf(stderr,
-		"Running %zu test set iterations.  Run as ./example | sha256sum --strict --check <(echo '%s  -')\n",
-		max_len + 1, expected_sum);
+	    "Running %zu test set iterations.  Run as ./example | sha256sum --strict --check <(echo '%s  -')\n",
+	    max_len + 1, expected_sum);
 
 	size_t last_offset = 1;
 	size_t since_last_print = 0;
@@ -140,7 +142,7 @@ run_test_set(void)
 	}
 
 	fprintf(stderr, "Completed test set.  Expected `./example | sha256sum`: %s\n",
-		expected_sum);
+	    expected_sum);
 
 	return 0;
 }
@@ -157,8 +159,7 @@ main(int argc, char **argv)
 	umash_params_derive(&my_params, 0, my_secret);
 
 	if (argc <= 1)
-	    return run_test_set();
-
+		return run_test_set();
 
 	input = argv[1];
 	input_size = strlen(input);

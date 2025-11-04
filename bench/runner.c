@@ -48,8 +48,8 @@ get_ticks_begin(uint64_t *compiler_barrier)
 
 	asm volatile("cpuid\n\t"
 		     "rdtsc"
-		     : "=a"(lo), "=d"(hi), "+r"(*compiler_barrier)::"%rbx", "%rcx",
-		     "memory", "cc");
+	    : "=a"(lo), "=d"(hi), "+r"(*compiler_barrier)::"%rbx", "%rcx", "memory",
+	    "cc");
 	return ((uint64_t)hi << 32) | lo;
 }
 
@@ -62,8 +62,8 @@ get_ticks_end(void)
 		     "mov %%eax, %[lo]\n\t"
 		     "mov %%edx, %[hi]\n\t"
 		     "cpuid"
-		     : [lo] "=r"(lo), [hi] "=r"(hi)::"%rax", "%rdx", "%rbx", "%rcx",
-		     "memory", "cc");
+	    : [lo] "=r"(lo), [hi] "=r"(hi)::"%rax", "%rdx", "%rbx", "%rcx", "memory",
+	    "cc");
 	return ((uint64_t)hi << 32) | lo;
 }
 
@@ -82,8 +82,8 @@ get_ticks_end(void)
  */
 #define JITTER_MASK ALLOC_ALIGNMENT
 
-uint64_t ID(umash_bench_aggregate)(
-    const size_t *input_len, size_t num_trials, size_t max_len)
+uint64_t
+ID(umash_bench_aggregate)(const size_t *input_len, size_t num_trials, size_t max_len)
 {
 	size_t bufsz = ALLOC_ALIGNMENT * (1 + (max_len + JITTER_MASK) / ALLOC_ALIGNMENT);
 	char *buf;
@@ -110,8 +110,8 @@ uint64_t ID(umash_bench_aggregate)(
 	return end - begin;
 }
 
-uint64_t ID(umash_bench_fp_aggregate)(
-    const size_t *input_len, size_t num_trials, size_t max_len)
+uint64_t
+ID(umash_bench_fp_aggregate)(const size_t *input_len, size_t num_trials, size_t max_len)
 {
 	size_t bufsz = ALLOC_ALIGNMENT * (1 + (max_len + JITTER_MASK) / ALLOC_ALIGNMENT);
 	char *buf;
@@ -140,7 +140,8 @@ uint64_t ID(umash_bench_fp_aggregate)(
 	return end - begin;
 }
 
-void ID(umash_bench_individual)(const struct bench_individual_options *options,
+void
+ID(umash_bench_individual)(const struct bench_individual_options *options,
     uint64_t *restrict timings, const size_t *input_len, size_t num_trials,
     size_t max_len)
 {
@@ -174,7 +175,8 @@ void ID(umash_bench_individual)(const struct bench_individual_options *options,
 	return;
 }
 
-void ID(umash_bench_fp_individual)(const struct bench_individual_options *options,
+void
+ID(umash_bench_fp_individual)(const struct bench_individual_options *options,
     uint64_t *restrict timings, const size_t *input_len, size_t num_trials,
     size_t max_len)
 {
